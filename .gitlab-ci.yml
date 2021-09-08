@@ -1,0 +1,25 @@
+image: docker:19.03.1
+
+build:
+  only:
+    - tags
+  services:
+    - docker:19.03.1-dind
+  script:
+    - apk add --update docker
+    - docker login
+      --username gitlab-ci-token
+      --password $CI_JOB_TOKEN $CI_REGISTRY
+    - docker build
+      --force-rm
+      --tag $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_NAME
+      --build-arg REPO_USER=gitlab-ci-token 
+      --build-arg REPO_TOKEN=${CI_JOB_TOKEN}
+      --build-arg http_proxy=$http_proxy
+      --build-arg https_proxy=$https_proxy
+      .
+    - docker push
+      $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_NAME
+    - docker rmi
+      --force
+      $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_NAME
