@@ -5,7 +5,7 @@ WORKDIR /chAMReDb
 ENV NODE_ENV=production
 
 # install produciton deps
-RUN npm install
+RUN npm install --force
 
 # runs webpack build
 RUN npm run build
