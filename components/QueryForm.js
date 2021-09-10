@@ -2,6 +2,7 @@ import axios from "axios";
 import React from "react";
 import MatchesList from "./MatchesList";
 import Textfield from "./Textfield";
+import { Button } from "./Button";
 
 class QueryForm extends React.PureComponent {
   state = {
@@ -70,11 +71,12 @@ class QueryForm extends React.PureComponent {
             />
           </div>
           <div className='flex justify-center lg:justify-start'>
-            <button
+            <Button
               onClick={this.submitQuery}
+              className='bg-blue-600 text-white dark:bg-indigo-300 dark:text-gray-800'
             >
               Query
-            </button>
+            </Button>
           </div>
         </div>
         <div className='grid grid-cols-1 justify-center lg:grid-cols-3 lg:justify-start gap-6 bg-blue-200'>
