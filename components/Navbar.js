@@ -6,8 +6,9 @@ import { MoonIcon, MenuIcon, XIcon , MenuAlt3Icon} from '@heroicons/react/outlin
 import { useTheme } from "next-themes";
 
 const navigation = [
-  { name: 'About', href: '/about', current: false },
-  { name: 'Code', href: '/code', current: false },
+  { name: 'Query', href: '/', current: true, newWindow: false },
+  { name: 'About', href: '/about', current: false, newWindow: false  },
+  { name: 'Code', href: 'https://gitlab.com/antunderwood/chamredb', current: false, newWindow: true },
 ];
 
 function classNames(...classes) {
@@ -67,6 +68,7 @@ export default function Navbar() {
                             'px-3 py-2 rounded-md text-sm font-medium'
                           )}
                           aria-current={item.current ? 'page' : undefined}
+                          target={item.newWindow ? '_blank' : undefined}
                         >
                           {item.name}
                         </a>
