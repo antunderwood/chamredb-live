@@ -1,11 +1,11 @@
 FROM node:lts-alpine
-COPY ./ /chAMReDb/
-WORKDIR /chAMReDb
+COPY ./ /charmed/
+WORKDIR /charmed
 
 ENV NODE_ENV=production
 
-# install produciton deps
-RUN npm install --force
+# install  deps
+RUN npm install
 
 # runs webpack build
 RUN npm run build
