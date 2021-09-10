@@ -2,13 +2,14 @@ import React from 'react';
 import { Fragment } from 'react';
 import { Disclosure, Menu, Transition } from '@headlessui/react';
 import Link  from 'next/link'
+import { useRouter } from 'next/router'
 import { MoonIcon, MenuIcon, XIcon , MenuAlt3Icon} from '@heroicons/react/outline';
 import { useTheme } from "next-themes";
 
 const navigation = [
-  { name: 'Query', href: '/', current: true, newWindow: false },
-  { name: 'About', href: '/about', current: false, newWindow: false  },
-  { name: 'Code', href: 'https://gitlab.com/antunderwood/chamredb', current: false, newWindow: true },
+  { name: 'Query', href: '/', newWindow: false },
+  { name: 'About', href: '/about', newWindow: false  },
+  { name: 'Code', href: 'https://gitlab.com/antunderwood/chamredb', newWindow: true },
 ];
 
 function classNames(...classes) {
@@ -19,6 +20,7 @@ export default function Navbar() {
   const [isDark, setisDark] = React.useState(false);
   const [mounted, setMounted] = React.useState(false);
   const { theme, setTheme } = useTheme();
+  const router = useRouter()
 
   // When mounted on client, now we can show the UI
   React.useEffect(() => {
@@ -64,10 +66,10 @@ export default function Navbar() {
                       >
                         <a
                           className={classNames(
-                            item.current ? 'bg-gray-900 text-white' : 'text-gray-300 hover:bg-gray-700 hover:text-white',
+                            router.pathname === item.href  ? 'bg-gray-900 text-white' : 'text-gray-300 hover:bg-gray-700 hover:text-white',
                             'px-3 py-2 rounded-md text-sm font-medium'
                           )}
-                          aria-current={item.current ? 'page' : undefined}
+                          aria-current={ router.pathname === item.href ? 'page' : undefined}
                           target={item.newWindow ? '_blank' : undefined}
                         >
                           {item.name}
