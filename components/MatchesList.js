@@ -12,17 +12,19 @@ class MatchesList extends React.PureComponent {
     }
 
     return (
-      <ul
-        className={styles.list}
-      >
-        {
-          props.matches.map((match, index) => (
-            <li key={index}>
-              {JSON.stringify(match)}
-            </li>
-          ))
-        }
-      </ul>
+      <div className='col-span-3 py-8'>
+        <ul
+          className={styles.list}
+        >
+          {
+            props.matches.map((match, index) => (
+              <li key={index}>
+                {JSON.stringify(match)}
+              </li>
+            ))
+          }
+        </ul>
+      </div>
     );
   }
   

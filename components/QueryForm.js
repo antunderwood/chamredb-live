@@ -33,7 +33,7 @@ class QueryForm extends React.PureComponent {
 
     if (state.error) {
       return (
-        <div>
+        <div className='col-span-3'>
           {JSON.stringify(state.error)}
         </div>
       );
@@ -53,28 +53,34 @@ class QueryForm extends React.PureComponent {
   render() {
     const { state, props } = this;
     return (
-      <div>
-        <div>
-          <Textfield
-            value={state.database}
-            label="Database"
-            onChange={(value) => this.setState({ database: value })}
-          />
-          <Textfield
-            value={state.id}
-            label="ID"
-            onChange={(value) => this.setState({ id: value })}
-          />
-          <button
-            onClick={this.submitQuery}
-          >
-            Query
-          </button>
+      <>
+        <div className='grid grid-cols-1 lg:grid-cols-3 gap-6 py-8 dark:bg-gray-400'>
+          <div className='flex justify-center lg:justify-start'>
+            <Textfield
+              value={state.database}
+              label="Database"
+              onChange={(value) => this.setState({ database: value })}
+            />
+          </div>
+          <div className='flex justify-center lg:justify-start'>
+            <Textfield
+              value={state.id}
+              label="ID"
+              onChange={(value) => this.setState({ id: value })}
+            />
+          </div>
+          <div className='flex justify-center lg:justify-start'>
+            <button
+              onClick={this.submitQuery}
+            >
+              Query
+            </button>
+          </div>
         </div>
-        <div>
+        <div className='grid grid-cols-1 justify-center lg:grid-cols-3 lg:justify-start gap-6 bg-blue-200'>
           { this.renderMatches() }
         </div>
-      </div>
+      </>
     );
   }
 }
