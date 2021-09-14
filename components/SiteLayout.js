@@ -10,9 +10,6 @@ const SiteLayout = ({children}) =>  {
       </Head>
       <Navbar />
       <main className='max-w-7xl px-4 mx-auto w-full'>
-          <div className='w-full text-center'>
-          <h1>chAMR😍Db</h1>
-          </div>
           {children}
       </main>
 

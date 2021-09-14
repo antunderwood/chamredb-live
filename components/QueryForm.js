@@ -3,6 +3,7 @@ import React from "react";
 import MatchesList from "./MatchesList";
 import Textfield from "./Textfield";
 import { Button } from "./Button";
+import Dropdown from "./Dropdown";
 
 class QueryForm extends React.PureComponent {
   state = {
@@ -55,31 +56,34 @@ class QueryForm extends React.PureComponent {
     const { state, props } = this;
     return (
       <>
-        <div className='grid grid-cols-1 lg:grid-cols-3 gap-6 py-8 dark:bg-gray-400'>
+        <div className='grid grid-cols-1 lg:grid-cols-3 gap-6 py-8 dark:bg-gray-800 dark:text-white'>
           <div className='flex justify-center lg:justify-start'>
-            <Textfield
+            <Dropdown
               value={state.database}
+              items = {[["card", "Card"],["ncbi", "NCBI"], ["resfinder", "Resfinder"]]}
+              selected = "resfinder"
               label="Database"
-              onChange={(value) => this.setState({ database: value })}
-            />
+              onChange={(value) => this.setState({ database: value.trim() })}
+            />  
           </div>
           <div className='flex justify-center lg:justify-start'>
             <Textfield
               value={state.id}
               label="ID"
-              onChange={(value) => this.setState({ id: value })}
+              onChange={(value) => this.setState({ id: value.trim() })}
+              onClick={(value) => this.setState({ id: ''})}
             />
           </div>
           <div className='flex justify-center lg:justify-start'>
             <Button
               onClick={this.submitQuery}
-              className='bg-blue-600 text-white dark:bg-indigo-300 dark:text-gray-800'
+              className='bg-blue-600 text-white dark:bg-blue-200       dark:text-gray-800'
             >
               Query
             </Button>
           </div>
         </div>
-        <div className='grid grid-cols-1 justify-center lg:grid-cols-3 lg:justify-start gap-6 bg-blue-200'>
+        <div className='my-5'>
           { this.renderMatches() }
         </div>
       </>

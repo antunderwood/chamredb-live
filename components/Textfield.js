@@ -9,6 +9,7 @@ const Textfield = React.memo(
           type="text"
           value={props.value}
           onChange={(event) => props.onChange(event.target.value)}
+          onClick={props.onClick}
         />
       </label>
     );

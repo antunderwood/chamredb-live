@@ -1,4 +1,4 @@
-import QueryForm from '../components/QueryForm'
+import QueryForm from '../components/QueryForm';
 
 export default function Home() {
   return (
