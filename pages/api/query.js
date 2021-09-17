@@ -8,8 +8,8 @@ export default function handler(req, res) {
     return res.status(400).send();
   }
   try {
-    const matches = database_utils.query(database, id);
-    res.json(matches);
+    const match_info = database_utils.query(database, id);
+    return res.status(200).json(match_info);
   }
   catch (error) {
     if (error.name === "JSNetworkXError") {

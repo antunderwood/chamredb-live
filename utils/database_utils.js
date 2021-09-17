@@ -1,22 +1,34 @@
 const  G = require("./graph.js");
 
 function query(database, id) {
-    const matches = [];
+    const match_info = {};
     source = get_node(database, id)
-    for (const target of G.neighbors(source)){
-        const edgeData = G.getEdgeData(source, target);
-        const targetData = G.node.get(target);
-        // remove nested objects that are not required
-        ['alternative_id', 'duplicate_allele_ids'].map((key) => (delete targetData[key]))
-        matches.push(
-            {
-                edgeData,
-                targetData,
-            }
-        )
+    if (!source){
+        return {query: null, match_info: []}
     }
-    bestMatches = getBestMatches(matches);
-    return bestMatches;
+    else {
+        sourceData = G.node.get(source);
+        // remove nested objects that are not required
+        ['alternative_id', 'duplicate_allele_ids'].map((key) => (delete sourceData[key]));
+        match_info['query'] = sourceData;
+        match_info['matches'] = [];
+        matches = [];
+        for (const target of G.neighbors(source)){
+            const edgeData = G.getEdgeData(source, target);
+            const targetData = G.node.get(target);
+            // remove nested objects that are not required
+            ['alternative_id', 'duplicate_allele_ids'].map((key) => (delete targetData[key]));
+            matches.push(
+                {
+                    edgeData,
+                    targetData,
+                }
+            );
+        }
+        bestMatches = getBestMatches(matches);
+        match_info['matches'] = bestMatches;
+        return match_info;
+    }
 }
 
 function getBestMatches(matches){
@@ -52,6 +64,7 @@ function get_node(database, id) {
             }
         }
     }
+    return null
 }
 
 module.exports = { query };
