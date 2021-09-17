@@ -7,11 +7,12 @@ const Dropdown = React.memo(
         { props.label }
         <select
           onChange={(event) => props.onChange(event.target.value)}
+          value={props.defaultValue ? props.defaultValue : null}
           className="ml-2"
         >
           {
             props.items.map((item, index) => (
-              <option key={"dropdown-" + index} value={item[0]} selected={props.selected && item[0] === props.selected ? "selected" : null}>{item[1]}</option>
+              <option key={"dropdown-" + index} value={item[0]} >{item[1]}</option>
             ))
           }
         </select>

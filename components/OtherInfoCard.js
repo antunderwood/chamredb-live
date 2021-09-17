@@ -12,13 +12,13 @@ const OtherInfoCard = React.memo(
              Object.entries(props.otherInfo).map(([key, value])=> (
               <>
                 <li
-                  className="bg-green-700 dark:bg-green-200 text-white dark:text-gray-800 py-1 px-2 rounded-sm"
+                  className="bg-green-700 dark:bg-green-300 text-white dark:text-gray-800 py-1 px-2 rounded-sm"
                   key={key+value}
                 >
                   {key}
                 </li>
                 <ul className="list-disc ml-8">
-                  <li className="text-green-700 dark:text-green-200 text-2xl">
+                  <li className="text-green-700 dark:text-green-300 text-2xl">
                     <div className="text-black dark:text-white text-base">{value}</div>
                   </li>
                 </ul>
