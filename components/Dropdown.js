@@ -7,7 +7,7 @@ const Dropdown = React.memo(
         { props.label }
         <select
           onChange={(event) => props.onChange(event.target.value)}
-          value={props.defaultValue ? props.defaultValue : null}
+          value={props.value}
           className="ml-2"
         >
           {
