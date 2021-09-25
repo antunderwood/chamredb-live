@@ -8,7 +8,12 @@ const ExampleLink = React.memo(
       "resfinder": "Resfinder",
     };
     return(
-      <li onClick={() => props.onClick(props.database, props.id)}>{databases[props.database]} and {props.id}</li>
+      <div
+        onClick={() => props.onClick(props.database, props.id)}
+        className="flex rounded-md bg-blue-100 dark:bg-blue-700 text-gray-800 dark:text-gray-100 p-4 mb-2 mr-2 justify-center"
+      >
+          {databases[props.database]} and {props.id}
+      </div>
     )
   }
 );

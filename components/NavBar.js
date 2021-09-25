@@ -91,7 +91,7 @@ export default function Navbar() {
                   />
                 </button>
                 {/* Profile dropdown */}
-                <Menu as="div" className="ml-3 relative">
+                {/* <Menu as="div" className="ml-3 relative">
                   <div>
                     <Menu.Button className="text-white">
                       <span className="sr-only">Open menu</span>
@@ -140,7 +140,7 @@ export default function Navbar() {
                       </Menu.Item>
                     </Menu.Items>
                   </Transition>
-                </Menu>
+                </Menu> */}
               </div>
             </div>
           </div>

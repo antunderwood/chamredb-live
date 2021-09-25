@@ -7,18 +7,27 @@ import QueryResult from "./QueryResult";
 import { ExclamationCircleIcon} from '@heroicons/react/outline';
 import ExampleLink from "./ExampleLink";
 
+const initialState = {
+  database: "resfinder",
+  id: "blaNDM-1",
+  loading: false,
+  result: null,
+};
 class QueryForm extends React.PureComponent {
-  state = {
-    database: "resfinder",
-    id: "blaNDM-1",
-    submitted: false,
-    query: null,
-    matches: []
+  state = initialState;
+  submitQuery = () => {
+    this.setState(
+      {
+        loading: true,
+        result: initialState.result,
+      },
+      this.postQuery
+    )
+
   }
 
-  submitQuery = () => {
+  postQuery = () => {
     const { state, props } = this;
-    state.submitted = true;
     axios.post(
       "/api/query",
       {
@@ -30,17 +39,21 @@ class QueryForm extends React.PureComponent {
       .then(data => {
         this.setState(
           { 
-            query: data.query,
-            matches: data.matches,
-            error: null
+            result: data,
+            error: null,
+            loading: false,
           }
         );
       })
       .catch(error => {
-        this.setState({ error });
+        this.setState(
+          {
+            error,
+            loading:false,
+          }
+        );
       })
   }
-
   renderMatches() {
     const { state } = this;
 
@@ -53,84 +66,107 @@ class QueryForm extends React.PureComponent {
         </div>
       );
     }
-    if (state.submitted){
-      if (state.query === null){
+    if (state.loading) {
+      return (
+        <div className="bg-gray-700 dark:bg-gray-100 relative shadow-lg dark:shadow-white rounded-md justify-center flex mx-auto mt-8 pt-5 pb-5 px-2">
+          <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+        </div>
+      );
+    }
+    if (state.result){
+      if (state.result.query === null){
         return (
           <div className="grid grid-cols-1">
-            <div className="rounded-md bg-red-700 text-white p-2 flex"><ExclamationCircleIcon className="h-6 w-6 mr-2"/>No entry in the<span className="font-bold whitespace-pre"> {state.database} </span> database matches<span className="font-bold whitespace-pre"> {state.id}</span></div>
+            <div className="rounded-md bg-red-700 text-white p-2 flex">
+              <ExclamationCircleIcon className="h-6 w-6 mr-2"/>No entry in the<span className="font-bold whitespace-pre"> {state.database} </span> database matches<span className="font-bold whitespace-pre"> {state.id}</span></div>
           </div>
         );
       }
-      else if (state.matches.length === 0) {
+      if (state.result.matches.length === 0) {
         return (
           <div className="grid grid-cols-1">
             <div className="rounded-md bg-red-700 text-white p-2 flex"><ExclamationCircleIcon className="h-6 w-6 mr-2"/>No matches in other databases for<span className="font-bold whitespace-pre"> {state.id} </span>from<span className="font-bold whitespace-pre"> {state.database}</span></div>
           </div>
         );
       }
-      else {
-        return (
-          <QueryResult
-            query={state.query}
-            matches={state.matches}
-          />
-        );
-      }
+      return (
+        <QueryResult
+          query={state.result.query}
+          matches={state.result.matches}
+        />
+      );
     }
+    return null;
   }
-  
-  updateDatabaseAndId = (database, id) => {
-    console.log("here")
+
+  queryWithDatabaseAndId = (database, id) => {
     this.setState(
-      {database, id}
-    )
+      {database, id},
+      () => this.submitQuery()
+    );
+  }
+
+  clearResult = () => {
+    this.setState(
+      {
+        ...initialState,
+        id : '',
+        database: this.state.database
+      },
+    );
   }
 
   render() {
     const { state, props } = this;
     return (
       <>
-        <div>Some examples to try
-          <ul className="list-disc ml-8">
+        <div>
+          <div className="text-center lg:text-left">
+            Some examples to try
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-4">
             <ExampleLink
               database="card"
               id="ARO:3000230"
-              onClick={this.updateDatabaseAndId}
+              onClick={this.queryWithDatabaseAndId}
               
             />
             <ExampleLink
               database="ncbi"
               id="WP_012695489.1"
-              onClick={this.updateDatabaseAndId}
+              onClick={this.queryWithDatabaseAndId}
             />
             <ExampleLink
               database="ncbi"
               id="NG_050598.1"
-              onClick={this.updateDatabaseAndId}
+              onClick={this.queryWithDatabaseAndId}
             />
             <ExampleLink
               database="resfinder"
               id="blaNDM-1"
-              onClick={this.updateDatabaseAndId}
+              onClick={this.queryWithDatabaseAndId}
             />
-          </ul>
+          </div>
         </div>
         <div className='grid grid-cols-1 lg:grid-cols-3 gap-6 py-8 dark:bg-gray-800 dark:text-white'>
           <div className='flex justify-center lg:justify-start'>
             <Dropdown
               value={state.database}
               items={[["card", "Card"],["ncbi", "NCBI"], ["resfinder", "Resfinder"]]}
-              defaultValue="resfinder"
               label="Database"
               onChange={(value) => this.setState({ database: value.trim() })}
             />  
           </div>
           <div className='flex justify-center lg:justify-start'>
             <Textfield
+
               value={state.id}
               label="ID"
               onChange={(value) => this.setState({ id: value.trim() })}
-              onClick={(value) => this.setState({ id: '', submitted: false})}
+              onClick={this.clearResult}
             />
           </div>
           <div className='flex justify-center lg:justify-start'>

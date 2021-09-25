@@ -32,6 +32,7 @@ class MatchesList extends React.PureComponent {
               </span>
               <span alt="" className="bg-red-700 dark:bg-red-300 rounded-r-md pl-2 pr-3 py-1 text-xl font-semibold text-gray-50 dark:text-gray-800">
                 {match.targetData.name}
+                {match.targetData.name === match.targetData.id ? null : ` (${match.targetData.id})`}
               </span>
             </div>
 

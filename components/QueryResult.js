@@ -16,6 +16,7 @@ const QueryResult = React.memo(
           </span>
           <span alt="" className="bg-red-700 dark:bg-red-300 rounded-r-md pl-2 pr-3 py-1 text-xl font-semibold text-gray-50 dark:text-gray-800">
             {props.query.name}
+            {props.query.name === props.query.id ? null : ` (${props.query.id})`}
           </span>
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-2">
