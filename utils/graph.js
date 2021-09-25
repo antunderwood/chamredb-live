@@ -1,7 +1,6 @@
 let jsnx = require("jsnetworkx");
 let G = new jsnx.DiGraph();
 
-
 const chamredb = require("./chamredb.json");
 // add nodes
 for (node of chamredb.nodes) {
@@ -17,5 +16,4 @@ for (link of chamredb.links) {
     delete link.target;
     G.addEdge(source, target, link);
 }
-
 module.exports = G;

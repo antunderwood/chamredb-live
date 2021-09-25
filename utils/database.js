@@ -1,23 +1,23 @@
-const  G = require("./graph.js");
+const G = require("./graph.js");
 
 function query(database, id) {
     const match_info = {};
-    source = get_node(database, id)
+    const source = get_node(database, id)
     if (!source){
         return {query: null, match_info: []}
     }
     else {
-        sourceData = G.node.get(source);
         // remove nested objects that are not required
-        ['alternative_id', 'duplicate_allele_ids'].map((key) => (delete sourceData[key]));
+        const { alternative_id, duplicate_allele_ids, ...sourceData} = G.node.get(source);
+        sourceData.id = source.replace(`${sourceData.database}:`, "");
         match_info['query'] = sourceData;
         match_info['matches'] = [];
         matches = [];
         for (const target of G.neighbors(source)){
             const edgeData = G.getEdgeData(source, target);
-            const targetData = G.node.get(target);
             // remove nested objects that are not required
-            ['alternative_id', 'duplicate_allele_ids'].map((key) => (delete targetData[key]));
+            const { alternative_id, duplicate_allele_ids, ...targetData} = G.node.get(target);
+            targetData.id = target.replace(`${targetData.database}:`, "");
             matches.push(
                 {
                     edgeData,

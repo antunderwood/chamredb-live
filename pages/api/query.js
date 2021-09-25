@@ -1,5 +1,5 @@
 // Next.js API route support: https://nextjs.org/docs/api-routes/introduction
-import database_utils from "../../utils/database_utils";
+import database_utils from "../../utils/database";
 
 export default function handler(req, res) {
   const id = req.body?.id;
@@ -16,6 +16,6 @@ export default function handler(req, res) {
       return res.status(404).json({"error" : error.message});
     }
   }
-
+  console.log("here")
 
 }
