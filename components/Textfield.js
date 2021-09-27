@@ -5,7 +5,7 @@ const Textfield = React.memo(
     return (
       <label className='text-lg font-bold dark:bg-gray-700 dark:text-white p-2'>
         { props.label }
-        <input className='pl-4 dark:bg-gray-700 dark:text-white'
+        <input className='ml-4 pl-1 dark:bg-gray-700 dark:text-white'
           type="text"
           value={props.value}
           onChange={(event) => props.onChange(event.target.value)}

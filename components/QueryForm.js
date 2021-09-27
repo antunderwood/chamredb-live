@@ -8,8 +8,8 @@ import { ExclamationCircleIcon} from '@heroicons/react/outline';
 import ExampleLink from "./ExampleLink";
 
 const initialState = {
-  database: "resfinder",
-  id: "blaNDM-1",
+  database: null,
+  id: null,
   loading: false,
   result: null,
 };
@@ -59,9 +59,10 @@ class QueryForm extends React.PureComponent {
 
     if (state.error) {
       return (
-        <div className="bg-gray-700 dark:bg-gray-100 relative shadow-lg dark:shadow-white rounded-md mx-auto mt-8 pt-5 pb-1 px-2">
-          <div className="grid grid-cols-1">
-            {JSON.stringify(state.error)}
+        <div className="grid grid-cols-1">
+          <div className="rounded-md bg-red-700 text-white p-2 flex">
+            <ExclamationCircleIcon className="h-6 w-6 mr-2"/>
+            {JSON.stringify(state.error.message)}
           </div>
         </div>
       );
@@ -81,7 +82,8 @@ class QueryForm extends React.PureComponent {
         return (
           <div className="grid grid-cols-1">
             <div className="rounded-md bg-red-700 text-white p-2 flex">
-              <ExclamationCircleIcon className="h-6 w-6 mr-2"/>No entry in the<span className="font-bold whitespace-pre"> {state.database} </span> database matches<span className="font-bold whitespace-pre"> {state.id}</span></div>
+              <ExclamationCircleIcon className="h-6 w-6 mr-2"/>No entry in the<span className="font-bold whitespace-pre"> {state.database} </span> database matches<span className="font-bold whitespace-pre"> {state.id}</span>
+            </div>
           </div>
         );
       }
@@ -155,7 +157,7 @@ class QueryForm extends React.PureComponent {
           <div className='flex justify-center lg:justify-start'>
             <Dropdown
               value={state.database}
-              items={[["card", "Card"],["ncbi", "NCBI"], ["resfinder", "Resfinder"]]}
+              items={[["", ""], ["card", "Card"],["ncbi", "NCBI"], ["resfinder", "Resfinder"]]}
               label="Database"
               onChange={(value) => this.setState({ database: value.trim() })}
             />  
@@ -172,7 +174,12 @@ class QueryForm extends React.PureComponent {
           <div className='flex justify-center lg:justify-start'>
             <Button
               onClick={this.submitQuery}
-              className='bg-blue-600 text-white dark:bg-blue-200 dark:text-gray-800 text-lg'
+              disabled={!this.state.database || !this.state.id}
+              className={
+                this.state.database && this.state.id ?
+                'bg-blue-600 text-white dark:bg-blue-200 dark:text-gray-800 text-lg' :
+                'bg-gray-300 text-white text-lg'
+              }
             >
               Search
             </Button>
