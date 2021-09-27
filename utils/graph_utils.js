@@ -1,4 +1,4 @@
-const G = require("./graph.js");
+const G = require("./create_graph.js");
 
 function query(database, id) {
     const match_info = {};
@@ -50,8 +50,11 @@ function get_node(database, id) {
         return composite_id;
     }
     else {
-        // search in node_data for alternative_ids and duplicate_ids
+        // search in node_data for id in name, alternative_ids and duplicate_ids
         for (const [node_id, node_data] of G.nodesIter(true)){
+            if ('name' in node_data && node_data['name'] === id) {
+                return node_id
+            }
             if ('alternative_id' in node_data
                 && Object.values(node_data['alternative_id']).includes(id)) {
                 return node_id

@@ -1,5 +1,5 @@
 // Next.js API route support: https://nextjs.org/docs/api-routes/introduction
-import database_utils from "../../utils/database";
+import graph_utils from "../../utils/graph_utils";
 
 export default function handler(req, res) {
   const id = req.body?.id;
@@ -8,7 +8,7 @@ export default function handler(req, res) {
     return res.status(400).send();
   }
   try {
-    const match_info = database_utils.query(database, id);
+    const match_info = graph_utils.query(database, id);
     return res.status(200).json(match_info);
   }
   catch (error) {
