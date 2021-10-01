@@ -3,6 +3,7 @@ import Navbar from '../components/NavBar'
 import Image from 'next/image'
 import styles from '../styles/Home.module.css'
 import logo from '../public/logo.png'
+import classNames from "classnames";
 
 const SiteLayout = ({children}) =>  {
   return (
@@ -22,7 +23,7 @@ const SiteLayout = ({children}) =>  {
               href="https://pathogensurveillance.net"
             >
               Developed by
-              <div className="w-[200px] h-[40px] relative float-right ml-2" >
+              <div className={classNames("relative float-right ml-2", styles.footerLogoDiv)} >
                 <Image
                   src={logo}
                   alt="Logo"
