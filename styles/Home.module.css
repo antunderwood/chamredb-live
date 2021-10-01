@@ -6,12 +6,8 @@
   display: flex;
   justify-content: center;
   align-items: center;
+  vertical-align: middle;
 }
 
-.footer a {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  flex-grow: 1;
-}
+
 

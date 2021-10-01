@@ -1,6 +1,8 @@
 import Head from 'next/head'
 import Navbar from '../components/NavBar'
+import Image from 'next/image'
 import styles from '../styles/Home.module.css'
+import logo from '../public/logo.png'
 
 const SiteLayout = ({children}) =>  {
   return (
@@ -14,11 +16,27 @@ const SiteLayout = ({children}) =>  {
       </main>
 
       <footer className={styles.footer}>
-        <a
-          href="https://pathogensurveillance.net"
-        >
-          Developed by CGPS
-        </a>
+        <div className="grid grid-cols-1">
+          <div>
+            <a
+              href="https://pathogensurveillance.net"
+            >
+              Developed by
+              <div className="w-[200px] h-[40px] relative float-right ml-2" >
+                <Image
+                  src={logo}
+                  alt="Logo"
+                  layout="fill"
+                  objectFit="contain"
+                />
+              </div>
+            </a>
+          </div>
+          <div className="text-center">
+            <a href="mailto:charmed@support.cgps.group" target="_blank" rel="noreferrer">Create a support ticket</a>
+          </div>
+        </div>
+
       </footer>
     </div>
   );

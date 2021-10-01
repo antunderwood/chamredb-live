@@ -24,7 +24,7 @@ const QueryResult = React.memo(
             phenotypeData = {props.query}
           />
           <OtherInfoCard
-            otherInfo = {(({ database, name, phenotype, additional_phenotype, ...other }) => other)(props.query)}
+            otherInfo = {(({ database, name, phenotype, additional_phenotype, id, ...other }) => other)(props.query)}
           />
         </div>
         <MatchesList

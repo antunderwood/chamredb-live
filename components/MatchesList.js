@@ -41,7 +41,7 @@ class MatchesList extends React.PureComponent {
                 phenotypeData = {match.targetData}
               />
               <OtherInfoCard
-                otherInfo = {(({ database, name, phenotype, additional_phenotype, ...other }) => other)(match.targetData)}
+                otherInfo = {(({ database, name, phenotype, additional_phenotype, id,...other }) => other)(match.targetData)}
               />
               <MatchCard 
                 edgeData = {match.edgeData}
