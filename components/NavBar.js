@@ -35,7 +35,7 @@ export default function Navbar() {
   if (!mounted) return null
 
   return (
-    <Disclosure as="nav" className="bg-gray-600">
+    <Disclosure as="nav" className="bg-cgps-dpurple dark:bg-cgps-lpurple">
       {({ open }) => (
         <>
           <div className="max-w-7xl mx-auto px-2 sm:px-6 lg:px-8">

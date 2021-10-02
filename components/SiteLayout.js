@@ -2,7 +2,7 @@ import Head from 'next/head'
 import Navbar from '../components/NavBar'
 import Image from 'next/image'
 import styles from '../styles/Home.module.css'
-import logo from '../public/logo.png'
+import logo from '../public/logo.jpg'
 import classNames from "classnames";
 
 const SiteLayout = ({children}) =>  {
@@ -16,7 +16,7 @@ const SiteLayout = ({children}) =>  {
           {children}
       </main>
 
-      <footer className={styles.footer}>
+      <footer className={classNames(styles.footer, "bg-cgps-lpurple dark:bg-cgps-dpurple text-white")}>
         <div className="grid grid-cols-1">
           <div>
             <a
@@ -29,6 +29,7 @@ const SiteLayout = ({children}) =>  {
                   alt="Logo"
                   layout="fill"
                   objectFit="contain"
+                  className="rounded-lg pd-2"
                 />
               </div>
             </a>
