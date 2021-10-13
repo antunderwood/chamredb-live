@@ -38,8 +38,10 @@ function getBestMatches(matches){
     for (database of databases) {
         matchesForDatabase = matches.filter((match) => match.targetData.database === database);
         maxIdentity = Math.max(...matchesForDatabase.map((x) => (x.edgeData.identity)));
-        bestMatch = matchesForDatabase.filter((match) => match.edgeData.identity === maxIdentity)[0];
-        bestMatches.push(bestMatch);
+        if (maxIdentity >= 0.9){
+            bestMatch = matchesForDatabase.filter((match) => match.edgeData.identity === maxIdentity)[0];
+            bestMatches.push(bestMatch);
+        }
     }
     return bestMatches;
 }

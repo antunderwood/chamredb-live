@@ -1,4 +1,5 @@
 import React from "react";
+import OtherInfoValue from "./OtherInfoValue";
 
 const OtherInfoCard = React.memo(
   (props) => {
@@ -9,18 +10,16 @@ const OtherInfoCard = React.memo(
         <div className='font-bold text-lg'>Other Metadata</div>
         <ul>
           {
-             Object.entries(props.otherInfo).map(([key, value])=> (
+            Object.entries(props.otherInfo).map(([item, value])=> (
               <>
                 <li
                   className="bg-green-700 dark:bg-green-300 text-white dark:text-gray-800 py-1 px-2 rounded-sm"
-                  key={key+value}
+                  key={item+value}
                 >
-                  {key}
+                  {item}
                 </li>
                 <ul className="list-disc ml-8">
-                  <li className="text-green-700 dark:text-green-300 text-2xl">
-                    <div className="text-black dark:text-white text-base">{value}</div>
-                  </li>
+                  <OtherInfoValue item={item} value={value}/>
                 </ul>
               </>
             ))

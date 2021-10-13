@@ -28,6 +28,7 @@ const QueryResult = React.memo(
           />
         </div>
         <MatchesList
+          queryDatabase={props.query.database}
           matches={props.matches}
         />
       </div>
