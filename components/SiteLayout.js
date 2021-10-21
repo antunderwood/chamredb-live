@@ -23,13 +23,11 @@ const SiteLayout = ({children}) =>  {
               href="https://pathogensurveillance.net"
             >
               Developed by
-              <div className={classNames("relative float-right ml-2", styles.footerLogoDiv)} >
+              <div className={classNames("relative float-right ml-2 bg-white pl-2 pr-2 pt-1 pb-1", styles.footerLogoDiv)} >
                 <Image
                   src={logo}
                   alt="Logo"
-                  layout="fill"
                   objectFit="contain"
-                  className="rounded-lg pd-2"
                 />
               </div>
             </a>
