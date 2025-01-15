@@ -6,7 +6,7 @@ export default function About() {
         Welcome to the chAMReDB website.
       </div>
       <div>
-        (pronounced 'charmed' /tʃɑː(r)md/) 
+        (pronounced &apos;charmed&apos; /tʃɑː(r)md/) 
       </div>
       <div className="mt-4">
         This website aims to allow quick access to the <Link href="https://gitlab.com/antunderwood/chamredb"><a className="text-blue-700 dark:text-blue-300">chAMR😍Db</a></Link> project.
