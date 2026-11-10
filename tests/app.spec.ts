@@ -77,6 +77,16 @@ test("a shared native id asks which entry is meant", async ({ page }) => {
   await expect(page.getByRole("region", { name: "Matches in ncbi" })).toBeVisible();
 });
 
+test("a name shared by two databases lists both; an alternative id finds its entry", async ({ page }) => {
+  await page.goto("./");
+  await search(page, "blaX");
+  await expect(page.getByRole("button", { name: /card:ARO:1000 \(blaX\), matched on name/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: /resfinder:blaX \(blaX\), matched on id/ })).toBeVisible();
+  await search(page, "NG_1.1");
+  await expect(page.getByRole("status")).toContainText("NG_1.1 is the alternative id of ncbi:WP_1.1");
+  await expect(page.getByRole("region", { name: "Matches in card" })).toContainText("97.0%");
+});
+
 test("shows the demo-data notice", async ({ page }) => {
   await page.goto("./");
   await expect(page.getByRole("note")).toContainText("not a ChamRedB release");
@@ -85,5 +95,5 @@ test("shows the demo-data notice", async ({ page }) => {
 test("unknown id says so", async ({ page }) => {
   await page.goto("./");
   await search(page, "ARO:9999");
-  await expect(page.getByRole("alert")).toContainText("No entry with id ARO:9999");
+  await expect(page.getByRole("alert")).toContainText("No entry has the id, name, alternative id or duplicate allele id exactly ARO:9999");
 });

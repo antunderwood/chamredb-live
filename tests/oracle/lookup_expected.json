@@ -1,0 +1,205 @@
+{
+ "graph_sha256": "1c7f0f080de1faf854ba5e6247c3bf2a9fced864b17670e87fd0efb0fc32b74e",
+ "cases": [
+  {
+   "query": "card:ARO:3000230",
+   "database": null,
+   "results": [
+    {
+     "id": "card:ARO:3000230",
+     "matchedOn": "id"
+    }
+   ]
+  },
+  {
+   "query": "ARO:3000230",
+   "database": null,
+   "results": [
+    {
+     "id": "card:ARO:3000230",
+     "matchedOn": "id"
+    }
+   ]
+  },
+  {
+   "query": "ncbi:WP_012695489.1",
+   "database": null,
+   "results": [
+    {
+     "id": "ncbi:WP_012695489.1",
+     "matchedOn": "id"
+    }
+   ]
+  },
+  {
+   "query": "resfinder:blaNDM-1",
+   "database": null,
+   "results": [
+    {
+     "id": "resfinder:blaNDM-1",
+     "matchedOn": "id"
+    }
+   ]
+  },
+  {
+   "query": "blaNDM-1",
+   "database": null,
+   "results": [
+    {
+     "id": "ncbi:WP_004201164.1",
+     "matchedOn": "name"
+    },
+    {
+     "id": "resfinder:blaNDM-1",
+     "matchedOn": "id"
+    }
+   ]
+  },
+  {
+   "query": "tet(M)",
+   "database": null,
+   "results": [
+    {
+     "id": "card:ARO:3000186",
+     "matchedOn": "name"
+    },
+    {
+     "id": "ncbi:WP_063856115.1",
+     "matchedOn": "name"
+    },
+    {
+     "id": "resfinder:tet(M)",
+     "matchedOn": "id"
+    }
+   ]
+  },
+  {
+   "query": "tetM",
+   "database": null,
+   "results": []
+  },
+  {
+   "query": "vanD",
+   "database": null,
+   "results": [
+    {
+     "id": "card:ARO:3000005",
+     "matchedOn": "name"
+    },
+    {
+     "id": "ncbi:WP_063856692.1",
+     "matchedOn": "name"
+    }
+   ]
+  },
+  {
+   "query": "vanD",
+   "database": "ncbi",
+   "results": [
+    {
+     "id": "ncbi:WP_063856692.1",
+     "matchedOn": "name"
+    }
+   ]
+  },
+  {
+   "query": "NG_048363.1",
+   "database": null,
+   "results": [
+    {
+     "id": "ncbi:WP_063856692.1",
+     "matchedOn": "alternative id"
+    }
+   ]
+  },
+  {
+   "query": "WP_063856690.1",
+   "database": null,
+   "results": [
+    {
+     "id": "ncbi:WP_063856692.1",
+     "matchedOn": "duplicate allele id"
+    }
+   ]
+  },
+  {
+   "query": "NG_050598.1",
+   "database": null,
+   "results": [
+    {
+     "id": "ncbi:WP_005475717.1",
+     "matchedOn": "duplicate allele id"
+    }
+   ]
+  },
+  {
+   "query": "ncbi:NG_050598.1",
+   "database": null,
+   "results": []
+  },
+  {
+   "query": "card:ARO:3000186",
+   "database": null,
+   "results": [
+    {
+     "id": "card:ARO:3000186",
+     "matchedOn": "id"
+    }
+   ]
+  },
+  {
+   "query": "ARO:3000186",
+   "database": null,
+   "results": [
+    {
+     "id": "card:ARO:3000186",
+     "matchedOn": "id"
+    }
+   ]
+  },
+  {
+   "query": "3000230",
+   "database": null,
+   "results": []
+  },
+  {
+   "query": "TETM",
+   "database": null,
+   "results": []
+  },
+  {
+   "query": "Tet(M)",
+   "database": null,
+   "results": []
+  },
+  {
+   "query": "WP_012695489",
+   "database": null,
+   "results": []
+  },
+  {
+   "query": " card:ARO:3000230 ",
+   "database": null,
+   "results": [
+    {
+     "id": "card:ARO:3000230",
+     "matchedOn": "id"
+    }
+   ]
+  },
+  {
+   "query": "card:ARO:9999999",
+   "database": null,
+   "results": []
+  },
+  {
+   "query": "not an id",
+   "database": null,
+   "results": []
+  }
+ ],
+ "sweep": {
+  "count": 51913,
+  "sha256": "20d9767c06a7a322a51e380e6bda896c25df425bfd156a95ebc132688658ddb4"
+ }
+}

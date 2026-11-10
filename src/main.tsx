@@ -32,9 +32,11 @@ function App() {
     [index, found],
   );
 
+  const shown = (searched ?? "").trim();
+
   const submit = (e: FormEvent) => {
     e.preventDefault();
-    setSearched(text.trim());
+    setSearched(text);
   };
   const choose = (id: string) => {
     setText(id);
@@ -59,7 +61,7 @@ function App() {
 
       <form onSubmit={submit} className="mt-6 flex gap-2">
         <label className="flex-1">
-          <span className="block text-sm font-medium">Entry id</span>
+          <span className="block text-sm font-medium">Entry id or name</span>
           <input
             value={text}
             disabled={!index}
@@ -79,21 +81,33 @@ function App() {
 
       {error && <p role="alert" className="mt-6 text-danger">{error}</p>}
       {searched !== null && found.length === 0 && (
-        <p role="alert" className="mt-6 text-danger">No entry with id {searched} (ids are case-sensitive)</p>
+        <p role="alert" className="mt-6 text-danger">
+          No entry has the id, name, alternative id or duplicate allele id exactly {shown}. Matching is
+          exact and case-sensitive, including brackets and version suffixes (tet(M), not tetM; WP_012695489.1, not
+          WP_012695489).
+        </p>
       )}
       {found.length > 1 && (
-        <div className="mt-6">
-          <p>More than one entry has the id {searched}. Choose one:</p>
+        <div role="status" className="mt-6">
+          <p>More than one entry matches {shown}. Choose one:</p>
           <ul className="mt-2 flex flex-wrap gap-2">
             {found.map((c) => (
               <li key={c.id}>
                 <button type="button" onClick={() => choose(c.id)} className="rounded-md border border-border bg-surface px-3 py-1">
-                  {c.id} ({c.name})
+                  {c.id} ({c.name}), matched on {c.matchedOn}
                 </button>
               </li>
             ))}
           </ul>
         </div>
+      )}
+      {found.length === 1 && found[0].matchedOn !== "id" && (
+        <p role="status" className="mt-6 rounded-md border border-border bg-surface px-3 py-2 text-sm">
+          {shown} is the {found[0].matchedOn} of {found[0].id}
+          {found[0].matchedOn === "duplicate allele id" ? ", not an entry of its own" : ""}. The matches below are for
+          this entry only
+          {found[0].matchedOn === "name" ? "; other databases may list entries with the same name" : ""}.
+        </p>
       )}
       {found.length === 1 && groups.length === 0 && (
         <p className="mt-6 text-muted">No matches with identity of at least {pct(MIN_IDENTITY)} for {found[0].id}.</p>
