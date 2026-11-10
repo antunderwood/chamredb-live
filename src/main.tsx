@@ -4,6 +4,7 @@ import "./app.css";
 import { Footer } from "./Footer";
 import { formatHash, MAX_QUERY, parseHash, type HashState } from "./hash";
 import { EntryHeader, MatchPhenotype } from "./Phenotype";
+import { NetworkView } from "./NetworkView";
 import { findEntries, matchGroups, suggest } from "./query";
 import { DATABASES, type Candidate, type Database, type Index } from "./types";
 
@@ -228,6 +229,9 @@ function App() {
           100%). Best is the highest identity in that database among the matches shown, by identity only: it ignores
           coverage and the match type. RBH: reciprocal best hit; OWH: one-way hit (the reverse direction is not implied).
         </p>
+      )}
+      {index && found.length === 1 && index.entries[found[0].id] && (
+        <NetworkView query={index.entries[found[0].id]!} groups={groups} weakBelow={WEAK_PCT / 100} />
       )}
       {groups.map((g) => {
         // Below 90% identity the top match is weak evidence of equivalence (ADR 0004): do not call it Best.
