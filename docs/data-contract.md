@@ -7,7 +7,7 @@ One view: the matches of one query entry.
 - **Columns:** target native id and name; identity (fraction of identical residues, 0 to 1, shown as a percentage to 1 decimal); coverage (alignment length / query length, may exceed 1, shown as a percentage to 1 decimal); type (`RBH` or `OWH`); best (boolean).
 - **Filter:** identity >= minimum identity (default 0.9), compared at 3 decimals of the fraction (the displayed precision), so 0.8996 counts as 0.900.
 - **Grouping:** by target database. A database with no row after filtering has no group.
-- **Best:** per group, all rows whose identity equals the group's maximum (ties all best, compared at the same 3 decimals). Best is relative to the rows shown: lowering the minimum identity can show a group whose top identity is below 0.9, and that top row is still flagged. The UI labels such a group "Highest identity shown" with a weak-evidence warning, not "Best" (ADR 0004).
+- **Best:** per group, all rows whose identity equals the group's maximum (ties all best, compared at the same 3 decimals). Best is relative to the rows shown: lowering the minimum identity can show a group whose top identity is below 0.9, and that top row is still flagged. The UI labels such a group "Highest identity shown" with a weak-evidence warning, not "Best" (ADR 0004); the page says 90% is a working default taken from the earlier site, not a validated cut-off.
 - **n:** matches shown per group; entries counted from the release, not the filter.
 - **Integrity:** the build fails on a duplicate entry id, a duplicate edge, or an edge whose source or target is not an entry.
 - **Index:** built at build time from the release (`src/parse.ts`) into `index.json` served from the app's own origin: `entries` by id, `edges` by source id.

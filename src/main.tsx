@@ -242,7 +242,8 @@ function App() {
           <h2 className="text-lg font-semibold">{g.database}</h2>
           {weak && (
             <p className="mt-1 text-sm text-danger">
-              Weak evidence: every match here is below {WEAK_PCT}% identity. The highest identity is marked, but
+              Weak evidence: every match here is below {WEAK_PCT}% identity (a working default taken from the earlier site,
+              not a validated cut-off). The highest identity is marked, but
               it ignores coverage and the match type.
             </p>
           )}
