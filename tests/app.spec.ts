@@ -71,7 +71,7 @@ test("a shared native id asks which entry is meant", async ({ page }) => {
   await page.goto("./");
   await search(page, "ARO:1000");
   await page.getByRole("button", { name: /resfinder:ARO:1000/ }).click();
-  await expect(page.getByText("No matches with identity of at least 90.0% for resfinder:ARO:1000")).toBeVisible();
+  await expect(page.getByText("No matches with identity of at least 90% for resfinder:ARO:1000")).toBeVisible();
   await search(page, "ARO:1000");
   await page.getByRole("button", { name: /card:ARO:1000/ }).click();
   await expect(page.getByRole("region", { name: "Matches in ncbi" })).toBeVisible();
@@ -83,8 +83,39 @@ test("a name shared by two databases lists both; an alternative id finds its ent
   await expect(page.getByRole("button", { name: /card:ARO:1000 \(blaX\), matched on name/ })).toBeVisible();
   await expect(page.getByRole("button", { name: /resfinder:blaX \(blaX\), matched on id/ })).toBeVisible();
   await search(page, "NG_1.1");
-  await expect(page.getByRole("status")).toContainText("NG_1.1 is the alternative id of ncbi:WP_1.1");
+  await expect(page.getByText("NG_1.1 is the alternative id of ncbi:WP_1.1")).toBeVisible();
   await expect(page.getByRole("region", { name: "Matches in card" })).toContainText("97.0%");
+});
+
+test("the minimum identity slider reveals lower matches, not flagged best when a higher match exists", async ({ page }) => {
+  await page.goto("./");
+  await search(page, "card:ARO:1000");
+  const slider = page.getByLabel("Minimum identity");
+  await expect(slider).toHaveValue("90"); // default 90%
+  const resfinder = page.getByRole("region", { name: "Matches in resfinder" });
+  await expect(resfinder.getByRole("listitem")).toHaveCount(1);
+  await slider.fill("80");
+  await expect(resfinder.getByRole("listitem")).toHaveCount(2);
+  await expect(resfinder.getByRole("listitem").nth(1)).toContainText("85.0%");
+  await expect(resfinder.getByRole("listitem").nth(1)).not.toContainText("Best");
+  await slider.fill("98"); // ncbi 97% matches drop out; the group disappears
+  await expect(page.getByRole("region", { name: "Matches in ncbi" })).toHaveCount(0);
+  await expect(page.getByRole("region", { name: "Matches in resfinder" })).toBeVisible(); // blaX at 100%
+});
+
+test("a group whose top match is below 90% is not called Best and carries a warning; the slider persists", async ({ page }) => {
+  await page.goto("./");
+  await search(page, "card:ARO:2000");
+  await expect(page.getByRole("region", { name: "Matches in resfinder" })).toHaveCount(0); // tetM is 88%
+  await page.getByLabel("Minimum identity").fill("80");
+  const resfinder = page.getByRole("region", { name: "Matches in resfinder" });
+  await expect(resfinder).toContainText("88.0%");
+  await expect(resfinder).toContainText("Highest identity shown");
+  await expect(resfinder).toContainText("Weak evidence");
+  await expect(resfinder.getByText("Best", { exact: true })).toHaveCount(0);
+  await expect(page.getByRole("region", { name: "Matches in ncbi" }).getByText("Best", { exact: true })).toBeVisible(); // 92%
+  await search(page, "card:ARO:1000"); // another entry keeps the slider at 80%
+  await expect(page.getByLabel("Minimum identity")).toHaveValue("80");
 });
 
 test("shows the demo-data notice", async ({ page }) => {
