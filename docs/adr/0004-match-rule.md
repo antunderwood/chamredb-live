@@ -16,8 +16,8 @@ The old API keeps one match per other database: the highest identity, only if id
 
 ## Decision
 
-Option 2. Default view matches the old rule except that ties are all shown.
+Option 2. The default view shows every match at or above 0.9 with the best flagged, a superset of the old output: the old best-per-database match is always shown and flagged. Ties and the threshold are compared at 3 decimals of the identity fraction (the displayed precision).
 
 ## Consequences
 
-Results differ from the live site only where there are ties or the user lowers the threshold. The oracle test (Python networkx on the real graph) checks the default view equals the old rule with ties expanded.
+The default view lists more rows than the live site where a database has several matches at or above 0.9. The oracle test (Python networkx on the real graph) checks that the best-flagged rows equal the old rule with ties expanded, and that every other row is an edge at or above the threshold.
