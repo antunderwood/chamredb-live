@@ -50,10 +50,12 @@ export interface Index {
   edges: Record<string, Edge[]>;
 }
 
+export type MatchedOn = "id" | "name" | "alternative id" | "duplicate allele id";
 export interface Candidate {
   id: string;
   database: Database;
   name: string;
+  matchedOn: MatchedOn; // best way the search text identifies this entry
 }
 export interface Match {
   entry: Entry;

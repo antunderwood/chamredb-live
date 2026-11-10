@@ -8,7 +8,7 @@ Exercises: a native id shared by two databases (`ARO:1000` is in card and resfin
 
 Counts worked by hand: 10 entries (card 2, ncbi 3, resfinder 5), 10 directed matches. The coverage 1.05 is invented to exercise rendering above 100%; it is not evidence about the real graph.
 
-Deferred, on purpose: lookup by name, alternative id and duplicate allele id, and the renamed-id case (ticket #6); the independent Python networkx oracle on the real graph (tickets #6 and #7). Display: identity and coverage are shown as percentages to 1 decimal (0.97 shows 97.0%). Identity ties and the threshold are compared at 3 decimals of the fraction, which is the displayed precision.
+Deferred, on purpose: the independent Python networkx oracle for match groups on the real graph (ticket #7). Lookup (ticket #6) has hand-worked expectations below and a networkx oracle on the real graph in `tests/oracle/` (networkx 3.7, pinned in `tests/oracle/requirements.txt`). Display: identity and coverage are shown as percentages to 1 decimal (0.97 shows 97.0%). Identity ties and the threshold are compared at 3 decimals of the fraction, which is the displayed precision.
 
 ### Expected values (worked by hand from the edge list)
 
@@ -26,3 +26,17 @@ Matches are the outgoing edges of the query. A match is shown if identity >= thr
 | ARO:1000 (bare) | any | n/a | two candidates, card:ARO:1000 and resfinder:ARO:1000, user must choose | n/a |
 
 Sign-off: signed off by the repo owner on 2026-11-10 after reviewing the edge list and the expected results (exactly 0.9 is shown, ties are all best, below 0.9 is hidden).
+
+### Lookup (exact, case-sensitive; best way listed: id, then name, then alternative id, then duplicate allele id)
+
+| Text | Database | Candidates (matched on) |
+| --- | --- | --- |
+| card:ARO:1000 | any | card:ARO:1000 (id) |
+| ARO:1000 | any | card:ARO:1000 (id), resfinder:ARO:1000 (id) |
+| blaX | any | card:ARO:1000 (name), resfinder:blaX (id, since its native id is blaX) |
+| blaX | card | card:ARO:1000 (name) |
+| blaX | ncbi | none |
+| tet(M) | any | card:ARO:2000 (name) |
+| NG_1.1 | any | ncbi:WP_1.1 (alternative id) |
+| WP_2.1, NG_2.1 | any | ncbi:WP_1.1 (duplicate allele id) |
+| blax, ARO:9999, empty | any | none |

@@ -28,18 +28,45 @@ describe("buildIndex", () => {
 });
 
 describe("findEntries", () => {
+  const found = (text: string, db?: "card" | "ncbi" | "resfinder") =>
+    findEntries(index, text, db).map((c) => [c.id, c.matchedOn]);
   it("finds one entry by composite or native id", () => {
-    expect(findEntries(index, "card:ARO:1000").map((c) => c.id)).toEqual(["card:ARO:1000"]);
-    expect(findEntries(index, "ARO:2000").map((c) => c.id)).toEqual(["card:ARO:2000"]);
+    expect(found("card:ARO:1000")).toEqual([["card:ARO:1000", "id"]]);
+    expect(found("ARO:2000")).toEqual([["card:ARO:2000", "id"]]);
   });
-  it("returns both candidates when a native id is shared by two databases", () => {
-    expect(findEntries(index, "ARO:1000").map((c) => c.id)).toEqual(["card:ARO:1000", "resfinder:ARO:1000"]);
+  it("lists every entry when a native id is shared by two databases", () => {
+    expect(found("ARO:1000")).toEqual([["card:ARO:1000", "id"], ["resfinder:ARO:1000", "id"]]);
   });
-  it("is case-sensitive", () => {
-    expect(findEntries(index, "aro:1000")).toEqual([]);
+  it("finds by name, listing all databases that share it, id taking priority over name", () => {
+    expect(found("blaX")).toEqual([["card:ARO:1000", "name"], ["resfinder:blaX", "id"]]);
+    expect(found("tet(M)")).toEqual([["card:ARO:2000", "name"]]);
+  });
+  it("finds by alternative id and by duplicate allele id", () => {
+    expect(found("NG_1.1")).toEqual([["ncbi:WP_1.1", "alternative id"]]);
+    expect(found("WP_2.1")).toEqual([["ncbi:WP_1.1", "duplicate allele id"]]);
+    expect(found("NG_2.1")).toEqual([["ncbi:WP_1.1", "duplicate allele id"]]);
+  });
+  it("restricts to a database when asked", () => {
+    expect(found("blaX", "card")).toEqual([["card:ARO:1000", "name"]]);
+    expect(found("blaX", "ncbi")).toEqual([]);
+  });
+  it("trims the text and is case-sensitive", () => {
+    expect(found("  ARO:2000 ")).toEqual([["card:ARO:2000", "id"]]);
+    expect(found("blax")).toEqual([]);
+  });
+  it("lists every entry when a duplicate allele id equals another entry's native id", () => {
+    const e = (id: string, database: "card" | "ncbi", dup: Record<string, string[]> = {}) => ({
+      id, database, name: id, pmids: [], alternativeIds: {}, duplicateAlleleIds: dup,
+    });
+    const clash = { entries: { "card:X1": e("card:X1", "card"), "ncbi:A": e("ncbi:A", "ncbi", { protein_accessions: ["X1"] }) }, edges: {} };
+    expect(findEntries(clash, "X1").map((c) => [c.id, c.matchedOn])).toEqual([["card:X1", "id"], ["ncbi:A", "duplicate allele id"]]);
+  });
+  it("does not resolve a prefixed accession: only entry ids take a database prefix", () => {
+    expect(found("ncbi:NG_1.1")).toEqual([]);
   });
   it("returns nothing for an unknown id", () => {
-    expect(findEntries(index, "ARO:9999")).toEqual([]);
+    expect(found("ARO:9999")).toEqual([]);
+    expect(found("")).toEqual([]);
   });
 });
 

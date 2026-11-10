@@ -13,3 +13,12 @@ One view: the matches of one query entry.
 - **Index:** built at build time from the release (`src/parse.ts`) into `index.json` served from the app's own origin: `entries` by id, `edges` by source id.
 
 Definitions: GLOSSARY.md.
+
+## Lookup
+
+- Input: text typed by the user, trimmed. Output: every entry the text identifies, sorted by id (code-point order), each with how it matched.
+- The text must equal exactly (case-sensitive, including brackets and version suffixes, no fuzzy or versionless matching) one of: the composite id (`card:ARO:3000230`), the native id (`ARO:3000230`), the name, an alternative id value, or a duplicate allele id.
+- An entry matched in several ways is listed once with the best way, in this order: id, name, alternative id, duplicate allele id.
+- Several entries can match (a name shared across databases is common: 2506 of the strings in graph-2026.11.09). All are listed with their database; the app never picks one.
+- A prefixed accession such as `ncbi:NG_050598.1` is not an id and finds nothing; the bare accession `NG_050598.1` finds the entry listing it as a duplicate allele id (owner decision, ticket #6).
+- Oracle: `tests/oracle/` (networkx 3.7): 22 fixed cases and every searchable string in the release (51913) by hash.
