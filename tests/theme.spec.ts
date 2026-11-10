@@ -49,14 +49,26 @@ for (const scheme of ["light", "dark"] as const) {
 
     // Phenotype blocks and the weak-evidence warning (danger text on a surface).
     await search(page, "card:ARO:2000");
+    await expect(page.getByRole("region", { name: "Query entry" })).toContainText("card:ARO:2000");
     await page.getByLabel("Minimum identity").fill("80");
+    await expect(page.locator("section p.text-danger")).toBeVisible();
     expect(await css(page, '[data-field="match-phenotype"]', "color")).toBe(rgb(t["--muted"]));
     expect(await css(page, "section p.text-danger", "color")).toBe(rgb(t["--danger"]));
     // Not found: danger text on the page background.
     await search(page, "nope");
     expect(await css(page, '[role="alert"]', "color")).toBe(rgb(t["--danger"]));
+    // Status notice (alternative id), candidate buttons (ambiguous text) and the slider's accent.
+    await search(page, "NG_1.1");
+    expect(await css(page, '[role="status"]', "background-color")).toBe(rgb(t["--surface"]));
+    expect(await css(page, '[role="status"]', "border-top-color")).toBe(rgb(t["--border"]));
+    expect(await css(page, "#min-identity", "accent-color")).toBe(rgb(t["--accent"]));
+    await search(page, "ARO:1000");
+    const cand = page.getByRole("button", { name: /card:ARO:1000/ });
+    expect(await cand.evaluate((el) => getComputedStyle(el).borderTopColor)).toBe(rgb(t["--control-border"]));
+    expect(await cand.evaluate((el) => getComputedStyle(el).backgroundColor)).toBe(rgb(t["--surface"]));
     // About section.
     await page.getByText("About chAMReDB").click();
+    await expect(page.getByText("Welcome to the chAMReDB website.")).toBeVisible();
     expect(await css(page, '[data-testid="about"]', "background-color")).toBe(rgb(t["--surface"]));
     expect(await css(page, '[data-testid="about"] a', "text-decoration-line")).toBe("underline");
   });
@@ -84,6 +96,11 @@ test("swap test in dark mode: the BSB dark variant uses Midnight as background w
   await page.route("**/theme.css", (route) => route.fulfill({ contentType: "text/css", body: bsb }));
   await page.emulateMedia({ colorScheme: "dark" });
   await page.goto("./");
+  await expect(page.getByLabel("Entry id")).toBeEnabled();
+  await search(page, "card:ARO:1000");
+  await expect(page.getByTestId("network")).toBeVisible();
   expect(await css(page, "body", "background-color")).toBe("rgb(22, 16, 38)");
   expect(await css(page, "h1", "color")).toBe("rgb(240, 240, 247)");
+  expect(await css(page, "select", "border-top-color")).toBe("rgb(143, 137, 163)"); // dark --control-border
+  expect(await css(page, '[data-testid="network"] g[data-node="ncbi:WP_1.1"] rect', "fill")).toBe("rgb(226, 100, 58)");
 });

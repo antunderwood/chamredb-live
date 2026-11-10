@@ -2,7 +2,9 @@ import { expect, test, type Page } from "@playwright/test";
 
 // Keyboard-only path, labels, focus indicators, non-colour encodings, alerts and the About content.
 // Expected values: tests/fixtures/README.md (card:ARO:1000 shows 4 matches at 90%; ARO:1000 alone is ambiguous).
-const press = (page: Page, key: string, times = 1) => (async () => { for (let i = 0; i < times; i++) await page.keyboard.press(key); })();
+const press = async (page: Page, key: string, times = 1) => {
+  for (let i = 0; i < times; i++) await page.keyboard.press(key);
+};
 
 test("keyboard only: select, search box, Search, slider in reading order; Enter searches; arrows, Home and End move the slider", async ({ page }) => {
   await page.goto("./");
@@ -32,7 +34,7 @@ test("keyboard only: select, search box, Search, slider in reading order; Enter 
   await expect(slider).toHaveValue("99");
 });
 
-test("keyboard only: the database select filters with the arrow keys", async ({ page }) => {
+test("keyboard only: the database select takes type-ahead", async ({ page }) => {
   await page.goto("./");
   await expect(page.getByLabel("Entry id")).toBeEnabled();
   await page.getByLabel("Search in database").focus();
@@ -90,7 +92,7 @@ for (const scheme of ["light", "dark"] as const) {
       return c; // the accent token as the browser resolves it
     });
     const seen: string[] = [];
-    for (let i = 0; i < 12; i++) {
+    for (let i = 0; i < 40; i++) {
       await page.keyboard.press("Tab");
       const f = await page.evaluate(() => {
         const el = document.activeElement as HTMLElement;
@@ -133,7 +135,7 @@ test("non-colour encodings: best, weak and RBH versus OWH are carried by text, s
   expect(await resfinder.locator("strong").evaluate((el) => getComputedStyle(el).borderTopWidth)).not.toBe("0px");
   // Links are underlined, not only coloured.
   await page.getByText("About chAMReDB").click();
-  expect(await page.getByRole("link", { name: "CARD" }).evaluate((el) => getComputedStyle(el).textDecorationLine)).toContain("underline");
+  expect(await page.getByRole("link", { name: "The Comprehensive Antibiotic Resistance Database (CARD)" }).evaluate((el) => getComputedStyle(el).textDecorationLine)).toContain("underline");
 });
 
 test("a not-found message is one alert paragraph, and non-error notices are status, not alert", async ({ page }) => {
@@ -180,12 +182,12 @@ test("About: reachable by keyboard, content kept, links present", async ({ page 
   await expect(page.getByText("aggregate the combined descriptive information")).toBeVisible();
   await expect(page.getByRole("heading", { name: "Databases used" })).toBeVisible();
   const href = (name: string) => page.getByRole("link", { name }).getAttribute("href");
-  expect(await href("chAMReDB")).toBe("https://github.com/antunderwood/chamredb");
+  expect(await page.getByRole("link", { name: "chAMReDB", exact: true }).getAttribute("href")).toBe("https://github.com/antunderwood/chamredb");
   expect(await href("The Comprehensive Antibiotic Resistance Database (CARD)")).toBe("https://card.mcmaster.ca/");
   expect(await href("NCBI AMRFinderPlus Database")).toBe("https://www.ncbi.nlm.nih.gov/pathogens/antimicrobial-resistance/AMRFinder/");
   expect(await href("The ResFinder Database")).toBe("https://bitbucket.org/genomicepidemiology/resfinder_db/src/master/");
   await press(page, "Tab"); // the first link inside is next in order
-  await expect(page.getByRole("link", { name: "chAMReDB" })).toBeFocused();
+  await expect(page.getByRole("link", { name: "chAMReDB", exact: true })).toBeFocused();
   await press(page, "Shift+Tab", 1);
   await press(page, "Enter"); // closes again
   await expect(page.getByText("Welcome to the chAMReDB website.")).toBeHidden();

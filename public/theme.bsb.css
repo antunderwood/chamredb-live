@@ -3,7 +3,7 @@
    The font stays the system stack: DM Sans is not loaded (no font CDN) and not bundled; to use it, bundle the
    font file with @font-face and name it first in --font-body, keeping this fallback after it.
    Palette: Pearl #F0F0F7, Midnight #161026, Fog #CDCBD8, Steel #68637A, Orange #E2643A, Magenta #BA335C, Purple #87338B.
-   Orange is a mark colour here: Pearl text on Orange fails 4.5:1, so --accent-fg is Midnight. Purple is not mapped,
+   Orange is a mark colour here: Pearl (3.03:1) or white (2.44:1) text on Orange fails 4.5:1, so --accent-fg is Midnight. Purple is not mapped,
    because no component needs a third accent. Fog is too pale to outline a control (about 1.4:1 on Pearl), so it is
    the decorative --border and Steel is the --control-border. */
 :root {

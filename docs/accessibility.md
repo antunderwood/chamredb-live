@@ -1,6 +1,6 @@
 # Accessibility and theming
 
-Target: WCAG 2.2 AA for what this app uses (text contrast 1.4.3, non-text contrast 1.4.11, keyboard 2.1.1, focus visible 2.4.7, labels 3.3.2, status messages 4.1.3, use of colour 1.4.1). This is a target checked by the tests below, not a certified audit: no screen reader session and no forced-colours run has been done.
+Target: WCAG 2.2 AA for what this app uses (text contrast 1.4.3, non-text contrast 1.4.11, keyboard 2.1.1, focus visible 2.4.7, labels 3.3.2, status messages 4.1.3, use of colour 1.4.1). This is a target checked by the tests below, not a conformance claim or a certified audit. Not checked: reflow at 400% zoom (1.4.10), text spacing (1.4.12), target size (2.5.8; the smallest controls, the candidate buttons, are about 30 px high), forced-colours mode, and any screen reader. The picture is an `img` with a title and description, and the list below it carries the same data in text. Placeholder text uses `--muted` (`::placeholder` in `src/app.css`), so it is covered by the muted on surface rows. The weak-evidence warning uses `--danger` for visibility; its meaning is in the words, and a weak match is a caution, not an error.
 
 ## How to restyle
 
@@ -21,7 +21,7 @@ The dark theme is the same tokens inside `@media (prefers-color-scheme: dark)`: 
 
 A different brand is a different tokens file. `public/theme.bsb.css` is an **example** override with the Broken String Biosciences palette; nothing links to it and it is not the default. To adopt it, replace the content of `public/theme.css` with it. The font stays the system stack: DM Sans is not loaded from a font CDN and is not bundled; to use it, bundle the font file with `@font-face` and name it first in `--font-body`.
 
-Choices in the example, each recorded in the file: Orange `#E2643A` is a mark colour (Pearl text on Orange is 3.03:1 and white on Orange 3.43:1, both below 4.5:1), so `--accent-fg` is Midnight; Fog `#CDCBD8` is 1.41:1 on Pearl, too pale to outline a control, so it is the decorative `--border` and Steel is `--control-border`; Purple `#87338B` is not mapped because no component needs a third accent (it is 2.53:1 on Midnight, so it would be marks only in dark); in dark, Magenta `#BA335C` is 3.27:1 on Midnight, so `--danger` uses a lighter `#F08AA8`; `--surface` and the dark `--surface`, `--border` and `--control-border` values are derived neutrals, not brand colours.
+Choices in the example, each recorded in the file: Orange `#E2643A` is a mark colour (Pearl text on Orange is 3.03:1 and white on Orange 2.44:1, both below 4.5:1), so `--accent-fg` is Midnight; Fog `#CDCBD8` is 1.41:1 on Pearl, too pale to outline a control, so it is the decorative `--border` and Steel is `--control-border`; Purple `#87338B` is not mapped because no component needs a third accent (it is 2.53:1 on Midnight, so it would be marks only in dark); in dark, Magenta `#BA335C` is 3.27:1 on Midnight, so `--danger` uses a lighter `#F08AA8`; `--surface` and the dark `--surface`, `--border` and `--control-border` values are derived neutrals, not brand colours.
 
 ## Contrast
 
@@ -101,4 +101,4 @@ Not found and data-load failures are single paragraphs with `role="alert"`, so t
 
 ## About
 
-The old site's About text is kept as a collapsible "About chAMReDB" section at the end of the page (no router: the URL hash holds the search). Spelling is corrected, the project link points to https://github.com/antunderwood/chamredb, and the three database links are unchanged (CARD, NCBI AMRFinderPlus, ResFinder). They are plain links the reader clicks; the page makes no request to those sites when it loads.
+The old site's About text is kept as a collapsible "About chAMReDB" section at the end of the page (no router: the URL hash holds the search). The wording is lightly edited: spelling corrected (dilemma, hAMRonization, aggregate, descriptive), the last list item split into clauses, "Resfinder" written "ResFinder", the emoji dropped from the project link text, and the project link moved from the old GitLab address to https://github.com/antunderwood/chamredb (the repository exists). The three database URLs are unchanged (CARD, NCBI AMRFinderPlus, ResFinder), and all three resolved when checked on 2026-11-10 (the NCBI page answers 405 to a HEAD request and 200 to GET). They are plain links the reader clicks; the page makes no request to those sites when it loads.

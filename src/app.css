@@ -19,6 +19,12 @@ body {
   @apply bg-bg text-fg font-sans;
 }
 
+/* Placeholder text takes the muted token (4.5:1 on surface, tested) instead of the browser default. */
+::placeholder {
+  color: var(--muted);
+  opacity: 1;
+}
+
 /* One visible keyboard focus indicator for every control, in the accent token (3:1 on bg and surface, tested). */
 :focus-visible {
   outline: 2px solid var(--accent);

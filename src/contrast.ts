@@ -21,18 +21,23 @@ export type Tokens = Record<string, string>;
 
 function declarations(block: string): Tokens {
   const out: Tokens = {};
-  for (const m of block.matchAll(/(--[\w-]+)\s*:\s*([^;]+);/g)) out[m[1]] = m[2].trim();
+  for (const m of block.matchAll(/(--[\w-]+)\s*:\s*([^;}]+)/g)) out[m[1]] = m[2].trim();
   return out;
 }
 
 // Light tokens: the :root block outside any @media. Dark tokens: the :root block inside @media (prefers-color-scheme: dark).
 export function readThemes(css: string): { light: Tokens; dark: Tokens } {
   const stripped = css.replace(/\/\*[\s\S]*?\*\//g, "");
-  const media = /@media\s*\(prefers-color-scheme:\s*dark\)\s*\{([\s\S]*)\}\s*$/.exec(stripped);
-  if (!media) throw new Error("no @media (prefers-color-scheme: dark) block");
-  const lightCss = stripped.slice(0, media.index);
+  const open = /@media\s*\(prefers-color-scheme:\s*dark\)\s*\{/.exec(stripped);
+  if (!open) throw new Error("no @media (prefers-color-scheme: dark) block");
+  let depth = 1;
+  let end = open.index + open[0].length;
+  for (; end < stripped.length && depth > 0; end++) depth += stripped[end] === "{" ? 1 : stripped[end] === "}" ? -1 : 0;
+  if (depth > 0) throw new Error("unbalanced braces in the dark @media block");
+  const darkCss = stripped.slice(open.index + open[0].length, end - 1);
+  const lightCss = stripped.slice(0, open.index) + stripped.slice(end); // anything outside the dark block
   const root = (s: string) => /:root\s*\{([^}]*)\}/.exec(s)?.[1] ?? "";
-  return { light: declarations(root(lightCss)), dark: declarations(root(media[1])) };
+  return { light: declarations(root(lightCss)), dark: declarations(root(darkCss)) };
 }
 
 // [foreground token, background token, minimum ratio, why]: text is 4.5, marks, focus indicators and control boundaries 3.

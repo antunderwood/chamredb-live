@@ -14,6 +14,13 @@ describe("contrast formula", () => {
   });
 });
 
+describe("token file reader", () => {
+  it("finds the dark block even with a later at-rule and a last declaration without a semicolon", () => {
+    const css = ":root { --a: #111111; }\n@media (prefers-color-scheme: dark) { :root { --a: #eeeeee } }\n@media (prefers-contrast: more) { :root { --a: #000000; } }";
+    expect(readThemes(css)).toEqual({ light: { "--a": "#111111" }, dark: { "--a": "#eeeeee" } });
+  });
+});
+
 const files = readdirSync("public").filter((f) => /^theme(\.[\w-]+)?\.css$/.test(f));
 const doc = readFileSync("docs/accessibility.md", "utf8");
 
