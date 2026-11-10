@@ -47,9 +47,11 @@ function App() {
       <p className="mt-2 text-muted">
         Find the equivalent of an antimicrobial resistance gene in CARD, NCBI AMRFinderPlus and ResFinder.
       </p>
-      <p role="note" className="mt-4 rounded-md border border-border bg-surface px-3 py-2 text-sm">
-        Demo data: a hand-written test graph, not a ChamRedB release. Do not use these results.
-      </p>
+      {index && !index.release && (
+        <p role="note" className="mt-4 rounded-md border border-border bg-surface px-3 py-2 text-sm">
+          Demo data: a hand-written test graph, not a ChamRedB release. Do not use these results.
+        </p>
+      )}
       <p className="mt-2 text-sm text-muted">
         Privacy: all searches run in your browser. Your searches never leave your browser, and this site loads no
         third-party scripts, fonts or analytics. The web host keeps ordinary access logs of page and data file requests.

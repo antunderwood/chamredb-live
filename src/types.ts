@@ -35,8 +35,8 @@ export interface Entry {
   product?: string;
   isA?: string;
   pmids: string[];
-  alternativeIds: string[];
-  duplicateAlleleIds: string[];
+  alternativeIds: Record<string, string>; // kind (e.g. nucleotide_accession) to accession
+  duplicateAlleleIds: Record<string, string[]>; // kind (e.g. protein_accessions) to accessions
 }
 export interface Edge {
   target: string;
@@ -45,6 +45,7 @@ export interface Edge {
   type: MatchType;
 }
 export interface Index {
+  release?: string; // ChamRedB release name; absent for a hand-written fixture graph
   entries: Record<string, Entry>;
   edges: Record<string, Edge[]>;
 }

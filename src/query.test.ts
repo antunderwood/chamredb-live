@@ -20,10 +20,10 @@ describe("buildIndex", () => {
     const perDb = (db: string) => Object.values(index.entries).filter((e) => e.database === db).length;
     expect([perDb("card"), perDb("ncbi"), perDb("resfinder")]).toEqual([2, 3, 5]);
   });
-  it("flattens alternative and duplicate allele ids", () => {
+  it("keeps alternative and duplicate allele ids with their kind", () => {
     const e = index.entries["ncbi:WP_1.1"];
-    expect(e.alternativeIds).toEqual(["NG_1.1"]);
-    expect(e.duplicateAlleleIds).toEqual(["NG_2.1", "WP_2.1"]);
+    expect(e.alternativeIds).toEqual({ nucleotide_accession: "NG_1.1" });
+    expect(e.duplicateAlleleIds).toEqual({ nucleotide_accessions: ["NG_2.1"], protein_accessions: ["WP_2.1"] });
   });
 });
 
@@ -79,7 +79,7 @@ describe("matchGroups", () => {
 });
 
 describe("identity precision", () => {
-  const e = (id: string, database: "card" | "ncbi") => ({ id, database, name: id, pmids: [], alternativeIds: [], duplicateAlleleIds: [] });
+  const e = (id: string, database: "card" | "ncbi") => ({ id, database, name: id, pmids: [], alternativeIds: {}, duplicateAlleleIds: {} });
   const tiny = (identities: number[]) => ({
     entries: { "card:q": e("card:q", "card"), ...Object.fromEntries(identities.map((_, i) => [`ncbi:t${i}`, e(`ncbi:t${i}`, "ncbi")])) },
     edges: { "card:q": identities.map((identity, i) => ({ target: `ncbi:t${i}`, identity, coverage: 1, type: "OWH" as const })) },

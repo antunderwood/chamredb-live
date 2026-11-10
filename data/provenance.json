@@ -1,0 +1,12 @@
+{
+  "file": "data/graph.json",
+  "tool": "chamredb graph builder (MMseqs2 18.8cc5c; builder/ in the chamredb repo)",
+  "version": "graph-2026.11.09",
+  "build": "not applicable (protein database graph, no genome coordinates)",
+  "date": "2026-11-09",
+  "sha256": "1c7f0f080de1faf854ba5e6247c3bf2a9fced864b17670e87fd0efb0fc32b74e",
+  "manifest_sha256": "d6c64d6883d816be566dbd02e869976b7ed39beb3b022d516ca38b2855dd98ab",
+  "source": "https://github.com/antunderwood/chamredb/releases/tag/graph-2026.11.09",
+  "tool_source": "README.md at tag graph-2026.11.09 (commit 71ec7ea), line 85",
+  "retrieved": "2026-11-10"
+}
