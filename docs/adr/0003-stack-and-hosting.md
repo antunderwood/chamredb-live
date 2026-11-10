@@ -22,3 +22,7 @@ Option 1 for the stack. Hosting is GitHub Pages, as chosen by the owner. The rep
 ## Consequences
 
 `.gitlab-ci.yml` and `Dockerfile` are removed or replaced by a Pages workflow. `.bio-skills.yaml` tracker stays gitlab until the repo moves.
+
+## Update (2026-11-10, ticket #13)
+
+The repository moved to GitHub (`antunderwood/chamredb-live`, private until launch). `.bio-skills.yaml` `tracker` is now `github`; the 14 earlier issues and merge requests stay on GitLab, which is archived at launch. CI is `.github/workflows/pages.yml` (tests, oracle regeneration, publish to GitHub Pages). The data repository `antunderwood/chamredb` must be public before the site launches, because the footer and About links point to its release page.
