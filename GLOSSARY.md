@@ -13,9 +13,9 @@
 | Source database | One of CARD, NCBI AMRFinderPlus, ResFinder, at the version listed in the release's manifest | ChamRedB itself |
 | Entry (graph node) | One record of a source database, id `<database>:<native id>` (for example `card:ARO:3000230`) | Gene, allele |
 | Match (graph edge) | A directed link from one entry to an entry in another database, with identity, coverage and type | Best match |
-| RBH | Reciprocal best hit: edge type `RBH` | OWH |
-| OWH | One-way hit: edge type `OWH` (directed, no reciprocal best hit) | RBH |
-| Identity | Edge value in 0 to 1 (fraction, not percent); exact alignment definition to be confirmed against the chamredb build code | Coverage |
-| Coverage | Edge value in 0 to 1 (fraction); exact definition to be confirmed against the chamredb build code | Identity |
+| RBH | Reciprocal best hit: edge type `RBH`, found with MMseqs2 `easy-rbh -s 7.5` | OWH |
+| OWH | One-way hit: edge type `OWH`, found with MMseqs2 `search -s 7.0 --max-accept 3` (directed, no reciprocal best hit) | RBH |
+| Identity | Fraction of identical residues in the match, 0 to 1 (not percent) | Coverage | Alignment length / query length, a fraction that can exceed 1 (shown as a percentage that may exceed 100%) | Identity |
+| Coverage | Alignment length / query length, a fraction that can exceed 1 (shown as a percentage that may exceed 100%) | Identity |
 | Best match | The match with the highest identity to one other database for a query entry; ties are all best | Single arbitrary first hit |
 | Query | The entry the user looked up (by id, name, alternative id or duplicate allele id) | Search text |

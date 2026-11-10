@@ -41,8 +41,8 @@ Recorded from memory, not looked up: CARD RGI, AMRFinderPlus and ResFinder each 
 
 | Question | Owner | Blocking? |
 | --- | --- | --- |
-| Exact definitions of identity and coverage, and RBH/OWH, in the chamredb build | repo owner | Yes, before UI copy |
-| GitHub Pages: does this repo move to GitHub, or mirror from GitLab; what about the Render URL | repo owner | Yes, before deploy |
+| Exact definitions of identity and coverage, and RBH/OWH, in the chamredb build | repo owner | Resolved 2026-11-10 (ticket #2), see GLOSSARY.md |
+| GitHub Pages: does this repo move to GitHub, or mirror from GitLab; what about the Render URL | repo owner | Resolved 2026-11-10 (ticket #3): move to GitHub, archive GitLab; Render becomes a redirect page (ADR 0003) |
 | Ship graph.json as is, or a build-time compact index; where the release is pinned (committed file or fetched in CI by tag) | /bio-spec | No |
 | Network graph view scope and library (custom SVG preferred, no runtime libraries from CDNs) | /bio-spec | No |
 | Name for the new retired-id handling (none, or a list from the release) | repo owner | No |
