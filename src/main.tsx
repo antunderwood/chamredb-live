@@ -6,7 +6,7 @@ import { formatHash, MAX_QUERY, parseHash, type HashState } from "./hash";
 import { EntryHeader, MatchPhenotype } from "./Phenotype";
 import { NetworkView } from "./NetworkView";
 import { About } from "./About";
-import { findEntries, matchGroups, suggest } from "./query";
+import { findEntries, matchGroups, prime, suggest } from "./query";
 import { DATABASES, type Candidate, type Database, type Index } from "./types";
 
 const WEAK_PCT = 90; // below this identity the top match is weak evidence of equivalence (ADR 0004)
@@ -64,6 +64,11 @@ function App() {
       .then(setIndex)
       .catch((e) => setError(`Could not load the data: ${e}`));
   }, []);
+
+  // Build the lookup table in slices right after the index arrives, so the first keystroke does not pay for it.
+  useEffect(() => {
+    if (index) prime(index).catch(() => {}); // optional: findEntries and suggest build on demand if it fails
+  }, [index]);
 
   const found: Candidate[] = useMemo(
     () => (index && searched !== null ? findEntries(index, searched, db) : []),
