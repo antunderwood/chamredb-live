@@ -1,9 +1,0 @@
-.git
-.results
-node_modules
-.env
-.next
-dist
-dist-e2e
-test-results
-playwright-report

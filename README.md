@@ -2,7 +2,7 @@
 
 Static web app to look up an antimicrobial resistance gene in CARD, NCBI AMRFinderPlus or ResFinder and see its matches in the other databases. Everything runs in the browser; no backend.
 
-Previously deployed on Render: https://chamredb.onrender.com
+Live site: https://antunderwood.github.io/chamredb-live/ (GitHub Pages, built by `.github/workflows/pages.yml`). The old Render site only redirects here.
 
 ## Develop
 
