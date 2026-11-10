@@ -6,7 +6,7 @@
 // Uses ./dist if it holds the release build; otherwise builds into a temporary directory outside the repo.
 // Reads nothing except the build output. Exits 0 after printing; the verdicts are in the table.
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, existsSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdtempSync, existsSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { createServer } from "node:http";
 import os from "node:os";
 import path from "node:path";
@@ -40,6 +40,7 @@ if (argv.includes("--list")) { console.log(PROFILES.map((p) => p.name).join("\n"
 const RUNS = Number(arg("--runs", 5));
 const wanted = arg("--profiles", "").split(",").filter(Boolean);
 const profiles = wanted.length ? PROFILES.filter((p) => wanted.includes(p.name)) : PROFILES;
+if (!profiles.length || !(RUNS >= 1)) { console.error("Unknown --profiles or bad --runs; see --list"); process.exit(2); }
 
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 let dist = path.resolve(arg("--dist", path.join(repo, "dist")));
@@ -57,9 +58,10 @@ const TYPES = { ".html": "text/html", ".js": "text/javascript", ".css": "text/cs
 const cache = new Map();
 const server = { gzip: true };
 const http = createServer((req, res) => {
+  try {
   const rel = decodeURIComponent(new URL(req.url, "http://x").pathname).replace(/\/$/, "/index.html");
   const file = path.resolve(dist, "." + rel);
-  if (!file.startsWith(dist + path.sep) || !existsSync(file)) { res.writeHead(404).end(); return; }
+  if (!file.startsWith(dist + path.sep) || !existsSync(file) || !statSync(file).isFile()) { res.writeHead(404).end(); return; }
   const ext = path.extname(file);
   if (!cache.has(file)) { const raw = readFileSync(file); cache.set(file, { raw, gz: gzipSync(raw, { level: 6 }) }); }
   const { raw, gz } = cache.get(file);
@@ -67,6 +69,7 @@ const http = createServer((req, res) => {
   const body = useGz ? gz : raw;
   res.writeHead(200, { "Content-Type": TYPES[ext] ?? "application/octet-stream", "Content-Length": body.length, "Cache-Control": "no-store", ...(useGz ? { "Content-Encoding": "gzip" } : {}) });
   res.end(body);
+  } catch { res.writeHead(400).end(); }
 });
 await new Promise((ok, fail) => { http.once("error", fail); http.listen(PORT, "127.0.0.1", ok); });
 const BASE = `http://127.0.0.1:${PORT}/`;
@@ -75,7 +78,8 @@ const BASE = `http://127.0.0.1:${PORT}/`;
 const INIT = () => {
   const w = window;
   w.__m = { long: [], ready: null, readyPainted: null, jsonStart: null, jsonEnd: null };
-  new PerformanceObserver((l) => { for (const e of l.getEntries()) w.__m.long.push([e.startTime, e.duration]); }).observe({ type: "longtask", buffered: true });
+  w.__po = new PerformanceObserver((l) => { for (const e of l.getEntries()) w.__m.long.push([e.startTime, e.duration]); });
+  w.__po.observe({ type: "longtask", buffered: true });
   // Time Response.json(), from which the analysis subtracts any wait for the body. The remainder up to "ready" is state update and render.
   const json = Response.prototype.json;
   Response.prototype.json = function () {
@@ -98,6 +102,10 @@ const stat = (a) => ({ min: Math.min(...a), median: median(a), max: Math.max(...
 async function once(browser, p) {
   server.gzip = p.gzip;
   const ctx = await browser.newContext(); // fresh context: cold HTTP and code cache
+  try { return await measure(ctx, p); } finally { await ctx.close(); }
+}
+
+async function measure(ctx, p) {
   const page = await ctx.newPage();
   const cdp = await ctx.newCDPSession(page);
   if (p.cpu > 1) await cdp.send("Emulation.setCPUThrottlingRate", { rate: p.cpu });
@@ -118,7 +126,7 @@ async function once(browser, p) {
     const list = document.getElementById("suggestions");
     m.inputs = []; m.completion = null; m.click = null; m.found = null; m.foundPainted = null;
     input.addEventListener("input", () => m.inputs.push(performance.now()), true);
-    new MutationObserver(() => { if (m.completion === null && list.children.length) m.completion = performance.now(); }).observe(list, { childList: true });
+    new MutationObserver(() => { if (m.completion === null && m.inputs.length >= 2 && list.children.length) m.completion = performance.now(); }).observe(list, { childList: true });
     document.addEventListener("click", () => { m.click = performance.now(); }, true);
     new MutationObserver(() => {
       if (m.click !== null && m.found === null && document.querySelector("section[aria-label^='Matches in']")) {
@@ -134,8 +142,10 @@ async function once(browser, p) {
   await box.fill(QUERY);
   await page.getByRole("button", { name: "Search" }).click();
   await page.waitForFunction(() => window.__m.foundPainted != null, null, { timeout: 60000, polling: 20 });
-  const m = await page.evaluate(() => window.__m);
-  await ctx.close();
+  const m = await page.evaluate(() => { // takeRecords: deliver observer entries still queued
+    for (const e of window.__po.takeRecords()) window.__m.long.push([e.startTime, e.duration]);
+    return window.__m;
+  });
   const tasks = m.long.map(([s, d]) => ({ s, d }));
   const startup = tasks.filter((t) => t.s <= start.ready);
   const inter = tasks.filter((t) => t.s > start.ready);
@@ -164,17 +174,21 @@ console.log(`Machine: ${env.os}; ${env.cpu}; ${env.memGiB} GiB; Node ${env.node}
 console.log(`Release index: ${env.entries} entries, ${(env.indexBytes / 1e6).toFixed(2)} MB raw; ${RUNS} runs per profile after 1 warm-up; load average at start ${env.loadavgStart}`);
 
 const results = [];
-for (const p of profiles) {
-  process.stdout.write(`${p.name}: warm-up`);
-  await once(browser, p); // discarded
-  const runs = [];
-  for (let i = 0; i < RUNS; i++) { process.stdout.write(` ${i + 1}`); runs.push(await once(browser, p)); }
-  process.stdout.write("\n");
-  results.push({ profile: p.name, cpu: p.cpu, net: !!p.net, gzip: p.gzip, runs, ready: stat(runs.map((r) => r.ready)), longest: stat(runs.map((r) => r.longest)) });
+try {
+  for (const p of profiles) {
+    process.stdout.write(`${p.name}: warm-up`);
+    await once(browser, p); // discarded
+    const runs = [];
+    for (let i = 0; i < RUNS; i++) { process.stdout.write(` ${i + 1}`); runs.push(await once(browser, p)); }
+    process.stdout.write("\n");
+    results.push({ profile: p.name, cpu: p.cpu, net: !!p.net, gzip: p.gzip, runs, ready: stat(runs.map((r) => r.ready)), longest: stat(runs.map((r) => r.longest)) });
+    if (arg("--json")) writeFileSync(arg("--json"), JSON.stringify({ env, results }, null, 1)); // keep finished profiles if a later one fails
+  }
+} finally {
+  await browser.close();
+  http.close();
 }
 env.loadavgEnd = os.loadavg().map((x) => x.toFixed(2)).join(" ");
-await browser.close();
-http.close();
 
 const f = (x) => Math.round(x).toString();
 const mm = (s) => `${f(s.min)}/${f(s.median)}/${f(s.max)}`;
@@ -192,6 +206,5 @@ console.log("\nAll times in ms (medians for the breakdown columns). ready = navi
 console.log("parse + render approximately sum to ready. complete = 2nd keystroke to suggestions in the DOM; search = click to matches");
 console.log("painted; after-ready max = longest main-thread task after ready (typing and searching).");
 console.log(`Verdicts: ready PASS when the median < ${READY_LIMIT_MS} ms; block PASS when the longest task in every run is <= ${BLOCK_LIMIT_MS} ms.`);
-const json = arg("--json");
-if (json) writeFileSync(json, JSON.stringify({ env, results }, null, 1));
+if (arg("--json")) writeFileSync(arg("--json"), JSON.stringify({ env, results }, null, 1));
 process.exit(0);
