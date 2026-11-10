@@ -4,7 +4,7 @@
 
 Hand-written, kind: hand-written minimal (level 1 oracle). Same schema as a ChamRedB release `graph.json` (node-link, directed). Not derived from a release; names are invented. Generator: none (edit by hand). Data contract: `docs/data-contract.md`.
 
-Exercises: a native id shared by two databases (`ARO:1000` is in card and resfinder, so a bare search is ambiguous), an identity exactly at the default threshold (0.9) that is not the best match, a tie in best identity (two NCBI hits at 0.97), a match below the default threshold 0.9 (resfinder:blaXlow 0.85, card:ARO:2000 to resfinder:tetM 0.88), coverage above 1 (1.05), a renamed-looking CARD name (`tet(M)` vs ResFinder `tetM`), alternative and duplicate allele ids, and an entry with no matches (resfinder:orphan).
+Exercises: a native id shared by two databases (`ARO:1000` is in card and resfinder, so a bare search is ambiguous), an identity exactly at the default threshold (0.9) that is not the best match, a tie in best identity (two NCBI hits at 0.97), a match below the default threshold 0.9 (resfinder:blaXlow 0.85, card:ARO:2000 to resfinder:tetM 0.88), coverage above 1 (1.05), a renamed-looking CARD name (`tet(M)` vs ResFinder `tetM`), alternative and duplicate allele ids, an entry with no matches (resfinder:orphan), which is also an entry without a phenotype (shown as "not recorded"; resfinder:blaXlow has none either, so a match row without a phenotype is covered), and an entry with both a phenotype and an additional phenotype (card:ARO:2000).
 
 Counts worked by hand: 10 entries (card 2, ncbi 3, resfinder 5), 10 directed matches. The coverage 1.05 is invented to exercise rendering above 100%; it is not evidence about the real graph.
 
@@ -40,3 +40,13 @@ Sign-off: signed off by the repo owner on 2026-11-10 after reviewing the edge li
 | NG_1.1 | any | ncbi:WP_1.1 (alternative id) |
 | WP_2.1, NG_2.1 | any | ncbi:WP_1.1 (duplicate allele id) |
 | blax, ARO:9999, empty | any | none |
+
+### Phenotype (shown verbatim from the node; `not recorded` when absent)
+
+| Entry | Phenotype shown | Additional phenotype shown |
+| --- | --- | --- |
+| card:ARO:1000 | confers resistance to antibiotic: cephalosporin | none (field not shown) |
+| card:ARO:2000 | confers resistance to drug class: tetracycline antibiotic | confers resistance to antibiotic: tetracycline |
+| resfinder:orphan | not recorded | none |
+| resfinder:blaXlow (as a match) | not recorded | none |
+| every other entry | its `phenotype` string in `graph.json` | none |
