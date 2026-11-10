@@ -8,10 +8,6 @@
 # testing
 /coverage
 
-# next.js
-/.next/
-/out/
-
 # production
 /build
 
@@ -30,8 +26,6 @@ yarn-error.log*
 .env.test.local
 .env.production.local
 
-# vercel
-.vercel
 .vscode/launch.json
 
 # raw data (fixtures excepted)
@@ -44,3 +38,8 @@ yarn-error.log*
 *.vcf.gz
 !tests/**/*.vcf.gz
 data/raw/
+
+# build and test output
+/dist
+/test-results
+/playwright-report

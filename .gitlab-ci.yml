@@ -1,5 +1,6 @@
 image: docker:19.03.1
 
+# Docker image build: broken until ticket #13 removes it (the Dockerfile runs `npm start`, which no longer exists).
 build:
   only:
     - tags
@@ -23,3 +24,15 @@ build:
     - docker rmi
       --force
       $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_NAME
+
+# Feedback loop (ticket #4): unit tests, build, egress test. Untested on GitLab runners.
+test:
+  image: mcr.microsoft.com/playwright:v1.65.0-noble
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+  script:
+    - npm ci
+    - npm test
+    - npm run build
+    - npm run e2e

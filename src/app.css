@@ -1,0 +1,19 @@
+@import "tailwindcss";
+
+/* Tailwind colour names point at the tokens in public/theme.css: no literal colours here. */
+@theme inline {
+  --color-*: initial; /* drop Tailwind's default palette: only token colours exist */
+  --color-bg: var(--bg);
+  --color-fg: var(--fg);
+  --color-muted: var(--muted);
+  --color-surface: var(--surface);
+  --color-border: var(--border);
+  --color-accent: var(--accent);
+  --color-accent-fg: var(--accent-fg);
+  --color-danger: var(--danger);
+  --font-sans: var(--font-body);
+}
+
+body {
+  @apply bg-bg text-fg font-sans;
+}
