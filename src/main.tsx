@@ -5,6 +5,7 @@ import { Footer } from "./Footer";
 import { formatHash, MAX_QUERY, parseHash, type HashState } from "./hash";
 import { EntryHeader, MatchPhenotype } from "./Phenotype";
 import { NetworkView } from "./NetworkView";
+import { About } from "./About";
 import { findEntries, matchGroups, suggest } from "./query";
 import { DATABASES, type Candidate, type Database, type Index } from "./types";
 
@@ -119,7 +120,7 @@ function App() {
             value={db ?? ""}
             disabled={!index}
             onChange={(e) => setDb((e.target.value || undefined) as Database | undefined)}
-            className="mt-1 rounded-md border border-border bg-surface px-3 py-2 disabled:opacity-50"
+            className="mt-1 rounded-md border border-control-border bg-surface px-3 py-2 disabled:opacity-50"
           >
             <option value="">All databases</option>
             {DATABASES.map((d) => (
@@ -137,7 +138,7 @@ function App() {
             maxLength={MAX_QUERY}
             autoComplete="off"
             placeholder="card:ARO:1000"
-            className="mt-1 w-full rounded-md border border-border bg-surface px-3 py-2 disabled:opacity-50"
+            className="mt-1 w-full rounded-md border border-control-border bg-surface px-3 py-2 disabled:opacity-50"
           />
           <datalist id="suggestions">
             {suggestions.map((value) => (
@@ -181,7 +182,7 @@ function App() {
           <ul className="mt-2 flex flex-wrap gap-2">
             {found.map((c) => (
               <li key={c.id}>
-                <button type="button" onClick={() => choose(c.id)} className="rounded-md border border-border bg-surface px-3 py-1">
+                <button type="button" onClick={() => choose(c.id)} className="rounded-md border border-control-border bg-surface px-3 py-1">
                   {c.id} ({c.name}), matched on {c.matchedOn}
                 </button>
               </li>
@@ -268,6 +269,7 @@ function App() {
         </section>
         );
       })}
+      <About />
     </main>
     <Footer release={index?.release} />
     </>

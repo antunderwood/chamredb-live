@@ -8,6 +8,7 @@
   --color-muted: var(--muted);
   --color-surface: var(--surface);
   --color-border: var(--border);
+  --color-control-border: var(--control-border);
   --color-accent: var(--accent);
   --color-accent-fg: var(--accent-fg);
   --color-danger: var(--danger);
@@ -16,4 +17,10 @@
 
 body {
   @apply bg-bg text-fg font-sans;
+}
+
+/* One visible keyboard focus indicator for every control, in the accent token (3:1 on bg and surface, tested). */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }

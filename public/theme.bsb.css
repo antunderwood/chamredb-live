@@ -1,0 +1,33 @@
+/* EXAMPLE brand override (Broken String Biosciences palette). Not the default: nothing links to this file.
+   To adopt it, replace public/theme.css with this file's content; no component changes. docs/accessibility.md.
+   The font stays the system stack: DM Sans is not loaded (no font CDN) and not bundled; to use it, bundle the
+   font file with @font-face and name it first in --font-body, keeping this fallback after it.
+   Palette: Pearl #F0F0F7, Midnight #161026, Fog #CDCBD8, Steel #68637A, Orange #E2643A, Magenta #BA335C, Purple #87338B.
+   Orange is a mark colour here: Pearl text on Orange fails 4.5:1, so --accent-fg is Midnight. Purple is not mapped,
+   because no component needs a third accent. Fog is too pale to outline a control (about 1.4:1 on Pearl), so it is
+   the decorative --border and Steel is the --control-border. */
+:root {
+  --bg: #f0f0f7; /* Pearl */
+  --fg: #161026; /* Midnight */
+  --muted: #68637a; /* Steel */
+  --surface: #ffffff;
+  --border: #cdcbd8; /* Fog */
+  --control-border: #68637a; /* Steel */
+  --accent: #e2643a; /* Orange */
+  --accent-fg: #161026; /* Midnight */
+  --danger: #ba335c; /* Magenta */
+  --font-body: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #161026; /* Midnight */
+    --fg: #f0f0f7; /* Pearl */
+    --muted: #cdcbd8; /* Fog */
+    --surface: #231b3a;
+    --border: #3d3556;
+    --control-border: #8f89a3;
+    --accent: #e2643a; /* Orange */
+    --accent-fg: #161026; /* Midnight */
+    --danger: #f08aa8; /* a lighter Magenta: the brand Magenta is 3.27:1 on Midnight */
+  }
+}
