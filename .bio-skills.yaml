@@ -1,0 +1,36 @@
+# .bio-skills.yaml : read by every bio-* skill. Missing file = restricted.
+version: 1
+
+project_types: [webapp]
+languages: [javascript]
+
+data_policy: open                   # see docs/adr/0001-data-policy.md
+
+tracker:
+  kind: gitlab
+  project: antunderwood/chamredb-live
+  labels:
+    spec: "bio:spec"
+    ticket: "bio:ticket"
+    decision: "bio:decision"
+    needs_human: "bio:needs-human"
+    ready_for_agent: "bio:ready-for-agent"
+    science_review: "bio:science-review"
+
+reference:
+  kind: database
+  assembly: ChamRedB                # database name
+  source: https://github.com/antunderwood/chamredb/releases/tag/graph-2026.11.09
+  release: graph-2026.11.09
+
+paths:
+  glossary: GLOSSARY.md
+  adr_dir: docs/adr
+  fixtures: tests/fixtures
+  figures: figures
+
+science_reviewer: none              # solo repo: bio:science-review items have no owner
+science_reviewer_backup: none
+
+feedback_loop:
+  max_seconds: 60

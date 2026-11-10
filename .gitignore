@@ -33,3 +33,14 @@ yarn-error.log*
 # vercel
 .vercel
 .vscode/launch.json
+
+# raw data (fixtures excepted)
+*.bam
+!tests/**/*.bam
+*.cram
+!tests/**/*.cram
+*.fastq.gz
+!tests/**/*.fastq.gz
+*.vcf.gz
+!tests/**/*.vcf.gz
+data/raw/
