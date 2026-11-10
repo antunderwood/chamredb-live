@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import graph from "../tests/fixtures/graph.json";
 import { buildIndex } from "./parse";
-import { findEntries, matchGroups } from "./query";
+import { findEntries, matchGroups, suggest } from "./query";
 import type { ReleaseGraph } from "./types";
 
 // Expected values are worked by hand in tests/fixtures/README.md.
@@ -67,6 +67,41 @@ describe("findEntries", () => {
   it("returns nothing for an unknown id", () => {
     expect(found("ARO:9999")).toEqual([]);
     expect(found("")).toEqual([]);
+  });
+});
+
+describe("suggest", () => {
+  // Rank: id, then name, then alternative id, then duplicate allele id; then shorter; then code-point order.
+  it("completes a prefix, ignoring case", () => {
+    expect(suggest(index, "bl")).toEqual(["blaX", "blaXlow", "blaX-1", "blaX-2"]);
+    expect(suggest(index, "BLAX")).toEqual(["blaX", "blaXlow", "blaX-1", "blaX-2"]);
+  });
+  it("ranks ids and names before alternative and duplicate allele ids", () => {
+    expect(suggest(index, "NG_")).toEqual(["NG_1.1", "NG_3.1", "NG_4.1", "NG_2.1"]);
+  });
+  it("restricts to a database and honours the limit", () => {
+    expect(suggest(index, "bl", "card")).toEqual(["blaX"]);
+    expect(suggest(index, "bl", undefined, 2)).toEqual(["blaX", "blaXlow"]);
+  });
+  it("ranks by how a string identifies entries in the filtered database", () => {
+    const e = (id: string, database: "card" | "ncbi", name: string, alt: Record<string, string> = {}) => ({
+      id, database, name, pmids: [], alternativeIds: alt, duplicateAlleleIds: {},
+    });
+    const idx = {
+      entries: {
+        "card:ab1": e("card:ab1", "card", "n1"), // ab1 is an id in card
+        "ncbi:ab22": e("ncbi:ab22", "ncbi", "n2"), // ab22 is an id in ncbi
+        "ncbi:Q": e("ncbi:Q", "ncbi", "n3", { k: "ab1" }), // ab1 is only an alternative id in ncbi
+      },
+      edges: {},
+    };
+    expect(suggest(idx, "ab")).toEqual(["ab1", "ab22"]); // both ids somewhere: shorter first
+    expect(suggest(idx, "ab", "ncbi")).toEqual(["ab22", "ab1"]); // in ncbi ab22 is an id, ab1 an alternative id
+    expect(suggest(idx, "ab", "card")).toEqual(["ab1"]);
+  });
+  it("needs two characters and returns nothing for no match", () => {
+    expect(suggest(index, "b")).toEqual([]);
+    expect(suggest(index, "zz")).toEqual([]);
   });
 });
 

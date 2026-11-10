@@ -1,4 +1,5 @@
-export type Database = "card" | "ncbi" | "resfinder";
+export const DATABASES = ["card", "ncbi", "resfinder"] as const;
+export type Database = (typeof DATABASES)[number];
 export type MatchType = "RBH" | "OWH";
 
 // Release graph.json, node-link form (only the keys the app reads).

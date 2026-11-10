@@ -1,19 +1,55 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { createRoot } from "react-dom/client";
 import "./app.css";
-import { findEntries, matchGroups } from "./query";
-import type { Candidate, Index } from "./types";
+import { formatHash, MAX_QUERY, parseHash, type HashState } from "./hash";
+import { findEntries, matchGroups, suggest } from "./query";
+import { DATABASES, type Candidate, type Database, type Index } from "./types";
 
-const DEFAULT_MIN_PCT = 90; // default minimum identity, ADR 0004
+const WEAK_PCT = 90; // below this identity the top match is weak evidence of equivalence (ADR 0004)
+const LABELS: Record<Database, string> = { card: "CARD", ncbi: "NCBI AMRFinderPlus", resfinder: "ResFinder" };
+
+// Records the search in the address bar. Skips a no-op and survives the browser rate limit on replaceState.
+function syncUrl(state: HashState) {
+  const next = window.location.pathname + window.location.search + formatHash(state);
+  if (next === window.location.pathname + window.location.search + window.location.hash) return;
+  try {
+    window.history.replaceState(null, "", next);
+  } catch {
+    // throttled by the browser: the URL lags one change behind, the app keeps working
+  }
+}
 const pct = (fraction: number) => `${(fraction * 100).toFixed(1)}%`;
 
 function App() {
   const [index, setIndex] = useState<Index | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [text, setText] = useState("");
-  const [searched, setSearched] = useState<string | null>(null);
-  const [minPct, setMinPct] = useState(DEFAULT_MIN_PCT); // whole percent from the slider; identity is a 0 to 1 fraction
+  const [initial] = useState(() => parseHash(window.location.hash)); // a shared link restores the search
+  const [text, setText] = useState(initial.q);
+  const [searched, setSearched] = useState<string | null>(initial.q || null);
+  const [db, setDb] = useState<Database | undefined>(initial.db);
+  const [minPct, setMinPct] = useState(initial.min); // whole percent from the slider; identity is a 0 to 1 fraction
+  const [linkRel, setLinkRel] = useState(initial.rel); // release the opened link was made with, until a new search
   const minIdentity = minPct / 100;
+
+  // The address bar records the submitted search, database filter, slider and release (replaceState: no history).
+  // Until a new search, a link keeps the release it was made with, so a stale link stays visibly stale.
+  useEffect(() => {
+    syncUrl({ q: (searched ?? "").trim(), db, min: minPct, rel: linkRel ?? index?.release });
+  }, [searched, db, minPct, linkRel, index]);
+
+  // A link pasted or edited while the page is open applies at once.
+  useEffect(() => {
+    const apply = () => {
+      const s = parseHash(window.location.hash);
+      setText(s.q);
+      setSearched(s.q || null);
+      setDb(s.db);
+      setMinPct(s.min);
+      setLinkRel(s.rel);
+    };
+    window.addEventListener("hashchange", apply);
+    return () => window.removeEventListener("hashchange", apply);
+  }, []);
 
   useEffect(() => {
     fetch("./index.json")
@@ -26,8 +62,8 @@ function App() {
   }, []);
 
   const found: Candidate[] = useMemo(
-    () => (index && searched !== null ? findEntries(index, searched) : []),
-    [index, searched],
+    () => (index && searched !== null ? findEntries(index, searched, db) : []),
+    [index, searched, db],
   );
   const groups = useMemo(
     () => (index && found.length === 1 ? matchGroups(index, found[0].id, minIdentity) : []),
@@ -35,14 +71,23 @@ function App() {
   );
 
   const shown = (searched ?? "").trim();
+  const suggestions = useMemo(() => (index ? suggest(index, text, db) : []), [index, text, db]);
+  // With a database filter: entries with the same text in other databases that the filter hides.
+  const hidden = useMemo(
+    () => (index && db && searched !== null && found.length === 1 ? findEntries(index, searched).filter((c) => c.id !== found[0].id) : []),
+    [index, db, searched, found],
+  );
+  const staleLink = index?.release && linkRel && linkRel !== index.release ? linkRel : null;
 
   const submit = (e: FormEvent) => {
     e.preventDefault();
     setSearched(text);
+    setLinkRel(undefined); // a new search belongs to the release in use
   };
   const choose = (id: string) => {
     setText(id);
     setSearched(id);
+    setLinkRel(undefined);
   };
 
   return (
@@ -59,18 +104,42 @@ function App() {
       <p className="mt-2 text-sm text-muted">
         Privacy: all searches run in your browser. Your searches never leave your browser, and this site loads no
         third-party scripts, fonts or analytics. The web host keeps ordinary access logs of page and data file requests.
+        The address of this page records your search after the # sign, so you can share it; your browser does not send
+        that part to this site, but anyone you give the link to can read it.
       </p>
 
-      <form onSubmit={submit} className="mt-6 flex gap-2">
-        <label className="flex-1">
+      <form onSubmit={submit} className="mt-6 flex flex-wrap gap-2">
+        <label>
+          <span className="block text-sm font-medium">Search in database</span>
+          <select
+            value={db ?? ""}
+            disabled={!index}
+            onChange={(e) => setDb((e.target.value || undefined) as Database | undefined)}
+            className="mt-1 rounded-md border border-border bg-surface px-3 py-2 disabled:opacity-50"
+          >
+            <option value="">All databases</option>
+            {DATABASES.map((d) => (
+              <option key={d} value={d}>{LABELS[d]}</option>
+            ))}
+          </select>
+        </label>
+        <label className="min-w-48 flex-1">
           <span className="block text-sm font-medium">Entry id or name</span>
           <input
             value={text}
             disabled={!index}
             onChange={(e) => setText(e.target.value)}
+            list="suggestions"
+            maxLength={MAX_QUERY}
+            autoComplete="off"
             placeholder="card:ARO:1000"
             className="mt-1 w-full rounded-md border border-border bg-surface px-3 py-2 disabled:opacity-50"
           />
+          <datalist id="suggestions">
+            {suggestions.map((value) => (
+              <option key={value} value={value} />
+            ))}
+          </datalist>
         </label>
         <button
           type="submit"
@@ -82,11 +151,24 @@ function App() {
       </form>
 
       {error && <p role="alert" className="mt-6 text-danger">{error}</p>}
-      {searched !== null && found.length === 0 && (
+      {index && searched !== null && found.length === 0 && (
         <p role="alert" className="mt-6 text-danger">
-          No entry has the id, name, alternative id or duplicate allele id exactly {shown}. Matching is
+          No entry has the id, name, alternative id or duplicate allele id exactly {shown}{db ? ` in ${LABELS[db]}` : ""}. Matching is
           exact and case-sensitive, including brackets and version suffixes (tet(M), not tetM; WP_012695489.1, not
-          WP_012695489).
+          WP_012695489).{db ? ` The database filter is set to ${LABELS[db]}; choose All databases to search the others.` : ""}
+        </p>
+      )}
+      {staleLink && searched !== null && (
+        <p role="status" className="mt-6 rounded-md border border-border bg-surface px-3 py-2 text-sm">
+          This link was made with release {staleLink}; this page uses {index?.release}. Ids and names may have been
+          retired or reassigned between releases, so check that the entry shown is the one you meant.
+        </p>
+      )}
+      {hidden.length > 0 && (
+        <p role="status" className="mt-6 rounded-md border border-border bg-surface px-3 py-2 text-sm">
+          Database filter: {LABELS[db!]}. {hidden.length} other {hidden.length === 1 ? "entry has" : "entries have"} this
+          text in other databases ({hidden.slice(0, 5).map((c) => c.id).join(", ")}
+          {hidden.length > 5 ? ", ..." : ""}). Choose All databases to see {hidden.length === 1 ? "it" : "them"}.
         </p>
       )}
       {found.length > 1 && (
@@ -145,13 +227,13 @@ function App() {
       )}
       {groups.map((g) => {
         // Below 90% identity the top match is weak evidence of equivalence (ADR 0004): do not call it Best.
-        const weak = Math.max(...g.matches.map((m) => m.identity)) < DEFAULT_MIN_PCT / 100;
+        const weak = Math.max(...g.matches.map((m) => m.identity)) < WEAK_PCT / 100;
         return (
         <section key={g.database} aria-label={`Matches in ${g.database}`} className="mt-6 rounded-lg border border-border bg-surface p-4">
           <h2 className="text-lg font-semibold">{g.database}</h2>
           {weak && (
             <p className="mt-1 text-sm text-danger">
-              Weak evidence: every match here is below {DEFAULT_MIN_PCT}% identity. The highest identity is marked, but
+              Weak evidence: every match here is below {WEAK_PCT}% identity. The highest identity is marked, but
               it ignores coverage and the match type.
             </p>
           )}

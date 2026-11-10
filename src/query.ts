@@ -1,4 +1,4 @@
-import type { Candidate, Database, Index, Match, MatchedOn, MatchGroup } from "./types";
+import { DATABASES, type Candidate, type Database, type Index, type Match, type MatchedOn, type MatchGroup } from "./types";
 
 // Identity is compared at 3 decimals of the fraction, the displayed precision (data contract).
 const q = (fraction: number) => Math.round(fraction * 1000);
@@ -32,8 +32,8 @@ function table(index: Index) {
 }
 
 // Every entry the text identifies exactly (case-sensitive, after trimming) by composite id, native id, name,
-// alternative id or duplicate allele id, sorted by id in code-point order (same as the Python oracle).
-// Never picks one: the caller shows all candidates. `database` restricts the result; the UI filter is ticket #8.
+// alternative id or duplicate allele id, sorted by id in UTF-16 code-unit order (the same as code-point order for these ASCII ids, and as the Python oracle).
+// Never picks one: the caller shows all candidates. `database` restricts the result (the UI database filter).
 // A prefixed accession such as `ncbi:NG_050598.1` is not an id, so it finds nothing (owner decision, ADR 0004).
 export function findEntries(index: Index, text: string, database?: Database): Candidate[] {
   const hits = table(index).get(text.trim());
@@ -45,6 +45,37 @@ export function findEntries(index: Index, text: string, database?: Database): Ca
       return { id, database: e.database, name: e.name, matchedOn };
     })
     .sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+}
+
+// Completions for a typed prefix: searchable strings starting with it (case-insensitive), ranked by how they
+// identify entries (id, name, alternative id, duplicate allele id), then shorter, then code-unit order. With a
+// `database`, only strings that identify an entry in that database, ranked by how they do so in that database.
+// Needs two characters.
+interface Suggestible { text: string; lower: string; ranks: number[] } // best rank per database, NONE if absent
+const NONE = 99;
+const suggestibles = new WeakMap<Index, Suggestible[]>();
+export function suggest(index: Index, prefix: string, database?: Database, limit = 10): string[] {
+  const p = prefix.trim().toLowerCase();
+  if (p.length < 2) return [];
+  let all = suggestibles.get(index);
+  if (!all) {
+    all = [...table(index)].map(([text, hits]) => {
+      const ranks = DATABASES.map(() => NONE);
+      for (const [id, how] of hits) {
+        const d = DATABASES.indexOf(index.entries[id]!.database);
+        ranks[d] = Math.min(ranks[d], PRIORITY.indexOf(how));
+      }
+      return { text, lower: text.toLowerCase(), ranks };
+    });
+    suggestibles.set(index, all);
+  }
+  const d = database ? DATABASES.indexOf(database) : -1;
+  const rank = (s: Suggestible) => (d < 0 ? Math.min(...s.ranks) : s.ranks[d]);
+  return all
+    .filter((s) => s.lower.startsWith(p) && rank(s) < NONE)
+    .sort((a, b) => rank(a) - rank(b) || a.text.length - b.text.length || (a.text < b.text ? -1 : a.text > b.text ? 1 : 0))
+    .slice(0, limit)
+    .map((s) => s.text);
 }
 
 // Matches of one entry with identity >= minIdentity (fraction 0 to 1, inclusive), grouped by database.
