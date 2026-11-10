@@ -7,7 +7,7 @@ languages: [javascript]
 data_policy: open                   # see docs/adr/0001-data-policy.md
 
 tracker:
-  kind: gitlab
+  kind: github
   project: antunderwood/chamredb-live
   labels:
     spec: "bio:spec"

@@ -1,8 +1,0 @@
-server {
-  listen ${PORT};
-  root /usr/share/nginx/html;
-  gzip on;
-  gzip_min_length 1024;
-  gzip_types application/json text/css application/javascript image/svg+xml;
-  location / { try_files $uri $uri/ /index.html; }
-}

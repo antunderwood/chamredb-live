@@ -134,6 +134,45 @@ design. Not recommended now: the compact format. It cuts gzip transfer by a thir
 1.6 Mbit/s) but still cannot bring the slow-network case under 2 s (a 0.43 MB floor plus latency), and the spec defines
 no network target.
 
+## Lookup table in slices (#15)
+
+`prime(index)` in `src/query.ts` now builds the lookup table and the completions list in slices of 1500 units (entries,
+then searchable strings), with a `setTimeout` yield between slices, and `src/main.tsx` calls it as soon as the index has
+loaded. `findEntries` and `suggest` stay synchronous and always correct: they drain the same generator, so a call
+before or during priming finishes the remaining work instead of starting again, and results are identical
+(`src/prime.test.ts`, plus the unchanged sweeps in `src/lookup.test.ts` and `src/query.test.ts`).
+
+Measured with `npm run measure --profiles default-gzip,cpu4-gzip,cpu6-gzip --runs 5` (one warm-up, then 5 runs, gzip),
+same machine as above (Apple M2, Chromium 158, 2026-11-10, other work running), before (main at the start of #15) and
+after (this branch). "After ready" is the longest main-thread task starting after the search box was enabled, over the
+whole session (it includes the priming slices). The script types `ca` the moment the box is enabled, so priming is
+still running and that keystroke finishes the remaining slices synchronously: the standard row is a worst case. The
+second "after" row repeats it with a throwaway 1.5 s pause before typing (a user does not type within 130 ms of the
+page becoming usable); that variant is not in the repo.
+
+| Profile | Version | Ready median | Longest task after ready (5 runs: min / median / max) | First completion (median) |
+|---|---|---|---|---|
+| default | before | 66 | 0 / 0 / 0 | 31 |
+| default | after | 65 | 0 / 0 / 0 | 17 |
+| default | after, 1.5 s pause | 77 | 0 / 0 / 0 | 5 |
+| CPU 4x | before | 257 | 106 / 132 / 142 | 108 |
+| CPU 4x | after | 258 | 53 / 62 / 67 | 61 |
+| CPU 4x | after, 1.5 s pause | 258 | 0 / 0 / 0 | 16 |
+| CPU 6x | before | 395 | 155 / 167 / 175 | 167 |
+| CPU 6x | after | 399 | 104 / 111 / 117 | 109 |
+| CPU 6x | after, 1.5 s pause | 395 | 59 / 62 / 74 | 23 |
+
+Verdict: the 200 ms limit after ready is met at 6x in all 5 measured runs (max 117 ms typing at once, 74 ms with a
+pause; 175 ms before, which also passed). This batch did not reproduce the 178 to 217 ms failures recorded above (two of
+the three exceed this batch's before maximum), so the claim rests on the relative gain: the median fell from 167 to 111
+ms and the ranges do not overlap. The after batch ran at a higher load average (7.5) than the before batch (4.3), which
+works against the claim. Five runs on one machine are not a bound. The margin to 200 ms is now about 80 ms in the worst case, against 25 ms before. Ready is
+unchanged (the work is after ready). What remains over 50 ms: typing at the instant of ready still pays for the part of
+the build not yet done (about 110 ms at 6x), and with a pause the longest task at 6x is 59 to 74 ms (not attributed to a
+particular slice; smaller slices were not tried). The
+longest task over the whole session at 6x is still the startup JSON parse (156 to 171 ms), unchanged. Not measured: a
+real phone, other engines, and network throttling (not repeated). Rust/WASM is not triggered.
+
 ## What the numbers mean for users
 
 - On this laptop the search box is usable about 66 ms after navigation starts; the first suggestions follow about 31 ms
