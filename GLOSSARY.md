@@ -19,3 +19,4 @@
 | Coverage | Alignment length / query length, a fraction that can exceed 1 (shown as a percentage that may exceed 100%) | Identity |
 | Best match | The match with the highest identity to one other database among the matches shown (those at or above the minimum identity); ties are all best. By identity only: it ignores coverage and RBH/OWH. Below 90% identity the UI says "Highest identity shown" instead | Single arbitrary first hit; the right equivalent gene |
 | Query | The entry the user looked up (by id, name, alternative id or duplicate allele id) | Search text |
+| Database filter | Optional restriction of which entry a search finds to one database; the matches shown still cover the other databases | Which database the matches come from |

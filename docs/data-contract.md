@@ -24,3 +24,11 @@ Definitions: GLOSSARY.md.
 - Oracle: `tests/oracle/` (networkx 3.7): 22 fixed cases and every searchable string in the release (51913) by hash.
 - Oracle (matches): `tests/oracle/matches.py` with 8 fixed cases and every entry at 0.9, 0.5 and 0 by hash (47577).
 - The minimum identity is a user slider (whole percent, 0 to 100, default 90) and persists across searches.
+
+## Shareable link and suggestions
+
+- The address records the search: `#q=<text>&db=<card|ncbi|resfinder>&min=<0 to 100>&rel=<release>`, defaults omitted (no database filter, minimum identity 90), values encoded as application/x-www-form-urlencoded. `q` is the submitted text (it changes on Search or Enter); the database filter and minimum identity apply immediately. `rel` is the ChamRedB release in use and is written only with a search. The address is updated in place (no history entries: Back leaves the page).
+- The hash is not sent to a server by the browser, but anyone given the link can read the search. Invalid or missing values fall back to the defaults; the first of a repeated key wins; the query is trimmed and limited to 200 characters (the search box has the same limit). A link pasted into an open page applies at once and the address is normalised.
+- A link keeps the release it was made with until a new search is submitted. If it differs from the release in use the page says so: ids and names can be retired or reassigned between releases (88 absent and 131 reassigned between the two most recent releases).
+- The database filter narrows which entry is found (and which completions are offered); the matches shown for the found entry always cover the other databases. With a filter that hides entries with the same text in other databases, the page lists them.
+- Completions (native `<datalist>`): searchable strings that start with the typed text (at least two characters, case-insensitive), ranked id, name, alternative id, duplicate allele id (ranked within the chosen database when one is set), then shorter, then code-unit order; at most 10. Browsers may filter the offered list further. Choosing a completion fills the box; the search runs on Search or Enter, and the exact lookup rule above still applies (case-sensitive). Measured on the real index: 60 ms for the first completion, 1 to 3 ms after.

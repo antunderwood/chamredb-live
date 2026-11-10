@@ -118,6 +118,105 @@ test("a group whose top match is below 90% is not called Best and carries a warn
   await expect(page.getByLabel("Minimum identity")).toHaveValue("80");
 });
 
+const resultsText = (page: Page) => page.locator("main").innerText();
+
+test("a hash URL renders the same result as the interactive path, and the URL records the search", async ({ page, context }) => {
+  await page.goto("./");
+  await search(page, "card:ARO:1000");
+  await page.getByLabel("Minimum identity").fill("80");
+  await expect(page.getByRole("region", { name: "Matches in resfinder" }).getByRole("listitem")).toHaveCount(2);
+  expect(new URL(page.url()).hash).toBe("#q=card%3AARO%3A1000&min=80");
+  const interactive = await resultsText(page);
+
+  const other = await context.newPage();
+  await other.goto("./#q=card%3AARO%3A1000&min=80");
+  await expect(other.getByRole("region", { name: "Matches in resfinder" }).getByRole("listitem")).toHaveCount(2);
+  expect(await resultsText(other)).toEqual(interactive);
+  await expect(other.getByLabel("Entry id or name")).toHaveValue("card:ARO:1000");
+  await expect(other.getByLabel("Minimum identity")).toHaveValue("80");
+});
+
+test("a pasted hash applies to the open page and the address is normalised", async ({ page }) => {
+  await page.goto("./");
+  await expect(page.getByLabel("Entry id or name")).toBeEnabled();
+  await page.evaluate(() => { location.hash = "#q=card%3AARO%3A2000&min=070"; });
+  await expect(page.getByRole("region", { name: "Matches in resfinder" })).toContainText("88.0%");
+  await expect(page.getByLabel("Minimum identity")).toHaveValue("70");
+  await expect.poll(() => new URL(page.url()).hash).toBe("#q=card%3AARO%3A2000&min=70");
+});
+
+test("a link with invalid values loads with the defaults, and a link with a database restores it", async ({ context }) => {
+  const bad = await context.newPage();
+  await bad.goto("./#q=card%3AARO%3A1000&db=zzz&min=abc");
+  await expect(bad.getByRole("region", { name: "Matches in resfinder" })).toBeVisible();
+  await expect(bad.getByLabel("Search in database")).toHaveValue("");
+  await expect(bad.getByLabel("Minimum identity")).toHaveValue("90");
+  await expect.poll(() => new URL(bad.url()).hash).toBe("#q=card%3AARO%3A1000");
+
+  const filtered = await context.newPage();
+  await filtered.goto("./#q=blaX&db=card");
+  await expect(filtered.getByText("blaX is the name of card:ARO:1000")).toBeVisible();
+  await expect(filtered.getByLabel("Search in database")).toHaveValue("card");
+});
+
+test("loading a link makes no third-party request and sends the search to nobody", async ({ page, baseURL }) => {
+  const requests: string[] = [];
+  page.on("request", (r) => requests.push(r.url()));
+  const { external, cspMessages } = watchEgress(page, new URL(baseURL!).origin);
+  await page.goto("./#q=card%3AARO%3A1000&min=80");
+  await expect(page.getByRole("region", { name: "Matches in resfinder" }).getByRole("listitem")).toHaveCount(2);
+  expect(external).toEqual([]);
+  expect(cspMessages).toEqual([]);
+  expect(requests.filter((u) => u.includes("ARO"))).toEqual([]); // the hash is not part of any request
+});
+
+test("a database filter that hides same-text entries in other databases says so", async ({ page }) => {
+  await page.goto("./#q=blaX&db=card");
+  await expect(page.getByText("Database filter: CARD. 1 other entry has this text in other databases (resfinder:blaX)")).toBeVisible();
+  await page.getByLabel("Search in database").selectOption("");
+  await expect(page.getByText("Database filter:")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: /resfinder:blaX/ })).toBeVisible(); // both candidates again
+});
+
+test("a link made with another release is flagged until a new search", async ({ page }) => {
+  await page.route("**/index.json", async (route) => {
+    const index = await (await route.fetch()).json();
+    await route.fulfill({ json: { ...index, release: "graph-2026.11.09" } });
+  });
+  await page.goto("./#q=card%3AARO%3A1000&rel=graph-2025.01.01");
+  await expect(page.getByText("This link was made with release graph-2025.01.01; this page uses graph-2026.11.09")).toBeVisible();
+  expect(new URL(page.url()).hash).toBe("#q=card%3AARO%3A1000&rel=graph-2025.01.01"); // stays stale-marked
+  await search(page, "card:ARO:2000");
+  await expect(page.getByText("This link was made with release")).toHaveCount(0);
+  await expect.poll(() => new URL(page.url()).hash).toBe("#q=card%3AARO%3A2000&rel=graph-2026.11.09");
+  await page.goto("./#q=card%3AARO%3A1000&rel=graph-2026.11.09"); // same release: no notice
+  await expect(page.getByRole("region", { name: "Matches in ncbi" })).toBeVisible();
+  await expect(page.getByText("This link was made with release")).toHaveCount(0);
+});
+
+test("the database filter narrows which entry is found, and is kept in the URL", async ({ page }) => {
+  await page.goto("./");
+  await search(page, "blaX");
+  await expect(page.getByRole("button", { name: /card:ARO:1000/ })).toBeVisible(); // two candidates
+  await page.getByLabel("Database").selectOption("card");
+  await search(page, "blaX");
+  await expect(page.getByText("blaX is the name of card:ARO:1000")).toBeVisible();
+  expect(new URL(page.url()).hash).toBe("#q=blaX&db=card");
+  await search(page, "NG_1.1"); // an ncbi accession: nothing in card
+  await expect(page.getByRole("alert")).toContainText("exactly NG_1.1");
+});
+
+test("typing a prefix offers completions from the data", async ({ page }) => {
+  await page.goto("./");
+  await expect(page.getByLabel("Entry id or name")).toBeEnabled();
+  await page.getByLabel("Entry id or name").fill("bla");
+  const options = page.locator("datalist option");
+  await expect(options).toHaveCount(4);
+  expect(await options.evaluateAll((o) => o.map((x) => (x as HTMLOptionElement).value))).toEqual(["blaX", "blaXlow", "blaX-1", "blaX-2"]);
+  await page.getByLabel("Database").selectOption("card");
+  await expect(options).toHaveCount(1);
+});
+
 test("shows the demo-data notice", async ({ page }) => {
   await page.goto("./");
   await expect(page.getByRole("note")).toContainText("not a ChamRedB release");
