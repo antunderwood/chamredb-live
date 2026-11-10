@@ -17,5 +17,5 @@
 | OWH | One-way hit: edge type `OWH`, found with MMseqs2 `search -s 7.0 --max-accept 3` (directed, no reciprocal best hit) | RBH |
 | Identity | Fraction of identical residues in the match, 0 to 1 (not percent) | Coverage | Alignment length / query length, a fraction that can exceed 1 (shown as a percentage that may exceed 100%) | Identity |
 | Coverage | Alignment length / query length, a fraction that can exceed 1 (shown as a percentage that may exceed 100%) | Identity |
-| Best match | The match with the highest identity to one other database for a query entry; ties are all best | Single arbitrary first hit |
+| Best match | The match with the highest identity to one other database among the matches shown (those at or above the minimum identity); ties are all best. By identity only: it ignores coverage and RBH/OWH. Below 90% identity the UI says "Highest identity shown" instead | Single arbitrary first hit; the right equivalent gene |
 | Query | The entry the user looked up (by id, name, alternative id or duplicate allele id) | Search text |

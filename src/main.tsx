@@ -4,7 +4,7 @@ import "./app.css";
 import { findEntries, matchGroups } from "./query";
 import type { Candidate, Index } from "./types";
 
-const MIN_IDENTITY = 0.9; // fraction 0 to 1; slider arrives in ticket #7
+const DEFAULT_MIN_PCT = 90; // default minimum identity, ADR 0004
 const pct = (fraction: number) => `${(fraction * 100).toFixed(1)}%`;
 
 function App() {
@@ -12,6 +12,8 @@ function App() {
   const [error, setError] = useState<string | null>(null);
   const [text, setText] = useState("");
   const [searched, setSearched] = useState<string | null>(null);
+  const [minPct, setMinPct] = useState(DEFAULT_MIN_PCT); // whole percent from the slider; identity is a 0 to 1 fraction
+  const minIdentity = minPct / 100;
 
   useEffect(() => {
     fetch("./index.json")
@@ -28,8 +30,8 @@ function App() {
     [index, searched],
   );
   const groups = useMemo(
-    () => (index && found.length === 1 ? matchGroups(index, found[0].id, MIN_IDENTITY) : []),
-    [index, found],
+    () => (index && found.length === 1 ? matchGroups(index, found[0].id, minIdentity) : []),
+    [index, found, minIdentity],
   );
 
   const shown = (searched ?? "").trim();
@@ -109,31 +111,72 @@ function App() {
           {found[0].matchedOn === "name" ? "; other databases may list entries with the same name" : ""}.
         </p>
       )}
-      {found.length === 1 && groups.length === 0 && (
-        <p className="mt-6 text-muted">No matches with identity of at least {pct(MIN_IDENTITY)} for {found[0].id}.</p>
+      {found.length === 1 && (
+        <div className="mt-6">
+          <label htmlFor="min-identity" className="block text-sm font-medium">Minimum identity</label>
+          <div className="mt-1 flex items-center gap-3">
+            <input
+              id="min-identity"
+              type="range"
+              min={0}
+              max={100}
+              step={1}
+              value={minPct}
+              aria-valuetext={`${minPct}%`}
+              onChange={(e) => setMinPct(Number(e.target.value))}
+              className="w-full accent-accent"
+            />
+            <output htmlFor="min-identity" className="w-12 text-right tabular-nums">{minPct}%</output>
+          </div>
+        </div>
       )}
-
-      {groups.length > 0 && (
-        <p className="mt-6 text-sm text-muted">
-          Matches with identity of at least {pct(MIN_IDENTITY)} (identity: fraction of identical residues; coverage:
-          alignment length / query length, so it can exceed 100%). Best is the highest identity in that database
-          among the matches shown. RBH: reciprocal best hit; OWH: one-way hit (the reverse direction is not implied).
+      {found.length === 1 && groups.length === 0 && (
+        <p role="status" className="mt-4 text-muted">
+          No matches with identity of at least {minPct}% for {found[0].id}. Lower the minimum identity to see weaker matches.
         </p>
       )}
-      {groups.map((g) => (
+      {groups.length > 0 && (
+        <p role="status" className="mt-4 text-sm text-muted">
+          {groups.length} {groups.length === 1 ? "database" : "databases"} with matches of identity at least {minPct}%
+          (identity: fraction of identical residues; coverage: alignment length / query length, so it can exceed
+          100%). Best is the highest identity in that database among the matches shown, by identity only: it ignores
+          coverage and the match type. RBH: reciprocal best hit; OWH: one-way hit (the reverse direction is not implied).
+        </p>
+      )}
+      {groups.map((g) => {
+        // Below 90% identity the top match is weak evidence of equivalence (ADR 0004): do not call it Best.
+        const weak = Math.max(...g.matches.map((m) => m.identity)) < DEFAULT_MIN_PCT / 100;
+        return (
         <section key={g.database} aria-label={`Matches in ${g.database}`} className="mt-6 rounded-lg border border-border bg-surface p-4">
           <h2 className="text-lg font-semibold">{g.database}</h2>
+          {weak && (
+            <p className="mt-1 text-sm text-danger">
+              Weak evidence: every match here is below {DEFAULT_MIN_PCT}% identity. The highest identity is marked, but
+              it ignores coverage and the match type.
+            </p>
+          )}
           <ul className="mt-2 space-y-2">
             {g.matches.map((m) => (
               <li key={m.entry.id}>
                 <span className="font-medium">{m.entry.id.slice(g.database.length + 1)}</span> ({m.entry.name}){" "}
                 identity {pct(m.identity)}, coverage {pct(m.coverage)}, {m.type}
-                {m.best && <strong className="ml-2 rounded bg-accent px-1.5 py-0.5 text-xs text-accent-fg">Best</strong>}
+                {m.best && (
+                  <strong
+                    className={
+                      weak
+                        ? "ml-2 rounded border border-border px-1.5 py-0.5 text-xs text-muted"
+                        : "ml-2 rounded bg-accent px-1.5 py-0.5 text-xs text-accent-fg"
+                    }
+                  >
+                    {weak ? "Highest identity shown" : "Best"}
+                  </strong>
+                )}
               </li>
             ))}
           </ul>
         </section>
-      ))}
+        );
+      })}
     </main>
   );
 }

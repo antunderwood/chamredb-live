@@ -1,0 +1,253 @@
+{
+ "graph_sha256": "1c7f0f080de1faf854ba5e6247c3bf2a9fced864b17670e87fd0efb0fc32b74e",
+ "cases": [
+  {
+   "entry": "card:ARO:3000230",
+   "minIdentity": 0.9,
+   "groups": [
+    [
+     "ncbi",
+     [
+      [
+       "ncbi:WP_032490446.1",
+       971,
+       1000000,
+       "RBH",
+       true
+      ]
+     ]
+    ],
+    [
+     "resfinder",
+     [
+      [
+       "resfinder:ant(2'')-Ia",
+       971,
+       1000000,
+       "RBH",
+       true
+      ]
+     ]
+    ]
+   ]
+  },
+  {
+   "entry": "card:ARO:3000230",
+   "minIdentity": 0.5,
+   "groups": [
+    [
+     "ncbi",
+     [
+      [
+       "ncbi:WP_032490446.1",
+       971,
+       1000000,
+       "RBH",
+       true
+      ]
+     ]
+    ],
+    [
+     "resfinder",
+     [
+      [
+       "resfinder:ant(2'')-Ia",
+       971,
+       1000000,
+       "RBH",
+       true
+      ]
+     ]
+    ]
+   ]
+  },
+  {
+   "entry": "card:ARO:3000230",
+   "minIdentity": 0.0,
+   "groups": [
+    [
+     "ncbi",
+     [
+      [
+       "ncbi:WP_032490446.1",
+       971,
+       1000000,
+       "RBH",
+       true
+      ]
+     ]
+    ],
+    [
+     "resfinder",
+     [
+      [
+       "resfinder:ant(2'')-Ia",
+       971,
+       1000000,
+       "RBH",
+       true
+      ]
+     ]
+    ]
+   ]
+  },
+  {
+   "entry": "ncbi:WP_003152694.1",
+   "minIdentity": 0.9,
+   "groups": [
+    [
+     "resfinder",
+     [
+      [
+       "resfinder:TOprJ1",
+       1000,
+       1000000,
+       "RBH",
+       true
+      ],
+      [
+       "resfinder:TOprJ3",
+       1000,
+       1000000,
+       "RBH",
+       true
+      ]
+     ]
+    ]
+   ]
+  },
+  {
+   "entry": "card:ARO:3000005",
+   "minIdentity": 0.9,
+   "groups": [
+    [
+     "ncbi",
+     [
+      [
+       "ncbi:WP_063856692.1",
+       997,
+       1000000,
+       "RBH",
+       true
+      ]
+     ]
+    ]
+   ]
+  },
+  {
+   "entry": "card:ARO:3000005",
+   "minIdentity": 0.5,
+   "groups": [
+    [
+     "ncbi",
+     [
+      [
+       "ncbi:WP_063856692.1",
+       997,
+       1000000,
+       "RBH",
+       true
+      ]
+     ]
+    ],
+    [
+     "resfinder",
+     [
+      [
+       "resfinder:VanHDX",
+       790,
+       1000000,
+       "RBH",
+       true
+      ]
+     ]
+    ]
+   ]
+  },
+  {
+   "entry": "card:ARO:3000579",
+   "minIdentity": 0.9,
+   "groups": [
+    [
+     "ncbi",
+     [
+      [
+       "ncbi:WP_029728367.1",
+       1000,
+       1000000,
+       "RBH",
+       true
+      ]
+     ]
+    ],
+    [
+     "resfinder",
+     [
+      [
+       "resfinder:blaB-11",
+       976,
+       1000000,
+       "OWH",
+       true
+      ],
+      [
+       "resfinder:blaB-2",
+       974,
+       1000000,
+       "OWH",
+       false
+      ],
+      [
+       "resfinder:blaB-3",
+       972,
+       1000000,
+       "OWH",
+       false
+      ]
+     ]
+    ]
+   ]
+  },
+  {
+   "entry": "card:ARO:3003873",
+   "minIdentity": 0.5,
+   "groups": [
+    [
+     "ncbi",
+     [
+      [
+       "ncbi:WP_063857803.1",
+       1000,
+       1000000,
+       "RBH",
+       true
+      ]
+     ]
+    ],
+    [
+     "resfinder",
+     [
+      [
+       "resfinder:blaADC-25",
+       932,
+       1000000,
+       "OWH",
+       true
+      ],
+      [
+       "resfinder:blaOCH-8",
+       500,
+       984252,
+       "OWH",
+       false
+      ]
+     ]
+    ]
+   ]
+  }
+ ],
+ "sweep": {
+  "count": 47577,
+  "sha256": "20c267c3ca6408a7d65056bf1c8746ab7115e0b70f820d77b6e2ae0bc3d00539"
+ }
+}
