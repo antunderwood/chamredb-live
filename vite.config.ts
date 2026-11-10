@@ -1,16 +1,29 @@
 /// <reference types="vitest/config" />
+import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import { defineConfig, type Plugin } from "vite";
 import { CSP } from "./src/csp";
 import { buildIndex } from "./src/parse";
 
-// Release graph the app ships. ponytail: fixture until ticket #5 pins the real release.
-const GRAPH = process.env.GRAPH ?? "tests/fixtures/graph.json";
+// Graph the app ships: the pinned release (data/provenance.json). The e2e tests build from the fixture instead.
+const provenance = JSON.parse(readFileSync("data/provenance.json", "utf8"));
+const GRAPH = process.env.GRAPH ?? provenance.file;
+const isRelease = resolve(GRAPH) === resolve(provenance.file);
+if (!isRelease && (process.env.OUT_DIR ?? "dist") === "dist") {
+  throw new Error("GRAPH is not the pinned release: set OUT_DIR to something other than dist so it cannot be deployed");
+}
+if (isRelease) {
+  const sha = createHash("sha256").update(readFileSync(GRAPH)).digest("hex");
+  if (sha !== provenance.sha256) throw new Error(`${GRAPH} sha256 ${sha} != data/provenance.json ${provenance.sha256}`);
+}
 
 function chamredb(): Plugin {
-  const indexJson = () => JSON.stringify(buildIndex(JSON.parse(readFileSync(GRAPH, "utf8"))));
+  const release = isRelease ? provenance.version : undefined;
+  let cached: string | undefined; // ponytail: no invalidation in dev; restart after changing the graph
+  const indexJson = () => (cached ??= JSON.stringify(buildIndex(JSON.parse(readFileSync(GRAPH, "utf8")), release)));
   return {
     name: "chamredb",
     configureServer(server) {
@@ -40,6 +53,7 @@ function chamredb(): Plugin {
 
 export default defineConfig({
   base: process.env.BASE_PATH ?? "./",
+  build: { outDir: process.env.OUT_DIR ?? "dist" },
   plugins: [react(), tailwindcss(), chamredb()],
   test: { include: ["src/**/*.test.ts"] },
 });

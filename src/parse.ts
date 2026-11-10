@@ -2,8 +2,8 @@ import type { Entry, Index, ReleaseGraph } from "./types";
 
 // Builds the lookup index. Throws on a malformed release so the page never under-reports:
 // duplicate entry id, duplicate edge, or an edge endpoint that is not an entry.
-export function buildIndex(graph: ReleaseGraph): Index {
-  const index: Index = { entries: {}, edges: {} };
+export function buildIndex(graph: ReleaseGraph, release?: string): Index {
+  const index: Index = { release, entries: {}, edges: {} };
   for (const n of graph.nodes) {
     if (n.id in index.entries) throw new Error(`Duplicate entry id: ${n.id}`);
     const entry: Entry = {
@@ -15,8 +15,8 @@ export function buildIndex(graph: ReleaseGraph): Index {
       product: n.product,
       isA: n.is_a,
       pmids: n.PMID ?? [],
-      alternativeIds: Object.values(n.alternative_id ?? {}),
-      duplicateAlleleIds: Object.values(n.duplicate_allele_ids ?? {}).flat(),
+      alternativeIds: n.alternative_id ?? {},
+      duplicateAlleleIds: n.duplicate_allele_ids ?? {},
     };
     index.entries[n.id] = entry;
   }
