@@ -42,5 +42,6 @@ data/raw/
 # build and test output
 /dist
 /dist-e2e
+/dist-release
 /test-results
 /playwright-report

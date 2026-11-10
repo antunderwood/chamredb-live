@@ -18,6 +18,31 @@ if (!isRelease && (process.env.OUT_DIR ?? "dist") === "dist") {
 if (isRelease) {
   const sha = createHash("sha256").update(readFileSync(GRAPH)).digest("hex");
   if (sha !== provenance.sha256) throw new Error(`${GRAPH} sha256 ${sha} != data/provenance.json ${provenance.sha256}`);
+  const msha = createHash("sha256").update(readFileSync("data/data_manifest.json")).digest("hex");
+  if (msha !== provenance.manifest_sha256) throw new Error(`data/data_manifest.json sha256 ${msha} != data/provenance.json ${provenance.manifest_sha256}`);
+}
+
+// What the footer shows (release build only): the release record plus one row per source database. The manifest
+// lists input databases, not graph.json itself; graphSha256 is the hash of the shipped graph.
+function provenanceJson(): string {
+  const manifest = JSON.parse(readFileSync("data/data_manifest.json", "utf8")) as {
+    files: { database: string; release: string; retrieved: string }[];
+  };
+  const databases: { database: string; release: string; retrieved: string }[] = [];
+  for (const { database, release, retrieved } of manifest.files) {
+    const seen = databases.find((d) => d.database === database);
+    if (!seen) databases.push({ database, release, retrieved });
+    else if (seen.release !== release || seen.retrieved !== retrieved) throw new Error(`data_manifest.json has mixed release or date for ${database}`);
+  }
+  return JSON.stringify({
+    release: provenance.version,
+    date: provenance.date,
+    source: provenance.source,
+    tool: provenance.tool,
+    graphSha256: provenance.sha256,
+    manifestSha256: provenance.manifest_sha256,
+    databases,
+  });
 }
 
 function chamredb(): Plugin {
@@ -28,9 +53,12 @@ function chamredb(): Plugin {
     name: "chamredb",
     configureServer(server) {
       server.middlewares.use((req, res, next) => {
-        if (!req.url?.endsWith("/index.json")) return next();
+        let body: string;
+        if (req.url?.endsWith("/index.json")) body = indexJson();
+        else if (isRelease && req.url?.endsWith("/provenance.json")) body = provenanceJson();
+        else return next();
         res.setHeader("Content-Type", "application/json");
-        res.end(indexJson());
+        res.end(body);
       });
     },
     transformIndexHtml: {
@@ -46,6 +74,7 @@ function chamredb(): Plugin {
     },
     generateBundle() {
       this.emitFile({ type: "asset", fileName: "index.json", source: indexJson() });
+      if (isRelease) this.emitFile({ type: "asset", fileName: "provenance.json", source: provenanceJson() });
       this.emitFile({ type: "asset", fileName: "csp-header.txt", source: `Content-Security-Policy: ${CSP}\n` });
     },
   };

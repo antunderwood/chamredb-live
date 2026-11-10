@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { createRoot } from "react-dom/client";
 import "./app.css";
+import { Footer } from "./Footer";
 import { formatHash, MAX_QUERY, parseHash, type HashState } from "./hash";
 import { findEntries, matchGroups, suggest } from "./query";
 import { DATABASES, type Candidate, type Database, type Index } from "./types";
@@ -91,6 +92,7 @@ function App() {
   };
 
   return (
+    <>
     <main className="mx-auto max-w-3xl px-4 py-8">
       <h1 className="text-3xl font-semibold">chAMReDB</h1>
       <p className="mt-2 text-muted">
@@ -260,6 +262,8 @@ function App() {
         );
       })}
     </main>
+    <Footer release={index?.release} />
+    </>
   );
 }
 

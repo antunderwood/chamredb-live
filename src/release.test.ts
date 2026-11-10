@@ -74,4 +74,25 @@ describe("default build", () => {
     expect(shipped.release).toBe(provenance.version);
     expect(Object.keys(shipped.entries)).toHaveLength(15859);
   }, 30000);
+
+  it("ships a complete provenance.json that matches the files on disk, and none for a non-release build", async () => {
+    const outDir = mkdtempSync(join(tmpdir(), "chamredb-prov-"));
+    await build({ logLevel: "silent", build: { outDir } });
+    const shipped = JSON.parse(readFileSync(join(outDir, "provenance.json"), "utf8"));
+    expect(shipped).toEqual({
+      release: provenance.version,
+      date: provenance.date,
+      source: provenance.source,
+      tool: "chamredb graph builder (MMseqs2 18.8cc5c; builder/ in the chamredb repo)",
+      graphSha256: sha256("data/graph.json"),
+      manifestSha256: sha256("data/data_manifest.json"),
+      // Written by hand from data/data_manifest.json (one row per source database, not per file).
+      databases: [
+        { database: "card", release: "4.0.2", retrieved: "2026-11-09" },
+        { database: "ncbi", release: "AMRFinderPlus database 4.2, 2026-10-29.1", retrieved: "2026-11-09" },
+        { database: "resfinder", release: "eecf0aa207594fe6d51badf808473de62b28cb06", retrieved: "2026-11-09" },
+      ],
+    });
+    expect(shipped.graphSha256).toMatch(/^[0-9a-f]{64}$/);
+  }, 30000);
 });
