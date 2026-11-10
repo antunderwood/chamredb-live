@@ -12,7 +12,7 @@ python3 -m venv /tmp/oracle-venv && /tmp/oracle-venv/bin/pip install -r tests/or
 ORACLE_PYTHON=/tmp/oracle-venv/bin/python npm test
 ```
 
-Run the regeneration step with `ORACLE_PYTHON` before merging a change here. Without it (CI) the regeneration test is skipped; the committed file is still compared with the app. After a release update, regenerate and review the diff.
+Run the regeneration step with `ORACLE_PYTHON` before merging a change here. CI (`.github/workflows/pages.yml`, job `oracle`) regenerates both files with networkx 3.7 and fails on any difference. Without `ORACLE_PYTHON` the regeneration unit test is skipped; the committed file is still compared with the app. After a release update, regenerate and review the diff.
 
 ## Match groups: `matches.py`
 

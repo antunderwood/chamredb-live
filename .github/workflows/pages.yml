@@ -1,0 +1,47 @@
+# Test, check the oracles, and publish dist/ to GitHub Pages. The deploy job runs only on pushes to main and only
+# after the build and oracle jobs pass, so a red egress test or a stale oracle file stops the release.
+name: Test and publish
+on:
+  push: { branches: [main] }
+  pull_request:
+  workflow_dispatch: {}
+permissions: { contents: read }
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      BASE_PATH: "/${{ github.event.repository.name }}/" # the site lives under /<repo>/ on a project Pages site
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with: { node-version-file: .nvmrc, cache: npm }
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - run: npm run e2e
+      - uses: actions/upload-pages-artifact@v5
+        with: { path: dist }
+  oracle:
+    # Regenerates the networkx oracle files and fails if they differ from the committed ones, so a hand-edited
+    # expected file cannot pass (tests/oracle/README.md).
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with: { python-version: "3.14" }
+      - run: pip install -r tests/oracle/requirements.txt
+      - run: |
+          python tests/oracle/lookup.py data/graph.json | diff - tests/oracle/lookup_expected.json
+          python tests/oracle/matches.py data/graph.json | diff - tests/oracle/matches_expected.json
+  deploy:
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    needs: [build, oracle]
+    runs-on: ubuntu-latest
+    permissions: { pages: write, id-token: write }
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5
