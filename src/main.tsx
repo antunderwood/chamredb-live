@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import "./app.css";
 import { Footer } from "./Footer";
 import { formatHash, MAX_QUERY, parseHash, type HashState } from "./hash";
+import { EntryHeader, MatchPhenotype } from "./Phenotype";
 import { findEntries, matchGroups, suggest } from "./query";
 import { DATABASES, type Candidate, type Database, type Index } from "./types";
 
@@ -195,6 +196,7 @@ function App() {
           {found[0].matchedOn === "name" ? "; other databases may list entries with the same name" : ""}.
         </p>
       )}
+      {found.length === 1 && <EntryHeader entry={index!.entries[found[0].id]} />}
       {found.length === 1 && (
         <div className="mt-6">
           <label htmlFor="min-identity" className="block text-sm font-medium">Minimum identity</label>
@@ -255,6 +257,7 @@ function App() {
                     {weak ? "Highest identity shown" : "Best"}
                   </strong>
                 )}
+                <MatchPhenotype entry={m.entry} />
               </li>
             ))}
           </ul>

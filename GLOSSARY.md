@@ -20,3 +20,4 @@
 | Best match | The match with the highest identity to one other database among the matches shown (those at or above the minimum identity); ties are all best. By identity only: it ignores coverage and RBH/OWH. Below 90% identity the UI says "Highest identity shown" instead | Single arbitrary first hit; the right equivalent gene |
 | Query | The entry the user looked up (by id, name, alternative id or duplicate allele id) | Search text |
 | Database filter | Optional restriction of which entry a search finds to one database; the matches shown still cover the other databases | Which database the matches come from |
+| Phenotype | Text the source database gives for what an entry confers (for example "confers resistance to ..."), shown verbatim; "not recorded" when the entry has none (a gap in that record, not evidence of no resistance). The additional phenotype is a second, separate source field | Resistance profile inferred by this app (it infers nothing) |
