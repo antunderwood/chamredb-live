@@ -25,4 +25,4 @@ Matches are the outgoing edges of the query. A match is shown if identity >= thr
 | resfinder:orphan | any | n/a | no groups | n/a |
 | ARO:1000 (bare) | any | n/a | two candidates, card:ARO:1000 and resfinder:ARO:1000, user must choose | n/a |
 
-Sign-off: not yet signed by a human (oracle unsigned).
+Sign-off: signed off by the repo owner on 2026-11-10 after reviewing the edge list and the expected results (exactly 0.9 is shown, ties are all best, below 0.9 is hidden).
