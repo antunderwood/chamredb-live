@@ -139,3 +139,16 @@ test("390 x 844: the comparison strip starts above 700 px after a search (#26)",
   expect((await strip.boundingBox())!.y).toBeLessThan(700); // measured after #25: 1151; after #26: 690
   expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0);
 });
+
+test("resfinder:blaNDM-1 at 90%: each side-by-side column shows the match's identity, coverage and type; no weak note, no more-matches line", async ({ page }) => {
+  await page.goto(`./#q=${encodeURIComponent("resfinder:blaNDM-1")}`);
+  const view = page.getByTestId("side-by-side");
+  await expect(view).toBeVisible();
+  for (const m of MATCHES["resfinder:blaNDM-1"]) {
+    const col = view.locator(`[data-side-col="${m.db}"]`);
+    await expect(col.locator("[data-side-evidence]")).toHaveText(`Identity ${m.identity}, coverage ${m.coverage}, ${m.type} (RBH)`);
+    await expect(col.locator("[data-side-weak]")).toHaveCount(0);
+    await expect(col.locator("[data-side-more]")).toHaveCount(0);
+  }
+  await expect(view.locator('[data-side-col="resfinder"] [data-side-evidence]')).toHaveCount(0); // the query column has none
+});

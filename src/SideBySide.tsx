@@ -9,7 +9,7 @@ const ROLE = { query: "Query", best: "Best match", highest: "Highest identity sh
 // its own card. Nothing is compared for the reader: no shared-term highlighting (owner decision on #18), no mapping between
 // the databases' wording. Shown only when at least one other database has a match; the strip says the rest.
 export function SideBySide({ query, groups, allGroups, weakBelow, minIdentity }: { query: Entry; groups: MatchGroup[]; allGroups: MatchGroup[]; weakBelow: number; minIdentity: number }) {
-  const cols = sideBySide(query, comparisonRows(query.database, groups, allGroups, weakBelow));
+  const cols = sideBySide(query, comparisonRows(query.database, groups, allGroups, weakBelow), weakBelow);
   if (!cols.some((c) => c.kind === "entries" && c.role !== "query")) return null;
   return (
     <section aria-label="Phenotypes side by side" className="mt-6 rounded-2xl bg-panel p-3 sm:p-4" data-testid="side-by-side">
@@ -26,16 +26,21 @@ export function SideBySide({ query, groups, allGroups, weakBelow, minIdentity }:
                 </p>
               </>
             ) : (
-              c.entries.map((e) => (
-                <div key={e.id} className="mt-3 first:mt-0" data-side-entry={e.id}>
-                  <h3 className="mb-2">
-                    <ChipRow>
-                      <Chip kind={c.role === "query" ? "query" : "match"}>{ROLE[c.role]}</Chip> <Chip kind="db">{e.database}</Chip> <Chip kind="name">{e.name}</Chip>
-                    </ChipRow>
-                  </h3>
-                  <PhenotypeBody entry={e} of={c.role === "query" ? "query" : "match"} view="side" />
-                </div>
-              ))
+              <>
+                {c.weakNote && <p className="mb-2 text-sm text-danger" data-side-weak>{c.weakNote}</p>}
+                {c.entries.map((e, i) => (
+                  <div key={e.id} className="mt-3 first:mt-0" data-side-entry={e.id}>
+                    <h3 className="mb-2">
+                      <ChipRow>
+                        <Chip kind={c.role === "query" ? "query" : "match"}>{ROLE[c.role]}</Chip> <Chip kind="db">{e.database}</Chip> <Chip kind="name">{e.name}</Chip>
+                      </ChipRow>
+                    </h3>
+                    {c.evidence[i] && <p className="mb-2 text-sm text-muted" data-side-evidence>{c.evidence[i]}</p>}
+                    <PhenotypeBody entry={e} of={c.role === "query" ? "query" : "match"} view="side" />
+                  </div>
+                ))}
+                {c.more && <p className="mt-3 text-sm text-muted" data-side-more>{c.more}</p>}
+              </>
             )}
           </div>
         ))}

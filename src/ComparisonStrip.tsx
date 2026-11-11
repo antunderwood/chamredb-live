@@ -1,7 +1,7 @@
 import { Bar, VIEW_W } from "./Bar";
 import { scale } from "./bars";
 import { cardDomId, matchDetails } from "./cardModel";
-import { comparisonRows } from "./comparison";
+import { comparisonRows, weakGroupNote } from "./comparison";
 import type { Database, Match, MatchGroup, MatchType } from "./types";
 
 // At a glance (ADR 0006): one row per other source database, from the same groups as the cards. Every value is printed
@@ -121,7 +121,7 @@ export function ComparisonStrip({
             ) : (
               <div className="mt-2">
                 {r.label === "highest" && (
-                  <p className="mb-2 text-sm text-danger" data-weak-note>Weak evidence: every match here is below {weakPct}% identity.</p>
+                  <p className="mb-2 text-sm text-danger" data-weak-note>{weakGroupNote(weakBelow)}.</p>
                 )}
                 {r.top.map((m) => (
                   <TopMatch key={m.entry.id} m={m} weak={r.label === "highest"} database={r.database} weakBelow={weakBelow} />

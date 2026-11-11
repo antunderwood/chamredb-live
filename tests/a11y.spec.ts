@@ -208,6 +208,15 @@ test("About: the header's About opens the About and data panel by keyboard; cont
   expect(new URL(page.url()).hash).toBe(""); // opening and closing never touches the hash that holds the search
 });
 
+test("About: one clarifying sentence follows the unchanged 2021 hypothesis text", async ({ page }) => {
+  await page.goto("./");
+  await expect(page.getByLabel("Entry id")).toBeEnabled();
+  await page.getByRole("navigation", { name: "Main" }).getByRole("button", { name: "About" }).click();
+  const about = page.getByTestId("about");
+  await expect(about.getByText("This site lists matches by sequence identity; it does not decide that two entries are equivalent.", { exact: true })).toBeVisible();
+  await expect(about).toContainText("union of the metadata, and report this to the user so that they can make intelligent, informed choices.");
+});
+
 test("About and data panel: Close and a click on the backdrop close it; the page behind is inert while it is open", async ({ page }) => {
   await page.goto("./#q=card%3AARO%3A1000");
   await expect(page.getByTestId("comparison")).toBeVisible();

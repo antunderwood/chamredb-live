@@ -144,6 +144,29 @@ test.describe("phenotypes side by side (#24)", () => {
     await expect(v.locator('[data-side-col="resfinder"]')).not.toContainText("Best match");
   });
 
+  test("each match entry shows identity, coverage and RBH/OWH; the query column shows none (expected from the raw links)", async ({ page }) => {
+    const links = (JSON.parse(readFileSync("tests/fixtures/graph.json", "utf8")) as { links: { source: string; target: string; identity: number; coverage: number; type: string }[] }).links;
+    const v = await view(page, "card:ARO:1000");
+    await expect(v.locator('[data-side-entry="card:ARO:1000"] [data-side-evidence]')).toHaveCount(0);
+    for (const id of ["ncbi:WP_1.1", "ncbi:WP_3.1", "resfinder:blaX"]) {
+      const l = links.find((x) => x.source === "card:ARO:1000" && x.target === id)!;
+      const type = l.type === "RBH" ? "Reciprocal best hit (RBH)" : "One-way hit (OWH)";
+      await expect(v.locator(`[data-side-entry="${id}"] [data-side-evidence]`)).toHaveText(`Identity ${(l.identity * 100).toFixed(1)}%, coverage ${(l.coverage * 100).toFixed(1)}%, ${type}`);
+    }
+  });
+
+  test("a weak column carries the weak-evidence sentence; a database with more matches than shown says so", async ({ page }) => {
+    const v = await view(page, "card:ARO:2000");
+    await page.getByLabel("Minimum identity").fill("80");
+    await expect(v.locator('[data-side-col="resfinder"] [data-side-weak]')).toHaveText("Weak evidence: every match here is below 90% identity (a working default, not a validated cut-off).");
+    await expect(v.locator('[data-side-col="resfinder"] [data-side-evidence]')).toHaveText("Identity 88.0%, coverage 100.0%, One-way hit (OWH)");
+    await expect(v.locator('[data-side-col="ncbi"] [data-side-weak]')).toHaveCount(0);
+    await expect(v.locator('[data-side-col="card"] [data-side-weak]')).toHaveCount(0);
+    await search(page, "card:ARO:1000");
+    await expect(v.locator('[data-side-col="ncbi"] [data-side-more]')).toHaveText("+1 more match in this database, see the cards"); // 3 shown in the cards, a tie of 2 here
+    await expect(v.locator('[data-side-col="resfinder"] [data-side-more]')).toHaveCount(0);
+  });
+
   test("no sideways scroll at 360 px, and no highlighting of shared terms", async ({ page }) => {
     await page.setViewportSize({ width: 360, height: 800 });
     const v = await view(page, "card:ARO:1000");
