@@ -123,3 +123,14 @@ test("a top match's name goes to its card, by keyboard", async ({ page }) => {
   await expect(page.locator('li[data-match="resfinder:blaX"]')).toBeFocused();
   await expect(page.locator('li[data-match="resfinder:blaX"]')).toBeInViewport();
 });
+
+test("every bar in the strip is drawn at the same width, so lengths compare across matches and databases", async ({ page }) => {
+  // A grid whose last column sized to its content once made one match's bars wider than another's (same values,
+  // different lengths). Checked with RBH and OWH rows side by side, and with an overflow note.
+  for (const [q, min] of [["card:ARO:1000", 90], ["card:ARO:2000", 80]] as const) {
+    await open(page, q, min);
+    const widths = await page.getByTestId("comparison").locator("svg[data-bar]").evaluateAll((els) => els.map((e) => Math.round(e.getBoundingClientRect().width)));
+    expect(widths.length, q).toBeGreaterThan(1);
+    expect(new Set(widths).size, `${q}: ${widths.join(", ")}`).toBe(1);
+  }
+});

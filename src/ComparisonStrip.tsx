@@ -82,7 +82,7 @@ function TopMatch({ m, weak, database, minIdentity, weakBelow }: { m: Match; wea
         {m.entry.name} ({m.entry.id.slice(database.length + 1)})
         <span className="sr-only">, go to its card</span>
       </button>
-      <dl className="mt-1 grid grid-cols-[5.5rem_minmax(0,214px)_auto] items-center gap-x-2 gap-y-1 text-sm">
+      <dl className="mt-1 grid grid-cols-[5.5rem_minmax(0,1fr)_5.5rem] items-center gap-x-2 gap-y-1 text-sm">
         <dt className="text-muted">Identity</dt>
         <dd className="contents">
           <Bar value={m.identity} minIdentity={minIdentity} weakBelow={weakBelow} kind="identity" />
