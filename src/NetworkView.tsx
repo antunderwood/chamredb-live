@@ -157,8 +157,9 @@ export function NetworkView({
   const shownNode = shown ? nodeById.get(shown) : undefined;
   const tip = useMemo(() => (shownNode ? tooltip(shownNode, index.entries[shownNode.id]!) : null), [shownNode, index]);
   // The tooltip sits under the node, or above it when there is no room, and is clamped into the figure. It follows its
-  // node when the box scrolls sideways (focusing or hovering a node off to the side scrolls the box first; from #25
-  // the expanded picture is wider than the left rail), and is hidden while its node is outside the visible box.
+  // node when the box scrolls sideways (from #25 the expanded picture is wider than the left rail, and Tab to a node off
+  // to the side scrolls the box first), and is hidden while its node is outside the visible box. The tooltip lives in
+  // the wrap, so a window resize or a scroll of the rail moves it with the figure and needs no call.
   const place = () => {
     const t = tipRef.current;
     const wrap = wrapRef.current;
@@ -180,8 +181,20 @@ export function NetworkView({
     const at = below + th <= w.height ? { x: centred, y: below } : above >= 0 ? { x: centred, y: above } : right + tw <= w.width ? { x: right, y: middle } : left >= 0 ? { x: left, y: middle } : { x: centred, y: middle };
     t.style.left = `${at.x}px`;
     t.style.top = `${at.y}px`;
-    };
+  };
   useLayoutEffect(place, [shown, tip, layout]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // An expand adds a column to the right, which in the rail is outside the box: bring it into view so the new matches
+  // of matches are seen rather than missed (#25). Only when a column was added, never on collapse or slider moves.
+  const lastExpanded = useRef(0);
+  useEffect(() => {
+    const box = scrollRef.current;
+    if (box && expanded.length > lastExpanded.current && box.scrollWidth > box.clientWidth) {
+      const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      box.scrollTo({ left: box.scrollWidth, behavior: reduce ? "auto" : "smooth" });
+    }
+    lastExpanded.current = expanded.length;
+  }, [expanded.length]);
 
   const toggle = (id: string) => setExp({ for: query.id, ids: expanded.includes(id) ? expanded.filter((x) => x !== id) : [...expanded, id] });
   const go = (id: string) => {
@@ -192,13 +205,26 @@ export function NetworkView({
 
   const step2 = network.nodes.filter((n) => n.role === "step2").length;
   const matches = network.nodes.filter((n) => n.role === "match").length;
-  const label = `Network of ${query.id} and its ${matches} shown ${matches === 1 ? "match" : "matches"}${step2 ? `, with ${step2} ${step2 === 1 ? "match" : "matches"} of matches` : ""}. The list below has the same matches in text.`;
+  const label = `Network of ${query.id} and its ${matches} shown ${matches === 1 ? "match" : "matches"}${step2 ? `, with ${step2} ${step2 === 1 ? "match" : "matches"} of matches` : ""}. The list of cards has the same matches in text.`;
   const hl = (id: string) => (highlight === id ? " is-hl" : "");
 
   return (
     <figure className="mt-2" data-testid="network-figure">
+      {/* Notes that qualify the picture sit above it, so they are seen with it even when the rail scrolls (#25). */}
+      {step2 > 0 || expanded.length > 0 ? (
+        <p className="mb-2 text-sm text-muted" data-testid="network-step2-note">
+          A match of a match is not a match of the query. On a dashed chip, identity, coverage and type are between that chip and the entry named on
+          it, not the query.
+          {vis.hidden > 0 ? ` ${vis.hidden} reverse ${vis.hidden === 1 ? "hit" : "hits"} back to the query (expected for a reciprocal pair) ${vis.hidden === 1 ? "is" : "are"} not drawn.` : ""}
+        </p>
+      ) : null}
+      {network.truncated && (
+        <p className="mb-2 text-sm text-muted" data-testid="network-cap">
+          Showing {network.nodes.length} of {network.nodes.length + network.truncated.dropped} nodes: the limit is {MAX_NODES}, so {network.truncated.dropped} lower-ranked (identity, then id) {network.truncated.dropped === 1 ? "match" : "matches"} of matches {network.truncated.dropped === 1 ? "is" : "are"} not drawn. Collapse one of the expanded matches to see others.
+        </p>
+      )}
       <div ref={wrapRef} className="net-wrap">
-        <div ref={scrollRef} className="net-scroll" tabIndex={0} role="region" aria-label="Network picture, scrolls sideways when the screen is narrow" onScroll={place}>
+        <div ref={scrollRef} className="net-scroll" tabIndex={0} role="region" aria-label="Network picture, scrolls sideways when it is wider than its box" onScroll={place}>
           <svg
             ref={svgRef}
             viewBox={`0 0 ${layout.width} ${layout.height}`}
@@ -322,22 +348,10 @@ export function NetworkView({
           </li>
         </ul>
         <p className="mt-2" data-testid="network-note">
-          The same matches as the list below. Solid-line arrows run from the query and the percentage on them is the identity; after an expand, the lighter arrows run from the match that was expanded. Best is the highest identity in
+          The same matches as the list of cards. Solid-line arrows run from the query and the percentage on them is the identity; after an expand, the lighter arrows run from the match that was expanded. Best is the highest identity in
           its database (ties all best), by identity only; in a group below 90% the label is Highest identity shown. Click a node or press Enter to make it the
           query; hover or focus shows its details. The + button on a match adds that entry&apos;s own matches.
         </p>
-        {step2 > 0 || expanded.length > 0 ? (
-          <p className="mt-1" data-testid="network-step2-note">
-            A match of a match is not a match of the query. On a dashed chip, identity, coverage and type are between that chip and the entry named on
-            it, not the query.
-            {vis.hidden > 0 ? ` ${vis.hidden} reverse ${vis.hidden === 1 ? "hit" : "hits"} back to the query (expected for a reciprocal pair) ${vis.hidden === 1 ? "is" : "are"} not drawn.` : ""}
-          </p>
-        ) : null}
-        {network.truncated && (
-          <p className="mt-1" data-testid="network-cap">
-            Showing {network.nodes.length} of {network.nodes.length + network.truncated.dropped} nodes: the limit is {MAX_NODES}, so {network.truncated.dropped} lower-ranked (identity, then id) {network.truncated.dropped === 1 ? "match" : "matches"} of matches {network.truncated.dropped === 1 ? "is" : "are"} not drawn. Collapse one of the expanded matches to see others.
-          </p>
-        )}
         <p className="sr-only" role="status" data-testid="network-status">
           {step2 > 0 ? `${step2} ${step2 === 1 ? "match" : "matches"} of matches shown, not matches of the query.` : ""}
         </p>

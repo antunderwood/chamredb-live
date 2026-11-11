@@ -6,7 +6,7 @@ import type { Entry } from "./types";
 export function QueryPanel({ entry, pair }: { entry: Entry; pair?: HTMLAttributes<HTMLElement> }) {
   // tabIndex -1: the picture can move focus to this card ("L" on a node); `pair` lights it up with its node.
   return (
-    <section aria-label="Query entry" className="mt-6 rounded-2xl bg-panel p-3 sm:p-4 lg:mt-0" data-query={entry.id} tabIndex={-1} {...pair}>
+    <section aria-label="Query entry" className="mt-6 rounded-2xl bg-panel p-3 sm:p-4 wide:mt-0" data-query={entry.id} tabIndex={-1} {...pair}>
       <h2 className="mb-3">
         <ChipRow>
           <Chip kind="query">Query</Chip> <Chip kind="db">{entry.database}</Chip> <Chip kind="name">{entry.name} ({entry.id})</Chip>

@@ -63,7 +63,7 @@ export function Header() {
 
   return (
     <header className="site-header bg-brand text-brand-fg">
-      <div className="mx-auto flex max-w-[75rem] flex-wrap items-center gap-x-2 gap-y-1 px-4 py-3">
+      <div className="mx-auto flex max-w-shell flex-wrap items-center gap-x-2 gap-y-1 px-4 py-3">
         <p className="wordmark text-3xl font-bold tracking-tight">
           <span aria-hidden="true">chAMR😍Db</span>
           <span className="sr-only">chAMReDB</span>

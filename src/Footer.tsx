@@ -33,7 +33,7 @@ export function Footer({ release }: { release: string | undefined }) {
 
   if (!release || (!p && !error)) return null; // no empty contentinfo landmark while loading
   return (
-    <footer className="mx-auto mt-10 max-w-[75rem] border-t border-border px-4 py-6 text-sm text-muted">
+    <footer className="mx-auto mt-10 max-w-shell border-t border-border px-4 py-6 text-sm text-muted">
       {error && <p role="alert" className="text-danger">{error}</p>}
       {p && (
         <>

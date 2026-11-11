@@ -30,7 +30,7 @@ function Bar({ value, weakBelow, kind }: { value: number; weakBelow?: number; ki
   const h = BAR_H + 2 * LINE_OVERHANG;
   const weakX = weakBelow !== undefined ? scale(weakBelow).length : undefined;
   return (
-    <div className={`relative w-full max-w-[214px] ${weakX !== undefined ? "pt-4" : ""}`}>
+    <div className={`relative w-full ${weakX !== undefined ? "pt-4" : ""}`} style={{ maxWidth: VIEW_W }}>
       {weakX !== undefined && (
         <span
           className="absolute top-0 -translate-x-1/2 text-xs leading-none font-semibold text-danger"
@@ -92,7 +92,9 @@ function TopMatch({ m, weak, database, weakBelow }: { m: Match; weak: boolean; d
         {m.entry.name} ({m.entry.id.slice(database.length + 1)})
         <span className="sr-only">, go to its card</span>
       </button>
-      <dl className="mt-1 grid grid-cols-[5.5rem_minmax(0,214px)_5.5rem] items-center gap-x-2 gap-y-1 text-sm">
+      {/* The bar column is capped at the bar's drawn width (VIEW_W, the same cap as Bar), so the printed value sits next to
+          its bar rather than at the far edge of a wide row. */}
+      <dl className="mt-1 grid items-center gap-x-2 gap-y-1 text-sm" style={{ gridTemplateColumns: `5.5rem minmax(0, ${VIEW_W}px) 5.5rem` }}>
         <dt className="text-muted">Identity</dt>
         <dd className="contents">
           <Bar value={m.identity} weakBelow={weakBelow} kind="identity" />
@@ -145,7 +147,7 @@ export function ComparisonStrip({
         </p>
         <p data-key="min">Only matches at or above the minimum identity ({minPct}%) are shown.</p>
       </div>
-      <ul className="mt-3 grid gap-3 md:grid-cols-2 lg:grid-cols-1">
+      <ul className="mt-3 grid gap-3 @3xl:grid-cols-2">
         {rows.map((r) => (
           <li key={r.database} className="min-w-0 rounded-xl bg-surface p-3 shadow-card" data-db={r.database} data-kind={r.kind}>
             <h3 className="flex flex-wrap items-center gap-2">
