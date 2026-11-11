@@ -45,7 +45,7 @@ export const LINK_T = 0.5; // label of a step-2 link
 export const NAME_MAX = 19;
 export const ID_MAX = 22; // was 24; the Linux CI font is wider than the macOS one (a 24-character line overflowed by 5 px)
 export const DETAIL_MAX = 24;
-export const QUERY_NAME_MAX = 16;
+export const QUERY_NAME_MAX = 14; // was 16; on the wider Linux CI font a 16-character bold name overflowed the query chip by 5.5 px
 
 export interface Point {
   x: number;

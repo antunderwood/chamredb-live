@@ -71,7 +71,7 @@ test("long names are cut with an ellipsis and stay inside their chip; the full t
   }
   await open(page, "#q=card%3AARO%3A3000521&min=90");
   const q = net(page).locator('g[data-role="query"]');
-  await expect(q.locator(".net-name")).toHaveText("Staphylococcus …"); // 16 characters
+  await expect(q.locator(".net-name")).toHaveText("Staphylococcu…"); // 14 characters (QUERY_NAME_MAX)
   await q.hover();
   await expect(page.getByRole("tooltip")).toContainText("Staphylococcus aureus mupA conferring resistance to mupirocin");
   await expect(page.locator("[data-query]")).toContainText("Staphylococcus aureus mupA conferring resistance to mupirocin");
