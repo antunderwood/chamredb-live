@@ -89,6 +89,8 @@ test("swap test: serving theme.bsb.css as the tokens file restyles the same buil
   expect(await css(page, "button[type=submit]", "color")).toBe("rgb(22, 16, 38)"); // Midnight
   expect(await css(page, '[data-testid="network"] g[data-node="ncbi:WP_1.1"] rect', "fill")).toBe("rgb(226, 100, 58)"); // a mark
   expect(await css(page, "h1", "color")).toBe("rgb(22, 16, 38)");
+  expect(await css(page, "header", "background-color")).toBe("rgb(135, 51, 139)"); // Purple, the new header token
+  expect(await css(page, 'section[aria-label="Matches in ncbi"] h2', "background-color")).toBe(rgb(light["--chip-db"])); // database chip
 });
 
 test("swap test in dark mode: the BSB dark variant uses Midnight as background with Pearl text", async ({ page }) => {

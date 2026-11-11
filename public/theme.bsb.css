@@ -3,31 +3,80 @@
    The font stays the system stack: DM Sans is not loaded (no font CDN) and not bundled; to use it, bundle the
    font file with @font-face and name it first in --font-body, keeping this fallback after it.
    Palette: Pearl #F0F0F7, Midnight #161026, Fog #CDCBD8, Steel #68637A, Orange #E2643A, Magenta #BA335C, Purple #87338B.
-   Orange is a mark colour here: Pearl (3.03:1) or white (2.44:1) text on Orange fails 4.5:1, so --accent-fg is Midnight. Purple is not mapped,
-   because no component needs a third accent. Fog is too pale to outline a control (about 1.4:1 on Pearl), so it is
+   Orange is a mark colour here: Pearl (3.03:1) or white (2.44:1) text on Orange fails 4.5:1, so --accent-fg is Midnight. Purple is the header bar (--brand) in light and a darker Purple in dark. Fog is too pale to outline a control (about 1.4:1 on Pearl), so it is
    the decorative --border and Steel is the --control-border. */
 :root {
+  color-scheme: light;
   --bg: #f0f0f7; /* Pearl */
   --fg: #161026; /* Midnight */
   --muted: #68637a; /* Steel */
   --surface: #ffffff;
+  --panel: #f0f0f7; /* Pearl: any darker tint drops Orange below 3:1 on the panel */
   --border: #cdcbd8; /* Fog */
   --control-border: #68637a; /* Steel */
   --accent: #e2643a; /* Orange */
   --accent-fg: #161026; /* Midnight */
   --danger: #ba335c; /* Magenta */
+  --brand: #87338b; /* Purple */
+  --brand-fg: #ffffff;
+  --nav-active-bg: #f0f0f7; /* Pearl */
+  --nav-active-fg: #161026; /* Midnight */
+  --chip-query: #87338b; /* Purple */
+  --chip-db: #a8400c; /* a deeper Orange: Orange itself is too light for white text */
+  --chip-name: #ba335c; /* Magenta */
+  --chip-match: #68637a; /* Steel */
+  --chip-fg: #ffffff;
+  --label: #68637a; /* Steel */
+  --label-fg: #ffffff;
   --font-body: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
     --bg: #161026; /* Midnight */
     --fg: #f0f0f7; /* Pearl */
     --muted: #cdcbd8; /* Fog */
     --surface: #231b3a;
+    --panel: #1c1530;
     --border: #3d3556;
     --control-border: #8f89a3;
     --accent: #e2643a; /* Orange */
     --accent-fg: #161026; /* Midnight */
     --danger: #f08aa8; /* a lighter Magenta: the brand Magenta is 3.27:1 on Midnight */
+    --brand: #5e2262; /* a darker Purple */
+    --brand-fg: #ffffff;
+    --nav-active-bg: #f0f0f7; /* Pearl */
+    --nav-active-fg: #161026; /* Midnight */
+    --chip-query: #d79ddb; /* a lighter Purple */
+    --chip-db: #e2643a; /* Orange */
+    --chip-name: #f08aa8; /* a lighter Magenta */
+    --chip-match: #cdcbd8; /* Fog */
+    --chip-fg: #161026; /* Midnight */
+    --label: #cdcbd8; /* Fog */
+    --label-fg: #161026; /* Midnight */
   }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #161026; /* Midnight */
+  --fg: #f0f0f7; /* Pearl */
+  --muted: #cdcbd8; /* Fog */
+  --surface: #231b3a;
+  --panel: #1c1530;
+  --border: #3d3556;
+  --control-border: #8f89a3;
+  --accent: #e2643a; /* Orange */
+  --accent-fg: #161026; /* Midnight */
+  --danger: #f08aa8; /* a lighter Magenta: the brand Magenta is 3.27:1 on Midnight */
+  --brand: #5e2262; /* a darker Purple */
+  --brand-fg: #ffffff;
+  --nav-active-bg: #f0f0f7; /* Pearl */
+  --nav-active-fg: #161026; /* Midnight */
+  --chip-query: #d79ddb; /* a lighter Purple */
+  --chip-db: #e2643a; /* Orange */
+  --chip-name: #f08aa8; /* a lighter Magenta */
+  --chip-match: #cdcbd8; /* Fog */
+  --chip-fg: #161026; /* Midnight */
+  --label: #cdcbd8; /* Fog */
+  --label-fg: #161026; /* Midnight */
 }

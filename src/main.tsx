@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { createRoot } from "react-dom/client";
 import "./app.css";
 import { Footer } from "./Footer";
+import { Header } from "./Header";
 import { formatHash, MAX_QUERY, parseHash, type HashState } from "./hash";
 import { EntryHeader, MatchPhenotype } from "./Phenotype";
 import { NetworkView } from "./NetworkView";
@@ -101,13 +102,14 @@ function App() {
 
   return (
     <>
+    <Header />
     <main className="mx-auto max-w-3xl px-4 py-8">
-      <h1 className="text-3xl font-semibold">chAMReDB</h1>
+      <h1 className="text-2xl font-semibold tracking-tight">chAMReDB</h1>
       <p className="mt-2 text-muted">
         Find the equivalent of an antimicrobial resistance gene in CARD, NCBI AMRFinderPlus and ResFinder.
       </p>
       {index && !index.release && (
-        <p role="note" className="mt-4 rounded-md border border-border bg-surface px-3 py-2 text-sm">
+        <p role="note" className="mt-4 rounded-lg border border-border border-l-4 border-l-accent bg-surface px-3 py-2 text-sm">
           Demo data: a hand-written test graph, not a ChamRedB release. Do not use these results.
         </p>
       )}
@@ -118,7 +120,7 @@ function App() {
         that part to this site, but anyone you give the link to can read it.
       </p>
 
-      <form onSubmit={submit} className="mt-6 flex flex-wrap gap-2">
+      <form onSubmit={submit} className="mt-6 flex flex-wrap gap-3 rounded-xl border border-border bg-surface p-4 shadow-card">
         <label>
           <span className="block text-sm font-medium">Search in database</span>
           <select
@@ -139,6 +141,7 @@ function App() {
             value={text}
             disabled={!index}
             onChange={(e) => setText(e.target.value)}
+            id="entry-query"
             list="suggestions"
             maxLength={MAX_QUERY}
             autoComplete="off"
@@ -154,7 +157,7 @@ function App() {
         <button
           type="submit"
           disabled={!index || !text.trim()}
-          className="self-end rounded-md bg-accent px-4 py-2 font-medium text-accent-fg disabled:opacity-50"
+          className="self-end rounded-md bg-accent px-5 py-2 font-semibold text-accent-fg disabled:opacity-50"
         >
           Search
         </button>
@@ -169,13 +172,13 @@ function App() {
         </p>
       )}
       {staleLink && searched !== null && (
-        <p role="status" className="mt-6 rounded-md border border-border bg-surface px-3 py-2 text-sm">
+        <p role="status" className="mt-6 rounded-lg border border-border border-l-4 border-l-accent bg-surface px-3 py-2 text-sm">
           This link was made with release {staleLink}; this page uses {index?.release}. Ids and names may have been
           retired or reassigned between releases, so check that the entry shown is the one you meant.
         </p>
       )}
       {hidden.length > 0 && (
-        <p role="status" className="mt-6 rounded-md border border-border bg-surface px-3 py-2 text-sm">
+        <p role="status" className="mt-6 rounded-lg border border-border border-l-4 border-l-accent bg-surface px-3 py-2 text-sm">
           Database filter: {LABELS[db!]}. {hidden.length} other {hidden.length === 1 ? "entry has" : "entries have"} this
           text in other databases ({hidden.slice(0, 5).map((c) => c.id).join(", ")}
           {hidden.length > 5 ? ", ..." : ""}). Choose All databases to see {hidden.length === 1 ? "it" : "them"}.
@@ -187,7 +190,7 @@ function App() {
           <ul className="mt-2 flex flex-wrap gap-2">
             {found.map((c) => (
               <li key={c.id}>
-                <button type="button" onClick={() => choose(c.id)} className="rounded-md border border-control-border bg-surface px-3 py-1">
+                <button type="button" onClick={() => choose(c.id)} className="rounded-md border border-control-border bg-surface px-3 py-1 hover:border-fg">
                   {c.id} ({c.name}), matched on {c.matchedOn}
                 </button>
               </li>
@@ -196,7 +199,7 @@ function App() {
         </div>
       )}
       {found.length === 1 && found[0].matchedOn !== "id" && (
-        <p role="status" className="mt-6 rounded-md border border-border bg-surface px-3 py-2 text-sm">
+        <p role="status" className="mt-6 rounded-lg border border-border border-l-4 border-l-accent bg-surface px-3 py-2 text-sm">
           {shown} is the {found[0].matchedOn} of {found[0].id}
           {found[0].matchedOn === "duplicate allele id" ? ", not an entry of its own" : ""}. The matches below are for
           this entry only
@@ -205,8 +208,8 @@ function App() {
       )}
       {found.length === 1 && <EntryHeader entry={index!.entries[found[0].id]} />}
       {found.length === 1 && (
-        <div className="mt-6">
-          <label htmlFor="min-identity" className="block text-sm font-medium">Minimum identity</label>
+        <div className="mt-6 rounded-xl border border-border bg-surface p-4 shadow-card">
+          <label htmlFor="min-identity" className="block rounded-md bg-label px-3 py-1 text-sm font-medium text-label-fg">Minimum identity</label>
           <div className="mt-1 flex items-center gap-3">
             <input
               id="min-identity"
@@ -237,14 +240,14 @@ function App() {
         </p>
       )}
       {index && found.length === 1 && index.entries[found[0].id] && (
-        <NetworkView query={index.entries[found[0].id]!} groups={groups} weakBelow={WEAK_PCT / 100} />
-      )}
+      <div className="mt-6 rounded-2xl bg-panel px-3 pb-4 pt-1 sm:px-4">
+      <NetworkView query={index.entries[found[0].id]!} groups={groups} weakBelow={WEAK_PCT / 100} />
       {groups.map((g) => {
         // Below 90% identity the top match is weak evidence of equivalence (ADR 0004): do not call it Best.
         const weak = Math.max(...g.matches.map((m) => m.identity)) < WEAK_PCT / 100;
         return (
         <section key={g.database} aria-label={`Matches in ${g.database}`} className="mt-6 rounded-lg border border-border bg-surface p-4">
-          <h2 className="text-lg font-semibold">{g.database}</h2>
+          <h2 className="inline-block rounded-md bg-chip-db px-2.5 py-0.5 text-base font-semibold text-chip-fg">{g.database}</h2>
           {weak && (
             <p className="mt-1 text-sm text-danger">
               Weak evidence: every match here is below {WEAK_PCT}% identity (a working default taken from the earlier site,
@@ -275,6 +278,8 @@ function App() {
         </section>
         );
       })}
+      </div>
+      )}
       <About />
     </main>
     <Footer release={index?.release} />
