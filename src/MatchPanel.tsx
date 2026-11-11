@@ -1,5 +1,5 @@
 import { Card, Chip, ChipRow, Field, MetadataCard, PhenotypeCard } from "./Cards";
-import { isBelow, matchDetails } from "./cardModel";
+import { cardDomId, isBelow, matchDetails } from "./cardModel";
 import type { Match } from "./types";
 
 // One match of the query, as three cards: the match's own Phenotype and Other metadata (never the query's) and
@@ -9,7 +9,7 @@ export function MatchPanel({ match, native, weak, weakBelow }: { match: Match; n
   const d = matchDetails(match, weak);
   const { entry } = match;
   return (
-    <li tabIndex={-1} className="rounded-2xl bg-panel p-3 sm:p-4" data-match={entry.id} data-best={d.badge ?? undefined}>
+    <li id={cardDomId(entry.id)} tabIndex={-1} className="rounded-2xl bg-panel p-3 sm:p-4" data-match={entry.id} data-best={d.badge ?? undefined}>
       <h3 className="mb-3">
         <ChipRow>
           <Chip kind="match">Match</Chip> <Chip kind="db">{entry.database}</Chip> <Chip kind="name">{entry.name} ({native})</Chip>

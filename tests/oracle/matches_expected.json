@@ -244,6 +244,112 @@
      ]
     ]
    ]
+  },
+  {
+   "entry": "card:ARO:3002650",
+   "minIdentity": 0.9,
+   "groups": [
+    [
+     "ncbi",
+     [
+      [
+       "ncbi:WP_063842178.1",
+       973,
+       1003802,
+       "RBH",
+       true
+      ]
+     ]
+    ],
+    [
+     "resfinder",
+     [
+      [
+       "resfinder:aph(3')-Vb",
+       973,
+       1003802,
+       "RBH",
+       true
+      ]
+     ]
+    ]
+   ]
+  },
+  {
+   "entry": "card:ARO:3000172",
+   "minIdentity": 0.5,
+   "groups": [
+    [
+     "ncbi",
+     [
+      [
+       "ncbi:WP_000943763.1",
+       1000,
+       1000000,
+       "OWH",
+       true
+      ],
+      [
+       "ncbi:WP_000938987.1",
+       717,
+       1000000,
+       "OWH",
+       false
+      ],
+      [
+       "ncbi:WP_072419811.1",
+       710,
+       1000000,
+       "OWH",
+       false
+      ]
+     ]
+    ],
+    [
+     "resfinder",
+     [
+      [
+       "resfinder:fosB1",
+       997,
+       1000000,
+       "OWH",
+       true
+      ],
+      [
+       "resfinder:fosB2",
+       717,
+       1000000,
+       "OWH",
+       false
+      ],
+      [
+       "resfinder:fosY",
+       710,
+       1000000,
+       "OWH",
+       false
+      ]
+     ]
+    ]
+   ]
+  },
+  {
+   "entry": "card:ARO:3002972",
+   "minIdentity": 0.9,
+   "groups": [
+    [
+     "ncbi",
+     [
+      [
+       "ncbi:WP_063856752.1",
+       900,
+       1000000,
+       "RBH",
+       true
+      ]
+     ]
+    ]
+   ]
   }
  ],
  "sweep": {

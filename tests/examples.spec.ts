@@ -5,10 +5,21 @@ import { EXAMPLES } from "../src/Examples";
 // Expected ids: a raw scan of data/graph.json, see src/examples.test.ts.
 test.skip(!process.env.RELEASE_E2E, "needs the real-release build: npm run e2e runs it with playwright.release.config.ts");
 
-const MATCHES: Record<string, { db: string; native: string }[]> = {
-  "card:ARO:3000230": [{ db: "ncbi", native: "WP_032490446.1" }, { db: "resfinder", native: "ant(2'')-Ia" }],
-  "ncbi:WP_012695489.1": [{ db: "card", native: "ARO:3002735" }, { db: "resfinder", native: "qnrB2" }],
-  "resfinder:blaNDM-1": [{ db: "card", native: "ARO:3000589" }, { db: "ncbi", native: "WP_004201164.1" }],
+// Raw scan of data/graph.json at 90%: the one match per other database, its identity, coverage and type (printed to
+// 1 decimal of the percentage), and the match count in that database (1 in each case).
+const MATCHES: Record<string, { db: string; native: string; identity: string; coverage: string; type: string }[]> = {
+  "card:ARO:3000230": [
+    { db: "ncbi", native: "WP_032490446.1", identity: "97.1%", coverage: "100.0%", type: "Reciprocal best hit" },
+    { db: "resfinder", native: "ant(2'')-Ia", identity: "97.1%", coverage: "100.0%", type: "Reciprocal best hit" },
+  ],
+  "ncbi:WP_012695489.1": [
+    { db: "card", native: "ARO:3002735", identity: "99.5%", coverage: "100.0%", type: "Reciprocal best hit" },
+    { db: "resfinder", native: "qnrB2", identity: "100.0%", coverage: "100.0%", type: "Reciprocal best hit" },
+  ],
+  "resfinder:blaNDM-1": [
+    { db: "card", native: "ARO:3000589", identity: "100.0%", coverage: "100.0%", type: "Reciprocal best hit" },
+    { db: "ncbi", native: "WP_004201164.1", identity: "100.0%", coverage: "100.0%", type: "Reciprocal best hit" },
+  ],
 };
 
 test("four example buttons are offered on arrival, with accessible names", async ({ page }) => {
@@ -35,7 +46,12 @@ test("each single-entry example loads its expected entry", async ({ page }) => {
     for (const m of MATCHES[ex.query]) {
       const r = strip.locator(`li[data-db="${m.db}"]`);
       await expect(r.locator("[data-label]")).toHaveText("Best");
-      await expect(r.locator("[data-top]")).toHaveAttribute("data-top", `${m.db}:${m.native}`);
+      const t = r.locator(`[data-top="${m.db}:${m.native}"]`);
+      await expect(r.locator("[data-top]")).toHaveCount(1);
+      await expect(r.locator("[data-count]")).toHaveAttribute("data-count", "1");
+      await expect(t.locator('[data-value="identity"]')).toHaveText(m.identity);
+      await expect(t.locator('[data-value="coverage"]')).toHaveText(m.coverage);
+      await expect(t.locator('[data-value="type"]')).toHaveText(m.type);
     }
     expect(new URL(page.url()).hash).toContain(`q=${encodeURIComponent(ex.query)}`);
   }
@@ -47,7 +63,9 @@ test("the name example lists all three candidates and choosing one loads it", as
   const ex = EXAMPLES.find((e) => e.ids.length > 1)!;
   await page.getByRole("button", { name: `Example: ${ex.query}` }).click();
   for (const id of ex.ids) await expect(page.getByRole("button", { name: new RegExp(`^${id.replace(/[()]/g, "\\$&")} `) })).toBeVisible();
+  await expect(page.getByTestId("comparison")).toHaveCount(0); // no single entry yet, so no comparison strip (#20)
   await page.getByRole("button", { name: /^card:ARO:3000186 / }).click();
+  await expect(page.getByTestId("comparison")).toBeVisible();
   await expect(page.getByRole("region", { name: /^Matches in / }).first()).toBeVisible();
 });
 

@@ -80,6 +80,9 @@ function App() {
     [index, found, minIdentity],
   );
 
+  // The same entry at minimum identity 0: the comparison strip says how many matches the slider hides (#20).
+  const allGroups = useMemo(() => (index && found.length === 1 ? matchGroups(index, found[0].id, 0) : []), [index, found]);
+
   const shown = (searched ?? "").trim();
   const suggestions = useMemo(() => (index ? suggest(index, text, db) : []), [index, text, db]);
   // With a database filter: entries with the same text in other databases that the filter hides.
@@ -245,7 +248,7 @@ function App() {
         </p>
       )}
       {index && found.length === 1 && index.entries[found[0].id] && (
-        <ResultPanels query={index.entries[found[0].id]!} groups={groups} minIdentity={minIdentity} weakBelow={WEAK_PCT / 100} />
+        <ResultPanels query={index.entries[found[0].id]!} groups={groups} allGroups={allGroups} minIdentity={minIdentity} weakBelow={WEAK_PCT / 100} />
       )}
       <HowToRead weakPct={WEAK_PCT} />
       <About />

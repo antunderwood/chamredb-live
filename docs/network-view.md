@@ -38,4 +38,14 @@ The interactive network (tickets #9 and #10) has its own geometry in `src/networ
 
 ## Comparison strip bars (#20, ADR 0006)
 
-The bars in the at-a-glance strip have their own single mapping, `scale(value, width)` in `src/bars.ts`, with a bar width W of 200 px: `length = min(max(value, 0), 1) x W`, and `overflow` is true when the value is above 1 (a coverage over 100% is drawn full length with a chevron, and its exact percentage is printed). The weak-evidence line is drawn at `scale(0.90)` = 180 px and the minimum identity line at `scale(slider / 100)`, so 180 px at 90% and 160 px at 80%. The minimum identity line is drawn first and the dashed weak line on top, so both stay visible when they coincide. Hand-worked values: `tests/fixtures/README.md`, "Bar scale"; tests: `src/bars.test.ts` and `tests/comparison.spec.ts`.
+The bars in the at-a-glance strip have their own single mapping, `scale(value, width = 200)` in `src/bars.ts`: `length = min(max(value, 0), 1) x W` with W = 200 px, and `overflow` when the value is above 1 at the displayed precision (`round(value x 1000) > 1000`), so a coverage printed as 100.0% never gets the mark. A coverage over 100% is drawn full length with a chevron, and its exact percentage is printed beside it.
+
+| Value | Arithmetic | Length (px) | Overflow |
+| --- | --- | --- | --- |
+| 0 | 0 x 200 | 0 | no |
+| 0.5 | 0.5 x 200 | 100 | no |
+| 0.9 (weak line) | 0.9 x 200 | 180 | no |
+| 1.0 | 1.0 x 200 | 200 | no |
+| 1.3 (a coverage) | min(1.3, 1) x 200 | 200 | yes |
+
+The weak-evidence line is drawn at `scale(0.90)` = 180 px and the minimum identity line at `scale(slider / 100)`: 180 px at 90%, 160 px at 80%. Both are drawn on the identity bar only (the thresholds are identity thresholds), the minimum identity line first and the dashed weak line on top, so both stay visible when they coincide. Each line sits on a 5 px `--surface` halo, so it is read against `--surface` (4.5:1 for `--fg` and `--danger`) wherever it crosses the bar fill. Hand-worked values: `tests/fixtures/README.md`, "Bar scale"; tests: `src/bars.test.ts` and `tests/comparison.spec.ts`.

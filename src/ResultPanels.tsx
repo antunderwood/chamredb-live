@@ -7,10 +7,22 @@ import type { Entry, MatchGroup } from "./types";
 
 // The results area under the slider: the at-a-glance comparison strip (ADR 0006), the query panel, the network picture in its own section, then one panel per
 // match grouped by database. The picture and the panels are built from the same groups, so they list the same matches.
-export function ResultPanels({ query, groups, minIdentity, weakBelow }: { query: Entry; groups: MatchGroup[]; minIdentity: number; weakBelow: number }) {
+export function ResultPanels({
+  query,
+  groups,
+  allGroups,
+  minIdentity,
+  weakBelow,
+}: {
+  query: Entry;
+  groups: MatchGroup[];
+  allGroups: MatchGroup[]; // the same entry at minimum identity 0, for the strip's hidden-below counts
+  minIdentity: number;
+  weakBelow: number;
+}) {
   return (
     <>
-      <ComparisonStrip queryDatabase={query.database} groups={groups} minIdentity={minIdentity} weakBelow={weakBelow} />
+      <ComparisonStrip queryDatabase={query.database} groups={groups} allGroups={allGroups} minIdentity={minIdentity} weakBelow={weakBelow} />
       <QueryPanel entry={query} />
       {groups.length > 0 && (
         <details open className="mt-6 rounded-2xl bg-panel px-3 pb-3 pt-2 sm:px-4" data-testid="network-section">

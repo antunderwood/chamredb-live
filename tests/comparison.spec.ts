@@ -32,7 +32,7 @@ test("card:ARO:1000 at 90%: one row per other database, ties all listed, counts 
 test("card:ARO:2000 at 90%: coverage above 100% is drawn full with an overflow mark; resfinder has a no-match row", async ({ page }) => {
   await open(page, "card:ARO:2000");
   const t = top(row(page, "ncbi"), "ncbi:WP_4.1");
-  await expect(t.locator('[data-value="coverage"]')).toHaveText("105.0%over 100%");
+  await expect(t.locator('[data-value="coverage"]')).toHaveText("105.0% (over 100%)");
   await expect(t.locator('[data-bar="coverage"]')).toHaveAttribute("data-length", "200");
   await expect(t.locator('[data-bar="coverage"] [data-overflow]')).toHaveCount(1);
   await expect(t.locator('[data-bar="identity"] [data-overflow]')).toHaveCount(0);
@@ -40,6 +40,7 @@ test("card:ARO:2000 at 90%: coverage above 100% is drawn full with an overflow m
   await expect(res).toHaveAttribute("data-kind", "none");
   await expect(res.locator("[data-none]")).toBeVisible(); // stated, not merely present in the DOM
   await expect(res.locator("[data-none]")).toContainText("No match at or above 90% identity");
+  await expect(res.locator("[data-none]")).toContainText("1 match below 90% in this release's graph; lower the minimum identity to see it.");
   await expect(res.locator("svg[data-bar]")).toHaveCount(0); // no bar on a no-match row
 });
 
@@ -57,6 +58,7 @@ test("resfinder:orphan: a no-match row for each other database", async ({ page }
   for (const db of ["card", "ncbi"]) {
     await expect(row(page, db).locator("[data-none]")).toBeVisible();
     await expect(row(page, db).locator("[data-none]")).toContainText("No match at or above 90% identity");
+    await expect(row(page, db).locator("[data-none]")).toContainText("No match from this entry at any identity in this release's graph");
   }
   await expect(page.getByTestId("comparison").locator("li[data-db]")).toHaveCount(2);
 });
@@ -65,13 +67,15 @@ test("bar pixels: identity length, the weak line at 180 and the minimum identity
   await open(page, "card:ARO:1000");
   const bar = top(row(page, "resfinder"), "resfinder:blaX").locator('[data-bar="identity"]');
   await expect(bar).toHaveAttribute("data-length", "200"); // identity 1.0
-  await expect(bar.locator('[data-line="weak"]')).toHaveAttribute("x1", "180");
-  await expect(bar.locator('[data-line="min"]')).toHaveAttribute("x1", "180"); // 90%
+  await expect(bar.locator('[data-line="weak"]')).toHaveAttribute("data-x", "180");
+  await expect(bar.locator('[data-line="weak"] [data-stroke]')).toHaveAttribute("x1", "180");
+  await expect(bar.locator('[data-line="min"]')).toHaveAttribute("data-x", "180"); // 90%
+  await expect(bar.locator('[data-line="min"] [data-stroke]')).toHaveAttribute("x1", "180");
   await expect(bar.locator("[data-fill]")).toHaveAttribute("width", "200");
   await open(page, "card:ARO:2000", 80);
   const weakBar = top(row(page, "resfinder"), "resfinder:tetM").locator('[data-bar="identity"]');
-  await expect(weakBar.locator('[data-line="min"]')).toHaveAttribute("x1", "160"); // 80%
-  await expect(weakBar.locator('[data-line="weak"]')).toHaveAttribute("x1", "180");
+  await expect(weakBar.locator('[data-line="min"] [data-stroke]')).toHaveAttribute("x1", "160"); // 80%
+  await expect(weakBar.locator('[data-line="weak"] [data-stroke]')).toHaveAttribute("x1", "180");
   await expect(weakBar.locator("[data-fill]")).toHaveAttribute("width", "176"); // 0.88 x 200
 });
 
@@ -99,6 +103,14 @@ test("the strip equals the cards: best ids, counts and databases, at three minim
       const bestCards = await page.getByRole("region", { name: `Matches in ${db}` }).locator("li[data-match][data-best]").evaluateAll((els) => els.map((e) => e.getAttribute("data-match")));
       const tops = await r.locator("[data-top]").evaluateAll((els) => els.map((e) => e.getAttribute("data-top")));
       expect(tops, `${q} at ${min}% in ${db}`).toEqual(bestCards);
+      // The printed identity, coverage and type of each top match equal its card's Match details.
+      for (const id of tops) {
+        const card = page.locator(`li[data-match="${id}"] [data-field="match-details"]`);
+        const t = r.locator(`[data-top="${id}"]`);
+        await expect(t.locator('[data-value="identity"]')).toHaveText((await card.locator('[data-field="identity"] dd').innerText()).match(/^[0-9.]+%/)![0]);
+        await expect(t.locator('[data-value="coverage"]')).toContainText((await card.locator('[data-field="coverage"] dd').innerText()).trim());
+        await expect(t.locator('[data-value="type"]')).toHaveText((await card.locator('[data-field="type"] dd').innerText()).trim());
+      }
     }
   }
 });
@@ -109,4 +121,5 @@ test("a top match's name goes to its card, by keyboard", async ({ page }) => {
   await btn.focus();
   await page.keyboard.press("Enter");
   await expect(page.locator('li[data-match="resfinder:blaX"]')).toBeFocused();
+  await expect(page.locator('li[data-match="resfinder:blaX"]')).toBeInViewport();
 });

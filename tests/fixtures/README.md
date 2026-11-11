@@ -64,20 +64,21 @@ The invented `is_a`, `product` and PMIDs on card:ARO:2000 exist to cover an entr
 
 ### Comparison strip (ticket #20; worked by hand from the match table above)
 
-One row per source database other than the query's, in the order card, ncbi, resfinder. A row lists every match flagged best (ties all listed), its identity, coverage and type, and the number of matches shown in that database. A database with no match at or above the minimum identity has one "No match at or above N% identity" row and no bar. Below 90% the label is "Highest identity shown", not "Best".
+One row per source database other than the query's, in the order card, ncbi, resfinder, from the query's own matches (out-edges) only. A row lists every match flagged best (ties all listed), its identity, coverage and type, and the number of matches shown in that database. A database with no match at or above the minimum identity has one "No match at or above N% identity" row and no bar, with the number of matches the minimum hides (0: none at any identity). Below 90% the label is "Highest identity shown", not "Best".
 
 | Query | Min | Database | Row |
 | --- | --- | --- | --- |
 | card:ARO:1000 | 90% | ncbi | Best: WP_1.1 (97.0%, 100.0%, RBH) and WP_3.1 (97.0%, 100.0%, OWH); 3 matches shown |
 | card:ARO:1000 | 90% | resfinder | Best: blaX (100.0%, 100.0%, RBH); 1 match shown |
+| card:ARO:1000 | 80% | resfinder | Best: blaX (100.0%, 100.0%, RBH); 2 matches shown (blaXlow 0.85 counted, not best) |
 | card:ARO:2000 | 90% | ncbi | Best: WP_4.1 (92.0%, 105.0% with the overflow mark, RBH); 1 match shown |
-| card:ARO:2000 | 90% | resfinder | No match at or above 90% identity |
+| card:ARO:2000 | 90% | resfinder | No match at or above 90% identity; 1 match below 90% (tetM 0.88) |
 | card:ARO:2000 | 80% | resfinder | Highest identity shown: tetM (88.0%, 100.0%, OWH); 1 match shown |
-| resfinder:orphan | 90% | card, ncbi | No match at or above 90% identity (both) |
+| resfinder:orphan | 90% | card, ncbi | No match at or above 90% identity (both); no match at any identity |
 
 ### Bar scale (src/bars.ts; worked by hand, bar width W = 200 px)
 
-`length = min(max(value, 0), 1) x W`, `overflow = value > 1`.
+`length = min(max(value, 0), 1) x W`; `overflow` when the value is above 1 at the displayed precision (`round(value x 1000) > 1000`), so 1.0004 (printed 100.0%) has no mark.
 
 | Value | Length (px) | Overflow |
 | --- | --- | --- |
