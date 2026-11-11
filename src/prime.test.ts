@@ -25,7 +25,8 @@ const answers = (idx: Idx, texts: string[]) =>
 
 afterEach(() => vi.restoreAllMocks());
 
-describe("prime", () => {
+// These build the real index twice: a loaded CI runner exceeded the 5 s default once, so allow 20 s.
+describe("prime", { timeout: 20000 }, () => {
   it("leaves findEntries and suggest unchanged on the real index", async () => {
     const reference = fresh();
     const primed = fresh();

@@ -152,3 +152,18 @@ test("resfinder:blaNDM-1 at 90%: each side-by-side column shows the match's iden
   }
   await expect(view.locator('[data-side-col="resfinder"] [data-side-evidence]')).toHaveCount(0); // the query column has none
 });
+
+test("a long heading chip never pushes the name chip out of its row at 390 px (Highest identity shown, tet(L))", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 900 });
+  await page.goto("./#q=ncbi%3AWP_002294500.1&min=80");
+  const role = page.locator("[data-chip]").filter({ hasText: "Highest identity shown" }).first();
+  await expect(role).toBeVisible();
+  const row = role.locator("xpath=ancestor::*[contains(@class,'shadow-card')][1]");
+  const r = (await row.boundingBox())!;
+  for (const chip of await row.locator("[data-chip]").all()) {
+    const b = (await chip.boundingBox())!;
+    expect(b.x, `${await chip.textContent()} starts inside the row`).toBeGreaterThanOrEqual(r.x - 1);
+    expect(b.x + b.width, `${await chip.textContent()} ends inside the row`).toBeLessThanOrEqual(r.x + r.width + 1);
+    expect(b.width, `${await chip.textContent()} is not squeezed to a sliver`).toBeGreaterThan(60);
+  }
+});
