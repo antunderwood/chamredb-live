@@ -4,6 +4,7 @@ import { ComparisonStrip } from "./ComparisonStrip";
 import { MatchPanel } from "./MatchPanel";
 import { NetworkView } from "./NetworkView";
 import { QueryPanel } from "./QueryPanel";
+import { SideBySide } from "./SideBySide";
 import type { Entry, Index, MatchGroup } from "./types";
 
 // The results area under the slider (ADR 0006, #25). From 1152 px two columns: a sticky left rail with the at-a-glance
@@ -57,6 +58,7 @@ export function ResultPanels({
       {/* A size container: the cards lay out their inner panels by the width of this column, not of the window (#25). */}
       <div className="@container min-w-0" data-testid="results-detail">
         <QueryPanel entry={query} pair={pair(query.id)} />
+        <SideBySide query={query} groups={groups} allGroups={allGroups} weakBelow={weakBelow} minIdentity={minIdentity} />
         {groups.map((g) => {
           // Below the weak line the top match is weak evidence of equivalence (ADR 0004): do not call it Best.
           const weak = isWeakGroup(g, weakBelow);

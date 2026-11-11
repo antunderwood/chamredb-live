@@ -38,19 +38,20 @@ export function Field({ label, field, children }: { label: string; field: string
   );
 }
 
-// Phenotype of the entry (query) or of a match. The text is the stored text, never rephrased; the additional
-// phenotype is a separate list, shown only when present. "Not recorded" is a gap in the source record.
-export function PhenotypeCard({ entry, of }: { entry: Entry; of: "query" | "match" }) {
-  const level = of === "query" ? 3 : 4; // under the query panel's h2, under a match panel's h3
+// The phenotype text of one entry, as stored: the list of pieces (or "not recorded" with its gap note), then the additional
+// phenotype only when present. Used by the Phenotype cards and by the side-by-side view, so both say the same thing.
+// `view` only changes the data attributes, so tests can tell the two places apart.
+export function PhenotypeBody({ entry, of, view = "card" }: { entry: Entry; of: "query" | "match"; view?: "card" | "side" }) {
   const extra = additionalPhenotypeText(entry);
+  const side = view === "side";
   return (
-    <Card level={level} title={of === "match" ? "Phenotype of this match" : "Phenotype"} data-field={of === "match" ? "match-phenotype" : "phenotype"}>
+    <>
       {hasPhenotype(entry) ? (
-        <div data-phenotype-primary><PhenotypeList text={phenotypeText(entry)} /></div>
+        <div {...{ [side ? "data-side-primary" : "data-phenotype-primary"]: "" }}><PhenotypeList text={phenotypeText(entry)} /></div>
       ) : (
-        <div data-phenotype-primary>
+        <div {...{ [side ? "data-side-primary" : "data-phenotype-primary"]: "" }}>
           <p className="break-words">
-            <span data-phenotype className="italic">{phenotypeText(entry)}</span> in this database
+            <span {...{ [side ? "data-side-gap" : "data-phenotype"]: "" }} className="italic">{phenotypeText(entry)}</span> in this database
           </p>
           <p className="mt-1 text-sm text-muted break-words">
             {of === "match"
@@ -60,11 +61,22 @@ export function PhenotypeCard({ entry, of }: { entry: Entry; of: "query" | "matc
         </div>
       )}
       {extra && (
-        <div className="mt-3" data-field="additional-phenotype">
+        <div className="mt-3" data-field={side ? "side-additional-phenotype" : "additional-phenotype"}>
           <p className="mb-1 text-sm font-semibold text-muted">Additional phenotype</p>
           <PhenotypeList text={extra} />
         </div>
       )}
+    </>
+  );
+}
+
+// Phenotype of the entry (query) or of a match. The text is the stored text, never rephrased; the additional
+// phenotype is a separate list, shown only when present. "Not recorded" is a gap in the source record.
+export function PhenotypeCard({ entry, of }: { entry: Entry; of: "query" | "match" }) {
+  const level = of === "query" ? 3 : 4; // under the query panel's h2, under a match panel's h3
+  return (
+    <Card level={level} title={of === "match" ? "Phenotype of this match" : "Phenotype"} data-field={of === "match" ? "match-phenotype" : "phenotype"}>
+      <PhenotypeBody entry={entry} of={of} />
     </Card>
   );
 }
