@@ -43,8 +43,8 @@ export const LINK_T = 0.5; // label of a step-2 link
 // How much text a chip line holds (characters), at the font sizes of app.css: longer text is cut with an ellipsis and
 // the full text is in the tooltip and in the list.
 export const NAME_MAX = 19;
-export const ID_MAX = 24;
-export const DETAIL_MAX = 26;
+export const ID_MAX = 22; // was 24; the Linux CI font is wider than the macOS one (a 24-character line overflowed by 5 px)
+export const DETAIL_MAX = 24;
 export const QUERY_NAME_MAX = 16;
 
 export interface Point {

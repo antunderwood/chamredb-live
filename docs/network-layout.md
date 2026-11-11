@@ -32,7 +32,7 @@ A shorter column is centred on the tallest one. The query is on the middle row o
 | LINK_INSET, QUERY_LINK, BOW | 16, 30, 84 | a link between two matches leaves 16 from the chip centre and bows 84 right; a link back to the query enters 30 below its centre |
 | LABEL_T, LINK_T | 0.7, 0.5 | position of the identity pill (step 1) and of the "match of a match" label on the curve |
 | PILL | pad 12, 6 per character, label height 18 | width of a pill grows with its text |
-| NAME_MAX, ID_MAX, DETAIL_MAX, QUERY_NAME_MAX | 19, 24, 26, 16 | characters per line before an ellipsis (`ellipsize`) |
+| NAME_MAX, ID_MAX, DETAIL_MAX, QUERY_NAME_MAX | 19, 22, 24, 16 | characters per line before an ellipsis (`ellipsize`) |
 
 Size from content: height = HEADER + 2 * PAD + ROW * rows; width = x of the last used column + half its chip + SIDE (query only 256, with matches 644, with step-2 nodes 1020). Zero nodes gives 256 by 128. At the cap (1 query, 6 matches, 18 step-2 nodes) rows = 18 and the height is 1216.
 
