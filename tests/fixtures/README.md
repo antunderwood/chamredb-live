@@ -90,4 +90,4 @@ One row per source database other than the query's, in the order card, ncbi, res
 
 So in the strip the dashed weak-evidence mark, labelled "90%", is drawn at x = 180 on every identity bar. The minimum identity is a filter and is not drawn on the bars (owner decision, 2026-11-11). tetM at 80% has a 176 px fill, ending just short of the mark.
 
-Sign-off: worked by the implementer from the signed match table above; not yet signed off by the owner (oracle unsigned until then).
+Sign-off: worked by the implementer from the signed match table above, re-derived by an independent reviewer, and signed off by the repo owner on 2026-11-11 (comparison strip rows 1 to 7 and the bar scale, with the single labelled 90% mark and no minimum identity line on the bars).
