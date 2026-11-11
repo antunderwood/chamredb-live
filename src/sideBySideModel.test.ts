@@ -8,7 +8,7 @@ import { EXAMPLES } from "./Examples";
 import { buildIndex } from "./parse";
 import { joinPhenotype, parsePhenotype } from "./parsePhenotype";
 import { matchGroups } from "./query";
-import { sideBySide } from "./sideBySide";
+import { sideBySide } from "./sideBySideModel";
 import type { Index, ReleaseGraph } from "./types";
 
 // Oracle: the raw JSON of each graph (node.phenotype and node.additional_phenotype as stored), not Entry fields. For every

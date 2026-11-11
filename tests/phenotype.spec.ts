@@ -91,7 +91,7 @@ test("phenotype text wraps at phone width (no horizontal scroll)", async ({ page
 });
 
 // #24: the side-by-side view. Expected values come from the raw tests/fixtures/graph.json, not from the page. The
-// "not recorded" wording in this view is checked in src/sideBySide.test.ts: in the fixture no entry that has matches in
+// "not recorded" wording in this view is checked in src/sideBySideModel.test.ts: in the fixture no entry that has matches in
 // another database lacks a phenotype, so there is no page to open for it.
 test.describe("phenotypes side by side (#24)", () => {
   const view = async (page: Page, id: string) => {
