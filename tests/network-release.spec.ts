@@ -46,6 +46,18 @@ test("card:ARO:3002546: six matches; expanding two neighbours gives 9 nodes and 
   await expect(page.getByTestId("network-step2-note")).toContainText("not a match of the query");
 });
 
+// card:ARO:3000010 (vanA): ncbi:WP_063856521.1 and resfinder:VanHAX are both RBH matches of the query and RBH with each other
+// (a raw read of data/graph.json: both directions are RBH). Expanding both used to draw the link twice, on top of itself.
+test("two RBH matches that are RBH with each other, both expanded, are joined by one link, and the caption says so", async ({ page }) => {
+  await open(page, "#q=card%3AARO%3A3000010&min=90");
+  for (const pill of await page.locator("[data-expand]").all()) await pill.click();
+  const links = net(page).locator('[data-edge][data-kind="link"]');
+  await expect(links).toHaveCount(1);
+  await expect(links.first()).toHaveAttribute("data-type", "RBH");
+  await expect(links.first().locator("path")).toHaveAttribute("marker-start", /net-arrow/); // still two arrowheads
+  await expect(page.getByTestId("network-step2-note")).toContainText("1 reciprocal link between matches is drawn once");
+});
+
 test("the cap message appears when the 25 node cap drops step-2 nodes (card:ARO:3001052 at 90%, every match expanded)", async ({ page }) => {
   await open(page, "#q=card%3AARO%3A3001052&min=90");
   await expect(page.getByTestId("network-cap")).toHaveCount(0);

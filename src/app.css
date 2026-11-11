@@ -328,7 +328,8 @@ button[type="submit"]:not(:disabled):active {
   stroke: var(--accent);
   stroke-width: 3.5;
 }
-/* the tooltip: its text is the model's lines (src/networkTooltip.ts); pointer-events none so it never hides a node */
+/* the tooltip: its text is the model's lines (src/networkTooltip.ts). The pointer can move onto it (WCAG 1.4.13, hoverable):
+   NetworkView keeps it open for a short grace period while the pointer crosses the gap, so it may cover a node below it. */
 .net-tip {
   position: absolute;
   z-index: 20;
@@ -342,7 +343,7 @@ button[type="submit"]:not(:disabled):active {
   font-size: 0.82rem;
   line-height: 1.4;
   overflow-wrap: anywhere;
-  pointer-events: none;
+  cursor: default;
 }
 .net-tip-hint {
   margin-top: 6px;

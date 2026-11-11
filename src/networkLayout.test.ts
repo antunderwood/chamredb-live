@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { DB_SHAPE, chipPath, ellipsize, expandRegions, hitRegions, layoutNetwork, pillRect, pixel, ribbonRect } from "./networkLayout";
+import { DB_SHAPE, chipPath, ellipsize, expandRegions, hitRegions, layoutNetwork, pillRect, pixel, placeLabel, ribbonRect, type Cubic } from "./networkLayout";
 import { MAX_NODES, type NetEdge, type NetNode, type Network } from "./networkModel";
 
 // Expected pixels worked by hand (docs/network-layout.md). Constants: ROW 64, PAD 16, HEADER 32, SIDE 16, QUERY 224 by
@@ -99,9 +99,10 @@ describe("layoutNetwork: hand-worked pixels", () => {
     expect(m.tooltip).toEqual({ x: 504, y: 234 });
     expect(at("q").lines).toEqual([{ x: 90, y: 136 }, { x: 90, y: 153 }, { x: 90, y: 169 }]);
   });
-  it("Best and weak ribbons overhang the top edge at the right", () => {
-    expect(ribbonRect(at("m2"), false)).toEqual({ x: 568, y: 175, width: 48, height: 14 });
-    expect(ribbonRect(at("m2"), true)).toEqual({ x: 480, y: 175, width: 136, height: 14 });
+  it("Best, weak and below ribbons overhang the top edge at the right", () => {
+    expect(ribbonRect(at("m2"), "best")).toEqual({ x: 568, y: 175, width: 48, height: 14 });
+    expect(ribbonRect(at("m2"), "weak")).toEqual({ x: 480, y: 175, width: 136, height: 14 });
+    expect(ribbonRect(at("m2"), "below")).toEqual({ x: 536, y: 175, width: 80, height: 14 }); // 628 - 12 - 80
   });
   it("only step-1 nodes have an expand pill, centred on the chip's right edge", () => {
     expect(at("m2").expand).toEqual({ centre: { x: 628, y: 208 }, hit: { x: 606, y: 186, width: 44, height: 44 } });
@@ -134,13 +135,29 @@ describe("layoutNetwork: hand-worked pixels", () => {
     const e = line("m0", "m2");
     expect(e.kind).toBe("link");
     expect(e.path).toEqual({ from: { x: 628, y: 96 }, c1: { x: 712, y: 96 }, c2: { x: 712, y: 192 }, to: { x: 628, y: 192 } });
-    near(e.label!, 691, 144);
+    // Not (691, 144): the step-2 edges from the last match pass through that spot (worked below), so the label
+    // slides to t = 0.4, the cheapest of the places tried (4 samples of other edges touch it; none is clear).
+    expect(e.labelT).toBe(0.4);
+    near(e.label!, 688.48, 129.792);
   });
   it("a link back to the query runs right to left and enters below the fan", () => {
     const e = line("m2", "q");
     expect(e.kind).toBe("back");
     expect(e.path).toEqual({ from: { x: 380, y: 224 }, c1: { x: 310, y: 224 }, c2: { x: 310, y: 174 }, to: { x: 240, y: 174 } });
-    near(e.label!, 310, 199);
+    expect(e.labelT).toBe(0.2); // t = 0.5 at (310, 199) is on the fan of query edges; t = 0.2 touches least (2 samples)
+    near(e.label!, 345.28, 218.8); // 0.512 * 380 + 0.384 * 310 + 0.096 * 310 + 0.008 * 240; y = 0.896 * 224 + 0.104 * 174
+  });
+  it("a link label stays at t = 0.5 when nothing crosses it, and leaves a crossing edge when something does", () => {
+    // Fixture D: query, matches m0 m1 m2 (y 80, 144, 208), step-2 nodes s0 s1 s2; one expand edge m1 to s1, which is
+    // horizontal at y = 144 from x = 648 to 756, and the link m0 to m2 (label at t = 0.5 would be (691, 144)).
+    const nodes = [node("q", "query"), node("m0", "match"), node("m1", "match"), node("m2", "match"), node("s0", "step2", "m1"), node("s1", "step2", "m1"), node("s2", "step2", "m1")];
+    const base = [edge("q", "m0", 1), edge("q", "m1", 1), edge("q", "m2", 1)];
+    const free = layoutNetwork({ nodes, edges: [...base, edge("m0", "m2", 2)] }).edges.find((e) => e.kind === "link")!;
+    expect(free.labelT).toBe(0.5);
+    near(free.label!, 691, 144);
+    const moved = layoutNetwork({ nodes, edges: [...base, edge("m1", "s1", 2), edge("m0", "m2", 2)] }).edges.find((e) => e.kind === "link")!;
+    expect(moved.labelT).toBe(0.4); // pill y 120.792 to 138.792, grown by 2 to 140.792: the line y = 144 is clear
+    near(moved.label!, 688.48, 129.792);
   });
   it("two columns are centred on each other: 2 matches and 3 step-2 nodes", () => {
     const B: Network = { nodes: [node("q", "query"), node("m0", "match"), node("m1", "match"), node("s0", "step2", "m0"), node("s1", "step2", "m0"), node("s2", "step2", "m1")], edges: [] };
@@ -247,5 +264,50 @@ describe("layoutNetwork works for 0 to 25 nodes", () => {
       }
       for (const e of l.edges) expect(Number.isFinite(e.path.from.x + e.path.to.y + e.label!.x)).toBe(true);
     }
+  });
+});
+
+// placeLabel by hand. A horizontal curve (both controls on the end y) is the straight line y = Y; the link from
+// (628, 96) to (628, 192) with controls at x = 712 has y(t) = 96 + 96 * (3ut^2 + t^3) and x(t) = 628 * (u^3 + t^3) + 712 * 3ut
+// (u = 1 - t). Pill "match of a match": 16 characters, 12 + 96 = 108 wide, 18 high.
+//   t = 0.5: u = 0.5: y = 96 + 0.5 * 96 = 144, x = 628 * 0.25 + 712 * 0.75 = 691.
+//   t = 0.4: u = 0.6: 3ut^2 = 0.288, t^3 = 0.064: y = 96 + 0.352 * 96 = 129.792; x = 628 * 0.28 + 712 * 0.72 = 688.48.
+//   t = 0.6: y = 96 + 0.648 * 96 = 158.208; x = 688.48 again (x is symmetric in t).
+const link: Cubic = { from: { x: 628, y: 96 }, c1: { x: 712, y: 96 }, c2: { x: 712, y: 192 }, to: { x: 628, y: 192 } };
+const flat = (y: number): Cubic => ({ from: { x: 500, y }, c1: { x: 600, y }, c2: { x: 800, y }, to: { x: 900, y } });
+describe("placeLabel: the first place along the curve that touches nothing", () => {
+  it("nothing around: t = 0.5", () => {
+    const p = placeLabel(link, 16, [], []);
+    expect(p.t).toBe(0.5);
+    near(p.point, 691, 144);
+    expect(p.touches).toBe(0);
+  });
+  it("a line through the middle moves it to t = 0.4 (pill y 120.792 to 138.792, grown by 2 still short of 144)", () => {
+    const p = placeLabel(link, 16, [flat(144)], []);
+    expect(p.t).toBe(0.4);
+    near(p.point, 688.48, 129.792);
+    expect(p.touches).toBe(0);
+  });
+  it("lines through t = 0.5 and t = 0.4 as well: t = 0.6 (y 158.208, pill 149.208 to 167.208)", () => {
+    const p = placeLabel(link, 16, [flat(144), flat(130)], []);
+    expect(p.t).toBe(0.6);
+    near(p.point, 688.48, 158.208);
+  });
+  it("an identity pill or earlier label in the way counts as ten touches", () => {
+    const p = placeLabel(link, 16, [], [{ x: 640, y: 140, width: 40, height: 10 }]); // covers t = 0.5 only
+    expect(p.t).toBe(0.4);
+    const stuck = placeLabel(link, 16, [], [{ x: 0, y: 0, width: 2000, height: 2000 }]);
+    expect([stuck.t, stuck.touches]).toEqual([0.5, 10]); // equally bad everywhere: the first place
+  });
+  it("when every place is touched the cheapest wins, the earliest on a tie", () => {
+    // A vertical wall at x = 691 from y = 0 to 320 with its samples every 10 units (y = 10k): it crosses every place.
+    // The pill grown by 2 spans y +-11 about the centre: t = 0.5 (133 to 155) holds the samples y = 140 and 150, so 2;
+    // t = 0.4 (118.79 to 140.79) holds 120, 130, 140: 3; t = 0.6 (147.2 to 169.2) holds 150 and 160: 2.
+    const wall: Cubic = { from: { x: 691, y: 0 }, c1: { x: 691, y: 320 / 3 }, c2: { x: 691, y: 640 / 3 }, to: { x: 691, y: 320 } };
+    const tie = placeLabel(link, 16, [wall], []);
+    expect([tie.t, tie.touches]).toEqual([0.5, 2]);
+    // Add the line y = 144 (about nine samples fall in the pill at t = 0.5, none at 0.4 or 0.6): t = 0.4 now has 3, t = 0.6 has 2.
+    const p = placeLabel(link, 16, [wall, flat(144)], []);
+    expect([p.t, p.touches]).toEqual([0.6, 2]);
   });
 });
