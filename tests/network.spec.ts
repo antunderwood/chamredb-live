@@ -129,12 +129,15 @@ test("no matches draws nothing", async ({ page }) => {
   await expect(net(page)).toHaveCount(0);
 });
 
-test("phone width: the page does not scroll sideways, the figure keeps its design width in its own keyboard-scrollable box", async ({ page }) => {
-  await page.setViewportSize({ width: 390, height: 800 });
+// Below a 640 px box the picture is portrait and fits (tests/network-portrait.spec.ts). Landscape keeps its design width: at 1000 px
+// the expanded three-column picture (1020 units) is wider than its box and scrolls sideways inside it.
+test("landscape: the page does not scroll sideways, the wide figure keeps its design width in its own keyboard-scrollable box", async ({ page }) => {
+  await page.setViewportSize({ width: 1000, height: 800 });
   await page.goto("./");
   await search(page, "card:ARO:1000");
+  await page.getByRole("button", { name: "Expand matches of tetM-like (1)" }).click();
   await expect(net(page)).toBeVisible();
-  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(1000);
   const box = page.getByRole("region", { name: /Network picture/ });
   await expect(box).toHaveAttribute("tabindex", "0");
   expect(await box.evaluate((el) => getComputedStyle(el).overflowX)).toBe("auto");
@@ -148,7 +151,7 @@ test("phone width: the page does not scroll sideways, the figure keeps its desig
   await box.focus();
   await page.keyboard.press("ArrowRight");
   await expect.poll(() => box.evaluate((el) => el.scrollLeft)).toBeGreaterThan(0); // arrow scrolling is animated
-  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(1000);
 });
 
 test("the picture uses token colours only", async ({ page }) => {

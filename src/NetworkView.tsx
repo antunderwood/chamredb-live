@@ -1,17 +1,16 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent, type RefObject } from "react";
 import { pct, TYPE_LABEL } from "./cardModel";
 import {
   DB_SHAPE,
-  ID_MAX,
-  DETAIL_MAX,
-  NAME_MAX,
   PILL,
-  QUERY_NAME_MAX,
+  PORTRAIT_MAX_W,
   SWATCH,
   chipPath,
   ellipsize,
   layoutNetwork,
+  orientationFor,
   pillRect,
+  ribbonKindOf,
   ribbonRect,
   RIBBON_H,
   RIBBON_W,
@@ -45,6 +44,28 @@ export const HOVER_GRACE_MS = 250; // the time the pointer has to cross from a n
 const native = (n: NetNode) => n.id.slice(n.database.length + 1);
 const curve = (c: Cubic) => `M${c.from.x},${c.from.y} C${c.c1.x},${c.c1.y} ${c.c2.x},${c.c2.y} ${c.to.x},${c.to.y}`;
 const reduced = () => typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
+// The width of the box the figure is drawn in, and of the room inside it: portrait below PORTRAIT_BELOW (networkLayout.ts).
+// Measured before paint and on every resize of the box, so there is no frame in the wrong orientation. The box's own width
+// does not depend on the figure inside it (the scroll box clips it), so drawing a portrait picture cannot change the choice.
+function useBoxWidth(wrap: RefObject<HTMLElement | null>, scroll: RefObject<HTMLElement | null>): { box: number; room: number } | null {
+  const [size, setSize] = useState<{ box: number; room: number } | null>(null);
+  useLayoutEffect(() => {
+    const [w, s] = [wrap.current, scroll.current];
+    if (!w || !s) return;
+    const measure = () => {
+      const cs = getComputedStyle(s);
+      const box = Math.floor(w.getBoundingClientRect().width);
+      const room = Math.floor(s.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight));
+      setSize((cur) => (cur && cur.box === box && cur.room === room ? cur : { box, room }));
+    };
+    measure();
+    if (typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(measure);
+    ro.observe(w);
+    return () => ro.disconnect();
+  }, [wrap, scroll]);
+  return size;
+}
 const activate = (e: KeyboardEvent, act: () => void) => {
   if (e.key === "Enter" || e.key === " ") {
     e.preventDefault();
@@ -120,7 +141,16 @@ export function NetworkView({
 
   const network = useMemo(() => buildNetwork(index, query.id, minIdentity, expanded), [index, query.id, minIdentity, expanded.join("\n")]);
   const vis = useMemo(() => visibleEdges(network), [network]);
-  const layout = useMemo(() => layoutNetwork({ nodes: network.nodes, edges: vis.edges }), [network, vis]);
+  const size = useBoxWidth(wrapRef, scrollRef);
+  const portrait = size !== null && orientationFor(size.box) === "portrait";
+  const room = size?.room ?? 0;
+  const layout = useMemo(
+    () => layoutNetwork({ nodes: network.nodes, edges: vis.edges }, portrait ? { orientation: "portrait", width: Math.min(PORTRAIT_MAX_W, room) } : undefined),
+    [network, vis, portrait, room],
+  );
+  // Tab and the reading order follow the picture: the query, then each match followed by its own step-2 nodes. In portrait
+  // that is not the model's order (query, matches, step-2 nodes), so the nodes are drawn in the order of their rows.
+  const drawOrder = useMemo(() => layout.nodes.map((_, i) => i).sort((a, b) => (portrait ? layout.nodes[a]!.centre.y - layout.nodes[b]!.centre.y : 0) || a - b), [layout, portrait]);
   const counts = useMemo(
     () => new Map(network.nodes.filter((n) => n.role === "match").map((n) => [n.id, ownMatchCount(index, n.id, minIdentity, query.id)])),
     [index, network, minIdentity, query.id],
@@ -202,15 +232,18 @@ export function NetworkView({
 
   // An expand adds a column to the right, which in the rail is outside the box: bring it into view so the new matches
   // of matches are seen rather than missed (#25). Only when a column was added, never on collapse or slider moves.
-  const lastExpanded = useRef(0);
+  const lastExpanded = useRef<string[]>([]);
   useEffect(() => {
     const box = scrollRef.current;
-    if (box && expanded.length > lastExpanded.current && box.scrollWidth > box.clientWidth) {
-      const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-      box.scrollTo({ left: box.scrollWidth, behavior: reduce ? "auto" : "smooth" });
+    const added = expanded.filter((id) => !lastExpanded.current.includes(id));
+    if (box && added.length > 0 && portrait) {
+      // Portrait has no sideways scroll: the new rows are under the match, so bring the first one into view only if it is not.
+      svgRef.current?.querySelector(`[data-via="${CSS.escape(added[0]!)}"]`)?.scrollIntoView({ behavior: reduced() ? "auto" : "smooth", block: "nearest" });
+    } else if (box && added.length > 0 && box.scrollWidth > box.clientWidth) {
+      box.scrollTo({ left: box.scrollWidth, behavior: reduced() ? "auto" : "smooth" });
     }
-    lastExpanded.current = expanded.length;
-  }, [expanded.length]);
+    lastExpanded.current = expanded;
+  }, [expanded.join("\n")]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const toggle = (id: string) => setExp({ for: query.id, ids: expanded.includes(id) ? expanded.filter((x) => x !== id) : [...expanded, id] });
   const go = (id: string) => {
@@ -241,7 +274,14 @@ export function NetworkView({
         </p>
       )}
       <div ref={wrapRef} className="net-wrap">
-        <div ref={scrollRef} className="net-scroll" tabIndex={0} role="region" aria-label="Network picture, scrolls sideways when it is wider than its box" onScroll={place}>
+        {/* Landscape keeps its design width and scrolls sideways in a keyboard-focusable box; portrait fits the box (no sideways scroll, so no extra Tab stop). */}
+        <div
+          ref={scrollRef}
+          className={`net-scroll${portrait ? " net-portrait" : ""}`}
+          data-orientation={portrait ? "portrait" : "landscape"}
+          {...(portrait ? {} : { tabIndex: 0, role: "region", "aria-label": "Network picture, scrolls sideways when it is wider than its box" })}
+          onScroll={place}
+        >
           <svg
             ref={svgRef}
             viewBox={`0 0 ${layout.width} ${layout.height}`}
@@ -298,7 +338,8 @@ export function NetworkView({
               })}
             </g>
             <g>
-              {layout.nodes.map((s, i) => {
+              {drawOrder.map((i) => {
+                const s = layout.nodes[i]!;
                 const n = network.nodes[i]!;
                 const via = n.via ? nodeById.get(n.via) : undefined;
                 return (
@@ -332,8 +373,12 @@ export function NetworkView({
               </div>
             ))}
             <p className="net-tip-hint">
-              Press Enter to make this the query.
-              {cardOf(shownNode.id) ? " Press L to show its card in the list." : " It is not in the list: it is a match of a match."}
+              {portrait ? "Tap or press Enter to make this the query." : "Press Enter to make this the query."}
+              {cardOf(shownNode.id)
+                ? portrait
+                  ? " Its full id is on its card in the list below (L goes there)."
+                  : " Press L to show its card in the list."
+                : " It is not in the list: it is a match of a match."}
               {tip.truncated ? " The phenotype is cut here; the full text is in the list." : ""}
             </p>
           </div>
@@ -444,8 +489,8 @@ function Chip({
   const query = n.role === "query";
   const [l1, l2, l3] = slot.lines;
   const detail = query ? "Query" : `${pct(n.hit!.identity)} · ${n.hit!.type}`;
-  const second = n.role === "step2" ? ellipsize(`match of ${via?.name ?? n.via}`, DETAIL_MAX) : ellipsize(native(n), ID_MAX);
-  const kind: RibbonKind | null = n.role !== "match" ? null : n.best ? (n.weak ? "weak" : "best") : n.below ? "below" : null;
+  const second = n.role === "step2" ? ellipsize(`match of ${via?.name ?? n.via}`, slot.limits.detail) : ellipsize(native(n), slot.limits.sub);
+  const kind: RibbonKind | null = ribbonKindOf(n);
   const ribbon = kind ? ribbonRect(slot, kind) : null;
   return (
     <g
@@ -476,8 +521,8 @@ function Chip({
       <path className="net-shape" d={chipPath(slot.rect, shape)} />
       <rect className="net-badge" x={slot.badge.x} y={slot.badge.y} width={slot.badge.width} height={slot.badge.height} clipPath={`url(#${clip})`} />
       <text className="net-badge-text" x={slot.badgeText.x} y={slot.badgeText.y}>{BADGE[n.database]}</text>
-      <text className="net-name" x={l1.x} y={l1.y}>{ellipsize(n.name, query ? QUERY_NAME_MAX : NAME_MAX)}</text>
-      <text className="net-sub" x={l2.x} y={l2.y}>{query ? ellipsize(native(n), ID_MAX) : second}</text>
+      <text className="net-name" x={l1.x} y={l1.y}>{ellipsize(n.name, slot.limits.name)}</text>
+      <text className="net-sub" x={l2.x} y={l2.y}>{query ? ellipsize(native(n), slot.limits.sub) : second}</text>
       <text className="net-detail" x={l3.x} y={l3.y}>{detail}</text>
       {ribbon && (
         <g className="net-ribbon" data-weak={kind !== "best" || undefined} data-cue={kind}>

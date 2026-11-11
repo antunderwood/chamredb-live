@@ -65,10 +65,12 @@ const inside = (page: Page) =>
   page.evaluate(() => {
     const svg = document.querySelector<SVGSVGElement>('[data-testid="network"]')!.getBoundingClientRect();
     const out: string[] = [];
+    // landscape keeps 8 units of room right of everything (an arrowhead); portrait is checked against the box itself
+    const room = document.querySelector(".net-scroll")!.getAttribute("data-orientation") === "portrait" ? 0 : 8;
     for (const el of document.querySelectorAll('[data-testid="network"] [data-edge] path, [data-testid="network"] .net-pill rect, [data-testid="network"] g[data-node] .net-hit')) {
       const r = el.getBoundingClientRect();
       const who = `${el.closest("[data-edge], [data-node]")?.getAttribute("data-edge") ?? el.closest("[data-node]")?.getAttribute("data-node")} ${el.tagName}.${el.getAttribute("class") ?? ""}`;
-      if (r.left < svg.left - 0.5 || r.top < svg.top - 0.5 || r.right > svg.right - 8 || r.bottom > svg.bottom + 0.5) out.push(`${who}: ${[r.left, r.top, r.right, r.bottom].map(Math.round)} outside ${[svg.left, svg.top, svg.right, svg.bottom].map(Math.round)}`);
+      if (r.left < svg.left - 0.5 || r.top < svg.top - 0.5 || r.right > svg.right - room || r.bottom > svg.bottom + 0.5) out.push(`${who}: ${[r.left, r.top, r.right, r.bottom].map(Math.round)} outside ${[svg.left, svg.top, svg.right, svg.bottom].map(Math.round)}`);
     }
     return out;
   });
@@ -104,8 +106,8 @@ test("card:ARO:3002546 with two neighbours expanded: everything drawn is inside 
   expect(await inside(page)).toEqual([]);
 });
 
-test("the scroll box is obviously scrollable at 390 px: a drawn scrollbar and a shade at the edge that has more", async ({ page }) => {
-  await page.setViewportSize({ width: 390, height: 900 });
+test("the scroll box is obviously scrollable (landscape, 800 px): a drawn scrollbar and a shade at the edge that has more", async ({ page }) => {
+  await page.setViewportSize({ width: 800, height: 900 });
   await open(page, "#q=card%3AARO%3A3000230&min=90");
   const box = page.locator(".net-scroll");
   // Headless Chromium hides scrollbars whatever the CSS says, so the style is asserted: a 14 px classic scrollbar (which takes
@@ -147,3 +149,84 @@ test("long names are cut with an ellipsis and stay inside their chip; the full t
   await expect(page.getByRole("tooltip")).toContainText("Staphylococcus aureus mupA conferring resistance to mupirocin");
   await expect(page.locator("[data-query]")).toContainText("Staphylococcus aureus mupA conferring resistance to mupirocin");
 });
+
+// Portrait (a phone, a box under 640 px) on the real data. Geometry: docs/network-layout.md, "Portrait".
+const boxes = (page: Page, sel: string) =>
+  page.evaluate((q) => [...document.querySelectorAll(q)].map((el) => {
+    const r = el.getBoundingClientRect();
+    return { who: el.closest("[data-edge], [data-node]")?.getAttribute("data-edge") ?? el.closest("[data-node]")?.getAttribute("data-node") ?? "", x: r.left, y: r.top, r: r.right, b: r.bottom };
+  }), sel);
+const overlapping = (a: { x: number; y: number; r: number; b: number }, b: { x: number; y: number; r: number; b: number }) => a.x < b.r && b.x < a.r && a.y < b.b && b.y < a.b;
+
+for (const width of [390, 360]) {
+  test.describe(`portrait at ${width} px, real data`, () => {
+    test.use({ viewport: { width, height: 900 }, reducedMotion: "reduce" }); // no entrance animation: a chip is measured where it settles
+
+    test("card:ARO:3002546 closed and with both neighbours expanded: nothing clipped, no sideways scroll, no label on a chip or on another label, text inside every chip", async ({ page }) => {
+      await open(page, "#q=card%3AARO%3A3002546&min=90");
+      await expect(page.locator(".net-scroll")).toHaveAttribute("data-orientation", "portrait");
+      for (const step of ["closed", "expanded"]) {
+        if (step === "expanded") {
+          await page.getByRole("button", { name: "Expand matches of aac(6')-Ib4 (4)" }).click();
+          await page.getByRole("button", { name: "Expand matches of ant(3'')-Ii-aac(6')-IId (2)" }).click();
+          await page.mouse.move(0, 0);
+          await expect(net(page).locator("g[data-node]")).toHaveCount(9);
+          await expect(net(page).locator('[data-edge][data-kind="link"]')).toHaveCount(4);
+        } else await expect(net(page).locator("g[data-node]")).toHaveCount(7);
+        expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth), step).toBe(true);
+        const svg = (await net(page).boundingBox())!;
+        for (const sel of ['[data-edge] path', '.net-pill rect', '.net-hit', '.net-expand-hit', '.net-expand-pill']) {
+          for (const b of await boxes(page, `[data-testid="network"] ${sel}`)) {
+            expect(b.x, `${step} ${b.who} ${sel}`).toBeGreaterThanOrEqual(svg.x - 0.5);
+            expect(b.r, `${step} ${b.who} ${sel}`).toBeLessThanOrEqual(svg.x + svg.width + 0.5);
+            expect(b.y, `${step} ${b.who} ${sel}`).toBeGreaterThanOrEqual(svg.y - 0.5);
+            expect(b.b, `${step} ${b.who} ${sel}`).toBeLessThanOrEqual(svg.y + svg.height + 0.5);
+          }
+        }
+        const labels = await boxes(page, '[data-testid="network"] .net-pill rect');
+        const chips = await boxes(page, '[data-testid="network"] .net-hit');
+        for (let i = 0; i < labels.length; i++) {
+          for (const c of chips) expect(overlapping(labels[i]!, c), `${step}: label of ${labels[i]!.who} on ${c.who}`).toBe(false);
+          for (let j = i + 1; j < labels.length; j++) expect(overlapping(labels[i]!, labels[j]!), `${step}: labels of ${labels[i]!.who} and ${labels[j]!.who}`).toBe(false);
+        }
+        // text stays inside its chip (the Linux CI font is wider than macOS: the limits are the same or shorter)
+        for (const g of await net(page).locator("g[data-node]").all()) {
+          const chip = (await g.locator(".net-hit").boundingBox())!;
+          const match = (await g.getAttribute("data-role")) === "match";
+          for (const t of await g.locator(".net-name, .net-sub, .net-detail").all()) {
+            const b = (await t.boundingBox())!;
+            const room = match && !(await t.evaluate((el) => el.classList.contains("net-detail"))) ? 20 : 4; // the "+n" pill covers the right 15 units of a match
+            expect(b.x + b.width, `${step} ${await g.getAttribute("data-node")} ${await t.textContent()}`).toBeLessThanOrEqual(chip.x + chip.width - room);
+          }
+        }
+        // the identity pills are one per step-1 edge and equal the cards
+        await expect(net(page).locator('[data-edge][data-step="1"] .net-pill')).toHaveCount(6);
+      }
+      const listed = await page.locator("[data-match]").count();
+      expect(listed).toBe(6); // the list is unchanged by expansion
+    });
+
+    test("weak mix: Highest identity shown, Below 90% and Best are drawn as in the list (card:ARO:3000361 at 80%)", async ({ page }) => {
+      await open(page, "#q=card%3AARO%3A3000361&min=80");
+      await expect(net(page).locator('g[data-node][data-best="highest"] .net-ribbon')).toContainText("Highest identity shown");
+      await expect(net(page).locator("g[data-node][data-below] .net-ribbon")).toContainText("Below 90%");
+      await expect(net(page).locator('g[data-node][data-best="best"] .net-ribbon')).toContainText("Best");
+      await expect(page.locator('[data-match][data-best="highest"]')).toHaveCount(1);
+      const svg = (await net(page).boundingBox())!;
+      for (const b of await boxes(page, '[data-testid="network"] .net-ribbon rect')) {
+        expect(b.x).toBeGreaterThanOrEqual(svg.x - 0.5);
+        expect(b.r).toBeLessThanOrEqual(svg.x + svg.width + 0.5);
+      }
+    });
+
+    test("the 25 node cap: 25 nodes and the message, in one column that still fits (card:ARO:3001052, every match expanded)", async ({ page }) => {
+      await open(page, "#q=card%3AARO%3A3001052&min=90");
+      for (const pill of await page.locator("[data-expand]").all()) await pill.click();
+      await expect(net(page).locator("g[data-node]")).toHaveCount(25);
+      await expect(page.getByTestId("network-cap")).toContainText("limit is 25");
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+      const svg = (await net(page).boundingBox())!;
+      for (const b of await boxes(page, '[data-testid="network"] .net-hit')) expect(b.b).toBeLessThanOrEqual(svg.y + svg.height + 0.5);
+    });
+  });
+}
