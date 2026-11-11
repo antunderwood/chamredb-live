@@ -26,7 +26,7 @@ test("keyboard only: select, search box, Search, slider in reading order; Enter 
   await expect(slider).toHaveValue("90");
   await press(page, "ArrowLeft", 10);
   await expect(slider).toHaveValue("80");
-  await expect(page.getByRole("region", { name: "Matches in resfinder" }).getByRole("listitem")).toHaveCount(2);
+  await expect(page.getByRole("region", { name: "Matches in resfinder" }).locator("[data-match]")).toHaveCount(2);
   await press(page, "Home");
   await expect(slider).toHaveValue("0");
   await press(page, "End");
@@ -114,7 +114,7 @@ test("non-colour encodings: best, weak and RBH versus OWH are carried by text, s
   await page.goto("./");
   await page.getByLabel("Entry id").fill("card:ARO:1000");
   await page.getByLabel("Entry id").press("Enter");
-  const ncbi = page.getByRole("region", { name: "Matches in ncbi" }).getByRole("listitem");
+  const ncbi = page.getByRole("region", { name: "Matches in ncbi" }).locator("[data-match]");
   await expect(ncbi.nth(0)).toContainText("Best"); // text, not only the badge colour
   await expect(ncbi.nth(2)).not.toContainText("Best");
   const net = page.getByTestId("network");

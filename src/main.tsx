@@ -6,8 +6,7 @@ import { Examples } from "./Examples";
 import { Header } from "./Header";
 import { HowToRead } from "./HowToRead";
 import { formatHash, MAX_QUERY, parseHash, type HashState } from "./hash";
-import { EntryHeader, MatchPhenotype } from "./Phenotype";
-import { NetworkView } from "./NetworkView";
+import { ResultPanels } from "./ResultPanels";
 import { About } from "./About";
 import { findEntries, matchGroups, prime, suggest } from "./query";
 import { DATABASES, type Candidate, type Database, type Index } from "./types";
@@ -25,7 +24,6 @@ function syncUrl(state: HashState) {
     // throttled by the browser: the URL lags one change behind, the app keeps working
   }
 }
-const pct = (fraction: number) => `${(fraction * 100).toFixed(1)}%`;
 
 function App() {
   const [index, setIndex] = useState<Index | null>(null);
@@ -215,7 +213,6 @@ function App() {
           {found[0].matchedOn === "name" ? "; other databases may list entries with the same name" : ""}.
         </p>
       )}
-      {found.length === 1 && <EntryHeader entry={index!.entries[found[0].id]} />}
       {found.length === 1 && (
         <div className="mt-6 rounded-xl border border-border bg-surface p-4 shadow-card">
           <label htmlFor="min-identity" className="block rounded-md bg-label px-3 py-1 text-sm font-medium text-label-fg">Minimum identity</label>
@@ -248,45 +245,7 @@ function App() {
         </p>
       )}
       {index && found.length === 1 && index.entries[found[0].id] && (
-      <div className="mt-6 rounded-2xl bg-panel px-3 pb-4 pt-1 sm:px-4">
-      <NetworkView query={index.entries[found[0].id]!} groups={groups} weakBelow={WEAK_PCT / 100} />
-      {groups.map((g) => {
-        // Below 90% identity the top match is weak evidence of equivalence (ADR 0004): do not call it Best.
-        const weak = Math.max(...g.matches.map((m) => m.identity)) < WEAK_PCT / 100;
-        return (
-        <section key={g.database} aria-label={`Matches in ${g.database}`} className="mt-6 rounded-lg border border-border bg-surface p-4">
-          <h2 className="inline-block rounded-md bg-chip-db px-2.5 py-0.5 text-base font-semibold text-chip-fg">{g.database}</h2>
-          {weak && (
-            <p className="mt-1 text-sm text-danger">
-              Weak evidence: every match here is below {WEAK_PCT}% identity (a working default taken from the earlier site,
-              not a validated cut-off). The highest identity is marked, but
-              it ignores coverage and the match type.
-            </p>
-          )}
-          <ul className="mt-2 space-y-2">
-            {g.matches.map((m) => (
-              <li key={m.entry.id}>
-                <span className="font-medium">{m.entry.id.slice(g.database.length + 1)}</span> ({m.entry.name}){" "}
-                identity {pct(m.identity)}, coverage {pct(m.coverage)}, {m.type}
-                {m.best && (
-                  <strong
-                    className={
-                      weak
-                        ? "ml-2 rounded border border-border px-1.5 py-0.5 text-xs text-muted"
-                        : "ml-2 rounded bg-accent px-1.5 py-0.5 text-xs text-accent-fg"
-                    }
-                  >
-                    {weak ? "Highest identity shown" : "Best"}
-                  </strong>
-                )}
-                <MatchPhenotype entry={m.entry} />
-              </li>
-            ))}
-          </ul>
-        </section>
-        );
-      })}
-      </div>
+        <ResultPanels query={index.entries[found[0].id]!} groups={groups} weakBelow={WEAK_PCT / 100} />
       )}
       <HowToRead weakPct={WEAK_PCT} />
       <About />

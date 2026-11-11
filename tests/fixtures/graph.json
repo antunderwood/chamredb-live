@@ -4,7 +4,7 @@
   "multigraph": false,
   "nodes": [
     {"id": "card:ARO:1000", "database": "card", "name": "blaX", "phenotype": "confers resistance to antibiotic: cephalosporin", "is_a": "ARO:0000001:beta-lactamase", "PMID": ["10000001"]},
-    {"id": "card:ARO:2000", "database": "card", "name": "tet(M)", "phenotype": "confers resistance to drug class: tetracycline antibiotic", "additional_phenotype": "confers resistance to antibiotic: tetracycline"},
+    {"id": "card:ARO:2000", "database": "card", "name": "tet(M)", "phenotype": "confers resistance to drug class: tetracycline antibiotic", "additional_phenotype": "confers resistance to antibiotic: tetracycline", "is_a": "ARO:0000002:ribosomal protection protein", "product": "hand-written product of tet(M)", "PMID": ["10000002", "10000003", "DOI:10.0000/hand-written"]},
     {"id": "ncbi:WP_1.1", "database": "ncbi", "name": "blaX-1", "phenotype": "confers resistance to subclass CEPHALOSPORIN", "product": "class A beta-lactamase BlaX-1", "alternative_id": {"nucleotide_accession": "NG_1.1"}, "duplicate_allele_ids": {"nucleotide_accessions": ["NG_2.1"], "protein_accessions": ["WP_2.1"]}},
     {"id": "ncbi:WP_3.1", "database": "ncbi", "name": "blaX-2", "phenotype": "confers resistance to subclass CEPHALOSPORIN", "product": "class A beta-lactamase BlaX-2", "alternative_id": {"nucleotide_accession": "NG_3.1"}, "duplicate_allele_ids": {"nucleotide_accessions": [], "protein_accessions": []}},
     {"id": "ncbi:WP_4.1", "database": "ncbi", "name": "tetM-like", "phenotype": "confers resistance to subclass TETRACYCLINE", "product": "tetracycline resistance ribosomal protection protein", "alternative_id": {"nucleotide_accession": "NG_4.1"}, "duplicate_allele_ids": {"nucleotide_accessions": [], "protein_accessions": []}},

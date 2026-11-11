@@ -26,7 +26,7 @@ test("each single-entry example loads its expected entry", async ({ page }) => {
   for (const ex of EXAMPLES.filter((e) => e.ids.length === 1)) {
     await page.getByRole("button", { name: `Example: ${ex.query}` }).click();
     await expect(page.getByLabel("Entry id or name")).toHaveValue(ex.query);
-    await expect(page.getByText(`${ex.ids[0]} (`).first()).toBeVisible(); // the queried entry
+    await expect(page.getByRole("region", { name: "Query entry" })).toHaveAttribute("data-query", ex.ids[0]); // the queried entry (#8 query panel)
     // Matches at 90% or more, from a raw scan of data/graph.json (all three are reciprocal best hits).
     for (const m of MATCHES[ex.query]) await expect(page.getByRole("region", { name: `Matches in ${m.db}` })).toContainText(m.native);
     expect(new URL(page.url()).hash).toContain(`q=${encodeURIComponent(ex.query)}`);

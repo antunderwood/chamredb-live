@@ -41,15 +41,15 @@ test("egress: renders hand-worked matches, offline, with no third-party traffic"
   await search(page, "card:ARO:1000");
 
   const ncbi = page.getByRole("region", { name: "Matches in ncbi" });
-  await expect(ncbi.getByRole("listitem")).toHaveCount(3);
-  await expect(ncbi.getByRole("listitem").nth(0)).toContainText("WP_1.1");
-  await expect(ncbi.getByRole("listitem").nth(0)).toContainText("97.0%");
-  await expect(ncbi.getByRole("listitem").nth(0)).toContainText("Best");
-  await expect(ncbi.getByRole("listitem").nth(1)).toContainText("Best"); // tie
-  await expect(ncbi.getByRole("listitem").nth(2)).toContainText("90.0%"); // exactly at the threshold
-  await expect(ncbi.getByRole("listitem").nth(2)).not.toContainText("Best");
+  await expect(ncbi.locator("[data-match]")).toHaveCount(3);
+  await expect(ncbi.locator("[data-match]").nth(0)).toContainText("WP_1.1");
+  await expect(ncbi.locator("[data-match]").nth(0)).toContainText("97.0%");
+  await expect(ncbi.locator("[data-match]").nth(0)).toContainText("Best");
+  await expect(ncbi.locator("[data-match]").nth(1)).toContainText("Best"); // tie
+  await expect(ncbi.locator("[data-match]").nth(2)).toContainText("90.0%"); // exactly at the threshold
+  await expect(ncbi.locator("[data-match]").nth(2)).not.toContainText("Best");
   const resfinder = page.getByRole("region", { name: "Matches in resfinder" });
-  await expect(resfinder.getByRole("listitem")).toHaveCount(1);
+  await expect(resfinder.locator("[data-match]")).toHaveCount(1);
   await expect(resfinder).toContainText("blaX");
   await expect(resfinder).toContainText("100.0%");
   await expect(resfinder).not.toContainText("85.0%"); // below the 0.9 default
@@ -93,11 +93,11 @@ test("the minimum identity slider reveals lower matches, not flagged best when a
   const slider = page.getByLabel("Minimum identity");
   await expect(slider).toHaveValue("90"); // default 90%
   const resfinder = page.getByRole("region", { name: "Matches in resfinder" });
-  await expect(resfinder.getByRole("listitem")).toHaveCount(1);
+  await expect(resfinder.locator("[data-match]")).toHaveCount(1);
   await slider.fill("80");
-  await expect(resfinder.getByRole("listitem")).toHaveCount(2);
-  await expect(resfinder.getByRole("listitem").nth(1)).toContainText("85.0%");
-  await expect(resfinder.getByRole("listitem").nth(1)).not.toContainText("Best");
+  await expect(resfinder.locator("[data-match]")).toHaveCount(2);
+  await expect(resfinder.locator("[data-match]").nth(1)).toContainText("85.0%");
+  await expect(resfinder.locator("[data-match]").nth(1)).not.toContainText("Best");
   await slider.fill("98"); // ncbi 97% matches drop out; the group disappears
   await expect(page.getByRole("region", { name: "Matches in ncbi" })).toHaveCount(0);
   await expect(page.getByRole("region", { name: "Matches in resfinder" })).toBeVisible(); // blaX at 100%
@@ -124,13 +124,13 @@ test("a hash URL renders the same result as the interactive path, and the URL re
   await page.goto("./");
   await search(page, "card:ARO:1000");
   await page.getByLabel("Minimum identity").fill("80");
-  await expect(page.getByRole("region", { name: "Matches in resfinder" }).getByRole("listitem")).toHaveCount(2);
+  await expect(page.getByRole("region", { name: "Matches in resfinder" }).locator("[data-match]")).toHaveCount(2);
   expect(new URL(page.url()).hash).toBe("#q=card%3AARO%3A1000&min=80");
   const interactive = await resultsText(page);
 
   const other = await context.newPage();
   await other.goto("./#q=card%3AARO%3A1000&min=80");
-  await expect(other.getByRole("region", { name: "Matches in resfinder" }).getByRole("listitem")).toHaveCount(2);
+  await expect(other.getByRole("region", { name: "Matches in resfinder" }).locator("[data-match]")).toHaveCount(2);
   expect(await resultsText(other)).toEqual(interactive);
   await expect(other.getByLabel("Entry id or name")).toHaveValue("card:ARO:1000");
   await expect(other.getByLabel("Minimum identity")).toHaveValue("80");
@@ -164,7 +164,7 @@ test("loading a link makes no third-party request and sends the search to nobody
   page.on("request", (r) => requests.push(r.url()));
   const { external, cspMessages } = watchEgress(page, new URL(baseURL!).origin);
   await page.goto("./#q=card%3AARO%3A1000&min=80");
-  await expect(page.getByRole("region", { name: "Matches in resfinder" }).getByRole("listitem")).toHaveCount(2);
+  await expect(page.getByRole("region", { name: "Matches in resfinder" }).locator("[data-match]")).toHaveCount(2);
   expect(external).toEqual([]);
   expect(cspMessages).toEqual([]);
   expect(requests.filter((u) => u.includes("ARO"))).toEqual([]); // the hash is not part of any request

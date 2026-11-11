@@ -77,4 +77,8 @@ export const PAIRS: [string, string, number, string][] = [
   ["--chip-match", "--surface", 3, "mark"],
   ["--label-fg", "--label", 4.5, "text"],
   ["--label", "--surface", 3, "mark"],
+  ["--chip-query", "--panel", 3, "mark"],
+  ["--chip-db", "--panel", 3, "mark"],
+  ["--chip-name", "--panel", 3, "mark"],
+  ["--chip-match", "--panel", 3, "mark"],
 ];

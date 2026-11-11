@@ -22,7 +22,7 @@ test("one node and one edge per shown match at 90%, and again at 80%", async ({ 
   await page.getByLabel("Minimum identity").fill("98"); // only blaX (100%) is left
   await expect(net(page).locator("[data-edge]")).toHaveCount(1);
   // The count also equals the list's own row count.
-  await expect(page.getByRole("region").getByRole("listitem")).toHaveCount(1);
+  await expect(page.locator("[data-match]")).toHaveCount(1);
 });
 
 test("dashed is OWH, solid is RBH, with arrowheads showing direction", async ({ page }) => {
@@ -43,7 +43,7 @@ test("dashed is OWH, solid is RBH, with arrowheads showing direction", async ({ 
 test("the picture and the list agree on matches, identity, type and best", async ({ page }) => {
   await page.goto("./");
   await search(page, "card:ARO:1000");
-  const ncbi = page.getByRole("region", { name: "Matches in ncbi" }).getByRole("listitem");
+  const ncbi = page.getByRole("region", { name: "Matches in ncbi" }).locator("[data-match]");
   const svgText = async (id: string) => (await net(page).locator(`g[data-node="${id}"] text`).allTextContents()).join(" ");
   expect(await svgText("ncbi:WP_1.1")).toBe("ncbi WP_1.1 97.0% RBH, best");
   expect(await svgText("ncbi:WP_3.1")).toBe("ncbi WP_3.1 97.0% OWH, best"); // tie: both best, as in the list
@@ -53,17 +53,18 @@ test("the picture and the list agree on matches, identity, type and best", async
   await expect(ncbi.nth(0)).toContainText("97.0%");
   await expect(ncbi.nth(2)).toContainText("90.0%");
   // Every list row has a node whose labels match it.
-  const items = await page.getByRole("region").getByRole("listitem").all();
+  const items = await page.locator("[data-match]").all();
   expect(items.length).toBe(4);
   expect(await net(page).locator("[data-edge]").count()).toBe(items.length);
   for (const li of items) {
-    const text = (await li.textContent())!;
-    const native = text.split(" ")[0]!;
-    const pctText = text.match(/identity (\d+\.\d%)/)![1]!;
-    const type = text.match(/(RBH|OWH)/)![1]!;
+    const id = (await li.getAttribute("data-match"))!;
+    const native = id.slice(id.indexOf(":") + 1);
+    const pctText = (await li.locator('[data-field="identity"] dd').textContent())!.match(/^(\d+\.\d%)/)![1]!;
+    const type = (await li.locator("[data-type]").getAttribute("data-type"))!;
+    const best = (await li.getAttribute("data-best")) === "best";
     const labels = await net(page).locator("g[data-node] text").allTextContents();
     expect(labels.some((t) => t.endsWith(native))).toBe(true);
-    expect(labels).toContain(`${pctText} ${type}${text.includes("Best") ? ", best" : ""}`);
+    expect(labels).toContain(`${pctText} ${type}${best ? ", best" : ""}`);
   }
   // Best is also a shape: square for best, circle otherwise.
   await expect(net(page).locator('g[data-node="ncbi:WP_1.1"] rect')).toHaveCount(1);
