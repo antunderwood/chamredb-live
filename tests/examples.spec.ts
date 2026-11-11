@@ -28,7 +28,7 @@ test("four example buttons are offered on arrival, with accessible names", async
   const buttons = page.getByRole("button", { name: /^Example:/ });
   await expect(buttons).toHaveCount(4);
   for (const ex of EXAMPLES) await expect(page.getByRole("button", { name: `Example: ${ex.query}` })).toBeVisible();
-  await expect(page.getByText(/searches never leave your browser/i)).toBeVisible();
+  await expect(page.getByText("Searches run in your browser; nothing is sent.")).toBeVisible(); // #26: the one-sentence line; the full statement is in How to read this
 });
 
 test("each single-entry example loads its expected entry", async ({ page }) => {
@@ -100,4 +100,42 @@ test("no horizontal page scroll at 360 px on a real result, footer included (#25
   const panel = page.getByRole("dialog", { name: "About and data" });
   await expect(panel).toContainText("git commit");
   expect(await panel.evaluate((e) => e.scrollWidth - e.clientWidth)).toBeLessThanOrEqual(0);
+});
+
+test("once a result is shown the example cards become one row of small chips, and each chip still loads its entry (#26)", async ({ page }) => {
+  await page.goto("./");
+  await expect(page.locator('[data-examples="cards"]')).toBeVisible(); // before any result: the cards with their notes
+  await page.getByRole("button", { name: "Example: card:ARO:3000230" }).click();
+  await expect(page.getByTestId("comparison")).toBeVisible();
+  await expect(page.locator('[data-examples="cards"]')).toHaveCount(0);
+  const row = page.locator('[data-examples="compact"]');
+  await expect(row).toBeVisible();
+  expect((await row.boundingBox())!.height).toBeLessThan(40); // one line
+  for (const ex of EXAMPLES.filter((e) => e.ids.length === 1)) {
+    await page.getByRole("button", { name: `Example: ${ex.query}` }).click();
+    await expect(page.getByRole("region", { name: "Query entry" })).toContainText(ex.ids[0]);
+  }
+});
+
+// The layout targets moved here from #25 (ticket #26): measured on the real release, searching card:ARO:3000230.
+test("1280 x 800: the search box and the whole comparison strip are visible without scrolling after a search (#26)", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.goto("./");
+  await page.getByRole("button", { name: "Example: card:ARO:3000230" }).click();
+  const strip = page.getByTestId("comparison");
+  await expect(strip).toBeVisible();
+  await expect(page.getByLabel("Entry id")).toBeInViewport({ ratio: 1 });
+  await expect(page.getByRole("button", { name: "Search" })).toBeInViewport({ ratio: 1 });
+  await expect(strip).toBeInViewport({ ratio: 1 });
+  expect(await page.evaluate(() => window.scrollY)).toBe(0);
+});
+
+test("390 x 844: the comparison strip starts above 700 px after a search (#26)", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("./");
+  await page.getByRole("button", { name: "Example: card:ARO:3000230" }).click();
+  const strip = page.getByTestId("comparison");
+  await expect(strip).toBeVisible();
+  expect((await strip.boundingBox())!.y).toBeLessThan(700); // measured after #25: 1151; after #26: 690
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0);
 });

@@ -1,10 +1,27 @@
+import { forwardRef, useImperativeHandle, useRef } from "react";
+
 // The long explanations, collapsed by default (native <details>: keyboard and screen reader support for free).
 // The short privacy line and the weak-evidence warning stay visible in the page; everything else that used to sit
 // above the results is here, in the original words, except the Weak evidence paragraph, which explains the visible warning.
-export function HowToRead({ weakPct }: { weakPct: number }) {
+export interface HowToReadHandle {
+  showPrivacy(): void;
+}
+
+export const HowToRead = forwardRef<HowToReadHandle, { weakPct: number }>(function HowToRead({ weakPct }, ref) {
+  const details = useRef<HTMLDetailsElement>(null);
+  const privacy = useRef<HTMLDivElement>(null);
+  // The privacy link in the page head opens this section and moves focus to the full statement. It is a button, not an
+  // address with a #: the address bar holds the search.
+  useImperativeHandle(ref, () => ({
+    showPrivacy() {
+      if (details.current) details.current.open = true;
+      privacy.current?.scrollIntoView({ block: "start", behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+      privacy.current?.focus({ preventScroll: true });
+    },
+  }));
   return (
-    <details className="mt-4 rounded-lg border border-border bg-surface p-4" data-testid="how-to-read">
-      <summary className="cursor-pointer font-semibold">How to read this</summary>
+    <details ref={details} className="mt-2 rounded-lg border border-border bg-surface px-3 py-1.5 text-sm open:p-4 open:text-base" data-testid="how-to-read">
+      <summary className="cursor-pointer font-semibold"><span aria-hidden="true">ⓘ </span>How to read this</summary>
       <div className="mt-3 space-y-4 text-sm">
         <div>
           <h2 className="font-semibold">Identity, coverage and Best</h2>
@@ -36,8 +53,13 @@ export function HowToRead({ weakPct }: { weakPct: number }) {
             from the earlier site, not a validated cut-off. The warning itself stays with the group it applies to.
           </p>
         </div>
-        <div>
+        <div ref={privacy} tabIndex={-1} data-testid="howto-privacy">
           <h2 className="font-semibold">Privacy and links</h2>
+          {/* The full statement: the sentence that used to sit above the results, word for word, without its pointer here (#26). */}
+          <p className="mt-1" data-testid="privacy-full">
+            Privacy: your searches never leave your browser, and this site loads no third-party scripts, fonts or
+            analytics. The web host keeps ordinary access logs, and anyone you give a link to can read the search in it.
+          </p>
           <p className="mt-1">
             All searches run in your browser. The web host keeps ordinary access logs of page and data file requests.
             The address of this page records your search after the # sign, so you can share it; your browser does not
@@ -47,4 +69,4 @@ export function HowToRead({ weakPct }: { weakPct: number }) {
       </div>
     </details>
   );
-}
+});

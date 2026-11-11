@@ -29,11 +29,37 @@ export function availableExamples(index: Index, examples: Example[] = EXAMPLES):
   });
 }
 
-export function Examples({ index, onPick }: { index: Index | null; onPick: (query: string) => void }) {
+// `compact`: once a result is shown the example cards shrink to one row of small chips, so the results start higher (#26).
+export function Examples({ index, onPick, compact = false }: { index: Index | null; onPick: (query: string) => void; compact?: boolean }) {
   const shown = useMemo(() => (index ? availableExamples(index) : []), [index]);
   if (shown.length === 0) return null;
+  if (compact) {
+    return (
+      <section aria-labelledby="examples-heading" className="mt-3 flex items-center gap-x-2" data-examples="compact">
+        <h2 id="examples-heading" className="shrink-0 text-xs font-medium text-muted">Examples:</h2>
+        {/* One row: at phone width the chips scroll sideways inside this list, not the page. */}
+        <ul className="relative flex min-w-0 gap-1.5 overflow-x-auto pb-1 sm:flex-wrap sm:overflow-visible sm:pb-0">
+          {shown.map((ex, i) => (
+            <li key={ex.query} className="shrink-0">
+              <button
+                type="button"
+                onClick={() => onPick(ex.query)}
+                aria-label={`Example: ${ex.query}`}
+                aria-describedby={`ex-note-${i}`}
+                title={ex.note}
+                className="example-button whitespace-nowrap rounded-full border border-control-border px-2.5 py-0.5 text-xs"
+              >
+                {ex.query}
+              </button>
+              <span id={`ex-note-${i}`} className="sr-only">{ex.note}</span>
+            </li>
+          ))}
+        </ul>
+      </section>
+    );
+  }
   return (
-    <section aria-labelledby="examples-heading" className="mt-4">
+    <section aria-labelledby="examples-heading" className="mt-4" data-examples="cards">
       <h2 id="examples-heading" className="text-sm font-medium">Some examples to try</h2>
       <ul className="mt-2 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {shown.map((ex, i) => (

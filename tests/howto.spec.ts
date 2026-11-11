@@ -17,19 +17,46 @@ const OLD_RESULTS = [
   "RBH: reciprocal best hit; OWH: one-way hit (the reverse direction is not implied).",
 ];
 
-test("the privacy line is visible before any query and the long text is collapsed", async ({ page }) => {
+test("the page has exactly one h1, the tagline; the wordmark is not a heading (#26)", async ({ page }) => {
   await page.goto("./");
-  await expect(page.getByText(/searches never leave your browser/i)).toBeVisible();
-  await expect(page.getByText(/no third-party scripts, fonts or analytics/i)).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1 })).toHaveCount(1);
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Find the equivalent of an antimicrobial resistance gene in CARD, NCBI AMRFinderPlus and ResFinder.");
+});
+
+test("the one-sentence privacy line is visible before any query and the full statement is collapsed (#26)", async ({ page }) => {
+  await page.goto("./");
+  const line = page.getByTestId("privacy-line");
+  await expect(line).toBeVisible();
+  await expect(line).toContainText("Searches run in your browser; nothing is sent.");
+  const form = await page.locator("form").boundingBox();
+  expect((await line.boundingBox())!.y).toBeLessThan(form!.y); // above the search
   const section = page.getByTestId("how-to-read");
   await expect(section).not.toHaveAttribute("open", "");
-  await expect(section.getByText("anyone you give the link to can read it")).toBeHidden();
+  await expect(page.getByTestId("privacy-full")).toBeHidden();
+});
+
+test("the privacy link opens How to read this at the full statement, which is the previous wording; the address does not change (#26)", async ({ page }) => {
+  await page.goto("./");
+  await expect(page.getByLabel("Entry id")).toBeEnabled();
+  const before = page.url();
+  await page.getByRole("button", { name: "Full privacy statement" }).click();
+  await expect(page.getByTestId("how-to-read")).toHaveAttribute("open", "");
+  const full = page.getByTestId("privacy-full");
+  await expect(full).toBeVisible();
+  await expect(full).toBeInViewport();
+  await expect(page.getByTestId("howto-privacy")).toBeFocused();
+  // The sentence that used to sit above the results, word for word, without its pointer to this section.
+  expect(squash(await full.textContent())).toBe(
+    "Privacy: your searches never leave your browser, and this site loads no third-party scripts, fonts or analytics. The web host keeps ordinary access logs, and anyone you give a link to can read the search in it.",
+  );
+  await expect(page.getByText("anyone you give the link to can read it")).toBeVisible(); // the address paragraph is unchanged
+  expect(page.url()).toBe(before);
 });
 
 test("How to read this opens with Enter and with Space from the keyboard, and closes again", async ({ page }) => {
   await page.goto("./");
   await expect(page.getByLabel("Entry id")).toBeEnabled();
-  const summary = page.getByText("How to read this", { exact: true });
+  const summary = page.getByTestId("how-to-read").locator("summary"); // #26: the label gained an info icon, so the summary itself is the control
   await page.getByLabel("Entry id").focus();
   await page.keyboard.press("Tab"); // Search is disabled while the box is empty and the fixture has no examples
   await expect(summary).toBeFocused();
@@ -68,7 +95,7 @@ test("the short results line and the weak-evidence warning stay visible without 
 test("the top of the page does not scroll sideways at 390 px, collapsed or open", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 800 });
   await page.goto("./");
-  await page.getByText("How to read this", { exact: true }).click();
+  await page.getByTestId("how-to-read").locator("summary").click();
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
   expect(overflow).toBeLessThanOrEqual(0);
 });

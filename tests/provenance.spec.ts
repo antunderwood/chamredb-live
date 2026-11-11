@@ -29,7 +29,7 @@ const openData = async (page: import("@playwright/test").Page) => {
 
 test("privacy statement is visible before any query, with the one-line release footer", async ({ page }) => {
   await page.goto("./");
-  await expect(page.getByText(/searches never leave your browser/i)).toBeVisible();
+  await expect(page.getByText("Searches run in your browser; nothing is sent.")).toBeVisible(); // #26: the one-sentence line; the full statement is in How to read this
   await expect(page.getByRole("contentinfo")).toBeVisible();
 });
 
