@@ -2,7 +2,9 @@ import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { createRoot } from "react-dom/client";
 import "./app.css";
 import { Footer } from "./Footer";
+import { Examples } from "./Examples";
 import { Header } from "./Header";
+import { HowToRead } from "./HowToRead";
 import { formatHash, MAX_QUERY, parseHash, type HashState } from "./hash";
 import { EntryHeader, MatchPhenotype } from "./Phenotype";
 import { NetworkView } from "./NetworkView";
@@ -100,6 +102,13 @@ function App() {
     setLinkRel(undefined);
   };
 
+  const pickExample = (query: string) => {
+    setDb(undefined); // a database filter could hide some of the example's candidates
+    setText(query);
+    setSearched(query);
+    setLinkRel(undefined);
+  };
+
   return (
     <>
     <Header />
@@ -113,12 +122,6 @@ function App() {
           Demo data: a hand-written test graph, not a ChamRedB release. Do not use these results.
         </p>
       )}
-      <p className="mt-2 text-sm text-muted">
-        Privacy: all searches run in your browser. Your searches never leave your browser, and this site loads no
-        third-party scripts, fonts or analytics. The web host keeps ordinary access logs of page and data file requests.
-        The address of this page records your search after the # sign, so you can share it; your browser does not send
-        that part to this site, but anyone you give the link to can read it.
-      </p>
 
       <form onSubmit={submit} className="mt-6 flex flex-wrap gap-3 rounded-xl border border-border bg-surface p-4 shadow-card">
         <label>
@@ -162,6 +165,12 @@ function App() {
           Search
         </button>
       </form>
+      <p className="mt-2 text-sm text-muted">
+        Privacy: your searches never leave your browser, and this site loads no third-party scripts, fonts or
+        analytics. The web host keeps ordinary access logs, and anyone you give a link to can read the search in it.
+        More under How to read this, below.
+      </p>
+      <Examples index={index} onPick={pickExample} />
 
       {error && <p role="alert" className="mt-6 text-danger">{error}</p>}
       {index && searched !== null && found.length === 0 && (
@@ -233,10 +242,9 @@ function App() {
       )}
       {groups.length > 0 && (
         <p role="status" className="mt-4 text-sm text-muted">
-          {groups.length} {groups.length === 1 ? "database" : "databases"} with matches of identity at least {minPct}%
-          (identity: fraction of identical residues; coverage: alignment length / query length, so it can exceed
-          100%). Best is the highest identity in that database among the matches shown, by identity only: it ignores
-          coverage and the match type. RBH: reciprocal best hit; OWH: one-way hit (the reverse direction is not implied).
+          {groups.length} {groups.length === 1 ? "database" : "databases"} with matches at or above {minPct}% identity.
+          Best marks the highest identity shown in each database, by identity only (below {WEAK_PCT}% the label is
+          Highest identity shown). RBH: reciprocal best hit; OWH: one-way hit. More under How to read this.
         </p>
       )}
       {index && found.length === 1 && index.entries[found[0].id] && (
@@ -280,6 +288,7 @@ function App() {
       })}
       </div>
       )}
+      <HowToRead weakPct={WEAK_PCT} />
       <About />
     </main>
     <Footer release={index?.release} />
