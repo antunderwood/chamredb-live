@@ -148,7 +148,7 @@ function App() {
             list="suggestions"
             maxLength={MAX_QUERY}
             autoComplete="off"
-            placeholder="card:ARO:1000"
+            placeholder="card:ARO:3000230 or a gene name, for example tet(M)"
             className="mt-1 w-full rounded-md border border-control-border bg-surface px-3 py-2 disabled:opacity-50"
           />
           <datalist id="suggestions">
