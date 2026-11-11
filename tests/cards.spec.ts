@@ -129,3 +129,27 @@ test("cards stack in one column at phone width and sit side by side in a wide co
   await page.setViewportSize({ width: 900, height: 800 });
   expect(new Set(await xs()).size).toBe(3);
 });
+
+test("Match details: identity and coverage have a bar the length scale() gives, and the printed numbers are unchanged (#23)", async ({ page }) => {
+  await search(page, "card:ARO:1000");
+  const p = page.locator('[data-match="ncbi:WP_1.1"]');
+  // Hand-worked (tests/fixtures/README.md, Bar scale): identity 0.97 x 200 = 194, coverage 1.0 x 200 = 200.
+  await expect(p.locator('[data-bar="identity"]')).toHaveAttribute("data-length", "194");
+  await expect(p.locator('[data-bar="identity"] [data-fill]')).toHaveAttribute("width", "194");
+  await expect(p.locator('[data-bar="coverage"]')).toHaveAttribute("data-length", "200");
+  await expect(p.locator('[data-bar="coverage"] [data-overflow]')).toHaveCount(0);
+  await expect(p.locator('[data-field="identity"] dd')).toContainText("97.0%");
+  await expect(p.locator('[data-field="identity"] dd')).toContainText("Best"); // the label is unchanged
+  await expect(p.locator('[data-field="coverage"] dd')).toHaveText("100.0%");
+  await expect(p.locator('[data-field="identity"] [data-line]')).toHaveCount(0); // the 90% mark stays in the strip
+});
+
+test("Match details: coverage above 100% is a full bar with the overflow mark and the exact number (#23)", async ({ page }) => {
+  await search(page, "card:ARO:2000");
+  const p = page.locator('[data-match="ncbi:WP_4.1"]');
+  await expect(p.locator('[data-field="coverage"] dd')).toHaveText("105.0% (over 100%)");
+  await expect(p.locator('[data-bar="coverage"]')).toHaveAttribute("data-length", "200");
+  await expect(p.locator('[data-bar="coverage"] [data-overflow]')).toHaveCount(1);
+  await expect(p.locator('[data-bar="identity"] [data-overflow]')).toHaveCount(0);
+  await expect(p.locator('[data-bar="identity"]')).toHaveAttribute("data-length", "184"); // 0.92 x 200 (README: WP_4.1 at 92.0%)
+});

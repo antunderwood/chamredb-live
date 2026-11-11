@@ -1,5 +1,7 @@
 import type { HTMLAttributes } from "react";
+import { Bar } from "./Bar";
 import { Card, Chip, ChipRow, Field, MetadataCard, PhenotypeCard } from "./Cards";
+import { scale } from "./bars";
 import { cardDomId, isBelow, matchDetails } from "./cardModel";
 import { showInNetwork } from "./NetworkView";
 import type { Match } from "./types";
@@ -34,7 +36,10 @@ export function MatchPanel({ match, native, weak, weakBelow, pair }: { match: Ma
         <Card level={4} title="Match details" data-field="match-details">
           <dl>
             <Field label="Identity" field="identity">
-              {d.identity}
+              <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                <span className="w-32 shrink-0"><Bar value={match.identity} kind="identity" /></span>
+                <span className="tabular-nums" data-value="identity">{d.identity}</span>
+              </span>
               {d.badge && (
                 <strong
                   className={
@@ -52,7 +57,13 @@ export function MatchPanel({ match, native, weak, weakBelow, pair }: { match: Ma
                 </span>
               )}
             </Field>
-            <Field label="Coverage" field="coverage">{d.coverage}</Field>
+            <Field label="Coverage" field="coverage">
+              <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                <span className="w-32 shrink-0"><Bar value={match.coverage} kind="coverage" /></span>
+                <span className="tabular-nums" data-value="coverage">{d.coverage}</span>
+                {scale(match.coverage).overflow && <span className="text-xs text-muted" data-overflow-note>{" "}(over 100%)</span>}
+              </span>
+            </Field>
             <Field label="Type" field="type"><span data-type={d.type}>{d.typeLabel}</span></Field>
           </dl>
         </Card>
