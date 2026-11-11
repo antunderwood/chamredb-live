@@ -62,8 +62,12 @@ export function showInNetwork(id: string) {
   const section = node.closest("details");
   if (section) section.open = true;
   node.scrollIntoView({ behavior: reduced() ? "auto" : "smooth", block: "center", inline: "center" });
+  asked = true; // an explicit request from a card: show the tooltip even when the pointer made it
   node.focus({ preventScroll: true });
+  asked = false;
 }
+// A pointer click focuses the chip, but that must not pin the tooltip: only keyboard focus (or showInNetwork) drives it.
+let asked = false;
 
 function ariaLabel(n: NetNode, via?: NetNode): string {
   const head = `${n.name}, ${n.database}, ${n.id}`;
@@ -402,7 +406,7 @@ function Chip({
       }}
       onMouseEnter={() => onHover(true)}
       onMouseLeave={() => onHover(false)}
-      onFocus={() => onFocus(true)}
+      onFocus={(e) => (asked || e.currentTarget.matches(":focus-visible")) && onFocus(true)}
       onBlur={() => onFocus(false)}
     >
       <path className="net-shape" d={chipPath(slot.rect, shape)} />
