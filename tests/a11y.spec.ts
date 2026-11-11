@@ -174,7 +174,7 @@ test("About: reachable by keyboard, content kept, links present", async ({ page 
   const summary = page.getByText("About chAMReDB");
   await expect(page.getByText("Welcome to the chAMReDB website.")).toBeHidden(); // collapsed
   await page.getByLabel("Entry id").focus();
-  await press(page, "Tab"); // Search is disabled while the box is empty, so the next stop is the summary
+  await press(page, "Tab", 2); // Search is disabled while the box is empty: the stops are the How to read this summary, then this one
   await expect(summary).toBeFocused();
   await press(page, "Enter");
   await expect(page.getByText("Welcome to the chAMReDB website.")).toBeVisible();

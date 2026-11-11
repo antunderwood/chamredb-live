@@ -108,3 +108,12 @@ button[type="submit"]:not(:disabled):active {
     transition: none;
   }
 }
+
+/* Example buttons: a light tint of the accent token over the surface (the 2021 light-blue buttons, no new colour). */
+.example-button {
+  background: color-mix(in srgb, var(--accent) 10%, var(--surface));
+  cursor: pointer;
+}
+.example-button:hover {
+  border-color: var(--fg);
+}
