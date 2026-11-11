@@ -19,6 +19,12 @@ async function search(page: Page, id: string) {
 }
 const net = (page: Page) => page.getByTestId("network");
 const node = (page: Page, id: string) => net(page).locator(`g[data-node="${id}"]`);
+// Keyboard focus as a user would make it: a key press first, so the browser treats the focus as keyboard focus (:focus-visible).
+// A pointer click or a bare programmatic focus deliberately does not drive the tooltip.
+const keyFocus = async (page: Page, l: Locator) => {
+  await page.keyboard.press("Shift");
+  await l.focus();
+};
 const text = (l: Locator) => l.locator("text").allTextContents().then((t) => t.join(" | "));
 const hex = (rgb: string) => "#" + (rgb.match(/\d+/g) ?? []).slice(0, 3).map((n) => Number(n).toString(16).padStart(2, "0")).join("");
 const css = (l: Locator, prop: string) => l.first().evaluate((el, p) => getComputedStyle(el).getPropertyValue(p), prop);
@@ -277,7 +283,7 @@ for (const how of ["hover", "focus"] as const) {
     await search(page, "card:ARO:1000");
     for (const id of ["ncbi:WP_4.1", "ncbi:WP_1.1", "card:ARO:1000", "resfinder:blaX"]) {
       if (how === "hover") await node(page, id).hover();
-      else await node(page, id).focus();
+      else await keyFocus(page, node(page, id));
       const tip = page.getByRole("tooltip");
       await expect(tip).toBeVisible();
       const n = buildNetwork(fixture, "card:ARO:1000", 0.9).nodes.find((x) => x.id === id)!;
@@ -323,14 +329,14 @@ test("highlight sync both ways: a node lights its card and edges; a card lights 
   await expect(net(page).locator('[data-edge="card:ARO:1000>resfinder:blaX"]')).toHaveClass(/is-hl/);
   await page.mouse.move(0, 0);
   // keyboard focus lights the card too
-  await node(page, "ncbi:WP_1.1").focus();
+  await keyFocus(page, node(page, "ncbi:WP_1.1"));
   await expect(page.locator('[data-match="ncbi:WP_1.1"]')).toHaveAttribute("data-hl", "true");
 });
 
 test("pairing by keyboard: L on a node moves focus to its card; Show in network on a card moves focus to its node", async ({ page }) => {
   await page.goto("./");
   await search(page, "card:ARO:1000");
-  await node(page, "resfinder:blaX").focus();
+  await keyFocus(page, node(page, "resfinder:blaX"));
   await page.keyboard.press("l");
   await expect(page.locator('[data-match="resfinder:blaX"]')).toBeFocused();
   await page.locator('[data-match="ncbi:WP_4.1"] [data-action="show-in-network"]').click();
@@ -411,7 +417,7 @@ test("expansion is not in the address and resets when the query changes; clickin
 test("keyboard only: the expand pill is its own Tab stop; Enter and Space expand and collapse; focus stays on it", async ({ page }) => {
   await page.goto("./");
   await search(page, "card:ARO:1000");
-  await node(page, "ncbi:WP_4.1").focus();
+  await keyFocus(page, node(page, "ncbi:WP_4.1"));
   await page.keyboard.press("Tab");
   const pill = page.locator('[data-expand="ncbi:WP_4.1"]');
   await expect(pill).toBeFocused();
@@ -440,4 +446,14 @@ test("a match whose only match is the query has no expand control; the cap messa
   await search(page, "card:ARO:1000");
   await page.getByLabel("Minimum identity").fill("98");
   await expect(page.locator("[data-expand]")).toHaveCount(0);
+});
+
+test("a click does not pin the tooltip: it goes when the pointer leaves, and it is not driven by the click's focus", async ({ page }) => {
+  await page.goto("./");
+  await search(page, "card:ARO:1000");
+  await node(page, "ncbi:WP_1.1").click();
+  await expect(page.locator("[data-query]")).toHaveAttribute("data-query", "ncbi:WP_1.1");
+  await page.mouse.move(2, 2); // well away from the figure
+  await expect(page.getByRole("tooltip")).toHaveCount(0);
+  await expect(page.locator('[data-hl="true"]')).toHaveCount(0);
 });
