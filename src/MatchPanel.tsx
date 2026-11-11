@@ -39,17 +39,10 @@ export function MatchPanel({ match, native, weak, weakBelow, pair }: { match: Ma
               <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
                 <span className="w-32 shrink-0"><Bar value={match.identity} kind="identity" /></span>
                 <span className="tabular-nums" data-value="identity">{d.identity}</span>
+                {d.badge === "best" && <strong className="rounded bg-accent px-1.5 py-0.5 text-xs text-accent-fg">Best</strong>}
               </span>
-              {d.badge && (
-                <strong
-                  className={
-                    d.badge === "highest"
-                      ? "mt-1 block w-fit rounded border border-border px-1.5 py-0.5 text-xs text-muted"
-                      : "ml-2 rounded bg-accent px-1.5 py-0.5 text-xs text-accent-fg"
-                  }
-                >
-                  {d.badge === "highest" ? "Highest identity shown" : "Best"}
-                </strong>
+              {d.badge === "highest" && (
+                <strong className="mt-1 block w-fit rounded border border-border px-1.5 py-0.5 text-xs text-muted">Highest identity shown</strong>
               )}
               {!weak && isBelow(match.identity, weakBelow) && (
                 <span className="mt-1 block text-sm text-muted" data-field="below-line">

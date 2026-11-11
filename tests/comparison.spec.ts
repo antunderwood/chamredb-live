@@ -147,3 +147,26 @@ test("every bar in the strip is drawn at the same width, so lengths compare acro
     expect(new Set(widths).size, `${q}: ${widths.join(", ")}`).toBe(1);
   }
 });
+
+// Polish: the count has its own line under the heading in every row, whatever the width and whether the label wraps; tied top
+// matches are separated by a rule; Best sits beside the identity value in a match card rather than on a line of its own.
+for (const [w, h] of [[1300, 900], [390, 844]] as const) {
+  test(`${w} px: every row's count sits on its own line under the heading, left aligned, and tied tops are separated`, async ({ page }) => {
+    await page.setViewportSize({ width: w, height: h });
+    await open(page, "card:ARO:2000", 80); // ncbi Best, resfinder Highest identity shown (the long label)
+    for (const db of ["ncbi", "resfinder"]) {
+      const r = row(page, db);
+      const [head, count] = [(await r.locator("h3").boundingBox())!, (await r.locator("[data-count]").boundingBox())!];
+      expect(count.y, `${db}: below the heading`).toBeGreaterThanOrEqual(head.y + head.height - 1);
+      expect(Math.abs(count.x - head.x), `${db}: left aligned with the heading`).toBeLessThanOrEqual(1);
+    }
+    // the only top match of the weak row (it follows the weak note) has no rule above it
+    expect(await row(page, "resfinder").locator("[data-top]").first().evaluate((el) => getComputedStyle(el).borderTopWidth)).toBe("0px");
+    await open(page, "card:ARO:1000");
+    const ties =row(page, "ncbi").locator("[data-top]");
+    expect(await ties.nth(1).evaluate((el) => getComputedStyle(el).borderTopWidth)).toBe("1px");
+    expect(await ties.nth(0).evaluate((el) => getComputedStyle(el).borderTopWidth)).toBe("0px");
+    const [bar, badge] = [(await page.locator('[data-match="ncbi:WP_1.1"] [data-bar="identity"]').boundingBox())!, (await page.locator('[data-match="ncbi:WP_1.1"] [data-field="identity"] strong').boundingBox())!];
+    expect(Math.abs(badge.y + badge.height / 2 - (bar.y + bar.height / 2)), "Best on the identity bar's line").toBeLessThan(14);
+  });
+}
