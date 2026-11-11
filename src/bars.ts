@@ -1,4 +1,4 @@
-// The only value-to-pixel mapping for bars (ADR 0006): every bar length, the minimum identity line and the weak line
+// The only value-to-pixel mapping for bars (ADR 0006): every bar length and the weak-evidence mark
 // in the comparison strip go through `scale`, so there is no second mapping to drift. Values are fractions: identity
 // 0 to 1, coverage may exceed 1. A coverage above 1 is drawn full length with `overflow` set; the printed number
 // beside the bar stays exact. Overflow is judged at the displayed precision (3 decimals of the fraction, one decimal

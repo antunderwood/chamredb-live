@@ -75,17 +75,16 @@ for (const scheme of ["light", "dark"] as const) {
     expect(await css(page, '[data-field="match-phenotype"] [data-phenotype-list] p', "color")).toBe(rgb(t["--label-fg"]));
     expect(await css(page, '[data-field="match-details"] dt', "background-color")).toBe(rgb(t["--label"]));
     expect(await css(page, 'section[aria-label^="Matches in"] p.text-danger', "color")).toBe(rgb(t["--danger"]));
-    // The comparison strip (#20): bar fill, track, weak line and minimum identity line take their tokens.
+    // The comparison strip (#20): bar fill, track and the labelled weak mark take their tokens.
     const strip = '[data-testid="comparison"] li[data-db="resfinder"]';
     expect(await css(page, `${strip} [data-weak-note]`, "color")).toBe(rgb(t["--danger"]));
     expect(await css(page, `${strip} [data-bar="identity"] [data-fill]`, "fill")).toBe(rgb(t["--label"]));
     expect(await css(page, `${strip} [data-bar="identity"] [data-track]`, "fill")).toBe(rgb(t["--panel"]));
     expect(await css(page, `${strip} [data-bar="identity"] [data-track]`, "stroke")).toBe(rgb(t["--control-border"])); // 3:1 on --surface
     // Each line sits on a --surface halo, so it is read against --surface (pairs --fg and --danger on --surface).
-    for (const [line, token] of [["weak", "--danger"], ["min", "--fg"]]) {
-      expect(await css(page, `${strip} [data-bar="identity"] [data-line="${line}"] [data-stroke]`, "stroke")).toBe(rgb(t[token]));
-      expect(await css(page, `${strip} [data-bar="identity"] [data-line="${line}"] [data-halo]`, "stroke")).toBe(rgb(t["--surface"]));
-    }
+    expect(await css(page, `${strip} [data-bar="identity"] [data-line="weak"] [data-stroke]`, "stroke")).toBe(rgb(t["--danger"]));
+    expect(await css(page, `${strip} [data-bar="identity"] [data-line="weak"] [data-halo]`, "stroke")).toBe(rgb(t["--surface"]));
+    expect(await css(page, `${strip} [data-mark-label]`, "color")).toBe(rgb(t["--danger"])); // on --surface, 4.5:1
     // Not found: danger text on the page background.
     await search(page, "nope");
     expect(await css(page, '[role="alert"]', "color")).toBe(rgb(t["--danger"]));

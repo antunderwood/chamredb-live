@@ -17,7 +17,7 @@ After the #4 redesign (ADR 0005) the content is complete but the page is a singl
 
 ## Decision
 
-- Under the search, one comparison row per other source database: best match (or "Highest identity shown" when weak), identity and coverage bars with the minimum identity and 90% weak lines, RBH or OWH with text, and the match count. A database with no match at or above the minimum identity gets an explicit "No match at or above N% identity" row with no bar.
+- Under the search, one comparison row per other source database: best match (or "Highest identity shown" when weak), identity and coverage bars, with a labelled 90% weak-evidence mark on the identity bar (the minimum identity is a filter and is not drawn on the bars), RBH or OWH with text, and the match count. A database with no match at or above the minimum identity gets an explicit "No match at or above N% identity" row with no bar.
 - One pure function maps values to bar lengths; coverage above 100% is clamped for length only and marked, with the exact number printed.
 - From 1024 px: a sticky left column (comparison and network) and the cards on the right; below that, one column in the order comparison, network, cards.
 - Phenotypes are shown side by side verbatim; nothing is harmonised across databases.

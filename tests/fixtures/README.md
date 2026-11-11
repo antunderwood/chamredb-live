@@ -88,6 +88,6 @@ One row per source database other than the query's, in the order card, ncbi, res
 | 1.0 | 200 | no |
 | 1.3 (a coverage) | 200 | yes |
 
-So in the strip the weak line is drawn at x = 180, and the minimum identity line at x = 2 x the slider percent (180 at 90%, 160 at 80%).
+So in the strip the dashed weak-evidence mark, labelled "90%", is drawn at x = 180 on every identity bar. The minimum identity is a filter and is not drawn on the bars (owner decision, 2026-11-11). tetM at 80% has a 176 px fill, ending just short of the mark.
 
 Sign-off: worked by the implementer from the signed match table above; not yet signed off by the owner (oracle unsigned until then).

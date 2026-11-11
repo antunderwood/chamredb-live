@@ -63,20 +63,33 @@ test("resfinder:orphan: a no-match row for each other database", async ({ page }
   await expect(page.getByTestId("comparison").locator("li[data-db]")).toHaveCount(2);
 });
 
-test("bar pixels: identity length, the weak line at 180 and the minimum identity line at 2 x the slider percent", async ({ page }) => {
+test("bar pixels: identity length and the labelled weak mark at 180; the minimum identity is not drawn on the bars", async ({ page }) => {
   await open(page, "card:ARO:1000");
   const bar = top(row(page, "resfinder"), "resfinder:blaX").locator('[data-bar="identity"]');
   await expect(bar).toHaveAttribute("data-length", "200"); // identity 1.0
   await expect(bar.locator('[data-line="weak"]')).toHaveAttribute("data-x", "180");
   await expect(bar.locator('[data-line="weak"] [data-stroke]')).toHaveAttribute("x1", "180");
-  await expect(bar.locator('[data-line="min"]')).toHaveAttribute("data-x", "180"); // 90%
-  await expect(bar.locator('[data-line="min"] [data-stroke]')).toHaveAttribute("x1", "180");
+  const label = top(row(page, "resfinder"), "resfinder:blaX").locator("[data-mark-label]");
+  await expect(label).toHaveText("90%");
+  await expect(label).toHaveAttribute("data-x", "180");
+  // The label is centred over the line: its centre and the line's x agree on screen to within a pixel.
+  const [lc, sx] = await Promise.all([
+    label.evaluate((e) => { const r = e.getBoundingClientRect(); return r.left + r.width / 2; }),
+    bar.locator('[data-line="weak"] [data-stroke]').evaluate((e) => { const r = e.getBoundingClientRect(); return r.left + r.width / 2; }),
+  ]);
+  expect(Math.abs(lc - sx)).toBeLessThan(1);
   await expect(bar.locator("[data-fill]")).toHaveAttribute("width", "200");
   await open(page, "card:ARO:2000", 80);
   const weakBar = top(row(page, "resfinder"), "resfinder:tetM").locator('[data-bar="identity"]');
-  await expect(weakBar.locator('[data-line="min"] [data-stroke]')).toHaveAttribute("x1", "160"); // 80%
   await expect(weakBar.locator('[data-line="weak"] [data-stroke]')).toHaveAttribute("x1", "180");
   await expect(weakBar.locator("[data-fill]")).toHaveAttribute("width", "176"); // 0.88 x 200
+  // One mark per identity bar, none on coverage bars, and no minimum identity line anywhere in the strip.
+  const strip = page.getByTestId("comparison");
+  await expect(strip.locator('[data-line="min"]')).toHaveCount(0);
+  await expect(strip.locator('[data-bar="coverage"] [data-line]')).toHaveCount(0);
+  await expect(strip.locator('[data-bar="identity"] [data-line="weak"]')).toHaveCount(await strip.locator('[data-bar="identity"]').count());
+  await expect(page.getByTestId("comparison-key")).toContainText("does not hide anything");
+  await expect(page.getByTestId("comparison-key")).toContainText("minimum identity (80%)");
 });
 
 test("moving the slider updates the strip: a match hidden by the minimum becomes a no-match row", async ({ page }) => {

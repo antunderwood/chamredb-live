@@ -4,51 +4,61 @@ import { comparisonRows } from "./comparison";
 import type { Database, Match, MatchGroup, MatchType } from "./types";
 
 // At a glance (ADR 0006): one row per other source database, from the same groups as the cards. Every value is printed
-// as text beside its bar; the bars, lines and glyphs only repeat it. All lengths come from scale() in bars.ts, and the
+// as text beside its bar; the bars, the 90% mark and glyphs only repeat it. All lengths come from scale() in bars.ts, and the
 // printed values and labels come from matchDetails(), the same formatter as the cards.
 const BAR_H = 12;
 const LINE_OVERHANG = 3; // the two vertical lines stick out this far above and below the bar
 const HALO = 5; // each line is drawn on a --surface halo this wide, so it reads against the bar fill and the track
 const px = (n: number) => Math.round(n * 100) / 100; // attribute values without float noise (0.931 x 200 = 186.2)
 
-function Line({ x, kind, h }: { x: number; kind: "min" | "weak"; h: number }) {
+// The weak-evidence mark (ADR 0006, decision 2026-11-11): one dashed line at 90% on the identity bar, labelled above it
+// in HTML text so the label stays readable however narrow the bar is drawn. It is an interpretation, not a filter; the
+// minimum identity slider decides what is shown, so the minimum identity is not drawn on the bars.
+const VIEW_X0 = -3; // the viewBox starts left of 0 so the track outline and line halos are not clipped
+const VIEW_W = BAR_WIDTH + 14; // room for the overflow chevron
+function WeakLine({ x, h }: { x: number; h: number }) {
   return (
-    <g data-line={kind} data-x={px(x)}>
+    <g data-line="weak" data-x={px(x)}>
       <line x1={px(x)} x2={px(x)} y1={0} y2={h} style={{ stroke: "var(--surface)", strokeWidth: HALO }} data-halo />
-      <line
-        x1={px(x)}
-        x2={px(x)}
-        y1={0}
-        y2={h}
-        style={kind === "weak" ? { stroke: "var(--danger)", strokeWidth: 2, strokeDasharray: "3 2" } : { stroke: "var(--fg)", strokeWidth: 2 }}
-        data-stroke
-      />
+      <line x1={px(x)} x2={px(x)} y1={0} y2={h} style={{ stroke: "var(--danger)", strokeWidth: 2, strokeDasharray: "3 2" }} data-stroke />
     </g>
   );
 }
 
-function Bar({ value, minIdentity, weakBelow, kind }: { value: number; minIdentity?: number; weakBelow?: number; kind: "identity" | "coverage" }) {
+function Bar({ value, weakBelow, kind }: { value: number; weakBelow?: number; kind: "identity" | "coverage" }) {
   const s = scale(value);
   const h = BAR_H + 2 * LINE_OVERHANG;
+  const weakX = weakBelow !== undefined ? scale(weakBelow).length : undefined;
   return (
-    <svg
-      viewBox={`-3 0 ${BAR_WIDTH + 14} ${h}`}
-      className="h-[18px] w-full max-w-[214px]"
-      aria-hidden="true"
-      focusable="false"
-      data-bar={kind}
-      data-length={px(s.length)}
-    >
-      <rect x={0} y={LINE_OVERHANG} width={BAR_WIDTH} height={BAR_H} rx={2} style={{ fill: "var(--panel)", stroke: "var(--control-border)" }} data-track />
-      <rect x={0} y={LINE_OVERHANG} width={px(s.length)} height={BAR_H} rx={2} style={{ fill: "var(--label)" }} data-fill />
-      {s.overflow && (
-        // coverage above 100%: a chevron past the end of the full bar
-        <path d={`M${BAR_WIDTH + 3},${LINE_OVERHANG} L${BAR_WIDTH + 9},${h / 2} L${BAR_WIDTH + 3},${h - LINE_OVERHANG}`} style={{ fill: "none", stroke: "var(--fg)", strokeWidth: 2 }} data-overflow />
+    <div className={`relative w-full max-w-[214px] ${weakX !== undefined ? "pt-4" : ""}`}>
+      {weakX !== undefined && (
+        <span
+          className="absolute top-0 -translate-x-1/2 text-xs leading-none font-semibold text-danger"
+          style={{ left: `${px(((weakX - VIEW_X0) / VIEW_W) * 100)}%` }}
+          aria-hidden="true"
+          data-mark-label
+          data-x={px(weakX)}
+        >
+          {Math.round(weakBelow! * 100)}%
+        </span>
       )}
-      {/* The minimum identity line first, the dashed weak line on top, so both stay visible when they coincide. */}
-      {minIdentity !== undefined && <Line x={scale(minIdentity).length} kind="min" h={h} />}
-      {weakBelow !== undefined && <Line x={scale(weakBelow).length} kind="weak" h={h} />}
-    </svg>
+      <svg
+        viewBox={`${VIEW_X0} 0 ${VIEW_W} ${h}`}
+        className="block h-[18px] w-full"
+        aria-hidden="true"
+        focusable="false"
+        data-bar={kind}
+        data-length={px(s.length)}
+      >
+        <rect x={0} y={LINE_OVERHANG} width={BAR_WIDTH} height={BAR_H} rx={2} style={{ fill: "var(--panel)", stroke: "var(--control-border)" }} data-track />
+        <rect x={0} y={LINE_OVERHANG} width={px(s.length)} height={BAR_H} rx={2} style={{ fill: "var(--label)" }} data-fill />
+        {s.overflow && (
+          // coverage above 100%: a chevron past the end of the full bar
+          <path d={`M${BAR_WIDTH + 3},${LINE_OVERHANG} L${BAR_WIDTH + 9},${h / 2} L${BAR_WIDTH + 3},${h - LINE_OVERHANG}`} style={{ fill: "none", stroke: "var(--fg)", strokeWidth: 2 }} data-overflow />
+        )}
+        {weakX !== undefined && <WeakLine x={weakX} h={h} />}
+      </svg>
+    </div>
   );
 }
 
@@ -70,7 +80,7 @@ const goToCard = (id: string) => {
   card.focus({ preventScroll: true });
 };
 
-function TopMatch({ m, weak, database, minIdentity, weakBelow }: { m: Match; weak: boolean; database: Database; minIdentity: number; weakBelow: number }) {
+function TopMatch({ m, weak, database, weakBelow }: { m: Match; weak: boolean; database: Database; weakBelow: number }) {
   const d = matchDetails(m, weak);
   return (
     <div className="mt-3 first:mt-0" data-top={m.entry.id}>
@@ -85,7 +95,7 @@ function TopMatch({ m, weak, database, minIdentity, weakBelow }: { m: Match; wea
       <dl className="mt-1 grid grid-cols-[5.5rem_minmax(0,1fr)_5.5rem] items-center gap-x-2 gap-y-1 text-sm">
         <dt className="text-muted">Identity</dt>
         <dd className="contents">
-          <Bar value={m.identity} minIdentity={minIdentity} weakBelow={weakBelow} kind="identity" />
+          <Bar value={m.identity} weakBelow={weakBelow} kind="identity" />
           <span className="tabular-nums" data-value="identity">{d.identity}</span>
         </dd>
         <dt className="text-muted">Coverage</dt>
@@ -128,15 +138,12 @@ export function ComparisonStrip({
       <div className="mt-1 space-y-1 text-sm text-muted" data-testid="comparison-key">
         <p>Matches from this entry to each other database. Best: highest identity only; coverage and RBH or OWH are not considered.</p>
         <p className="flex flex-wrap items-center gap-x-4 gap-y-1">
-          <span className="inline-flex items-center gap-1.5">
-            <svg viewBox="0 0 4 14" width="4" height="14" aria-hidden="true" focusable="false"><line x1={2} x2={2} y1={0} y2={14} style={{ stroke: "var(--fg)", strokeWidth: 2 }} /></svg>
-            Minimum identity ({minPct}%)
-          </span>
-          <span className="inline-flex items-center gap-1.5">
+          <span className="inline-flex items-center gap-1.5" data-key="weak">
             <svg viewBox="0 0 4 14" width="4" height="14" aria-hidden="true" focusable="false"><line x1={2} x2={2} y1={0} y2={14} style={{ stroke: "var(--danger)", strokeWidth: 2, strokeDasharray: "3 2" }} /></svg>
-            Weak evidence below {weakPct}% (a working default, not a validated cut-off)
+            {weakPct}% mark: identity below it is weak evidence (a working default, not a validated cut-off). It does not hide anything.
           </span>
         </p>
+        <p data-key="min">Only matches at or above the minimum identity ({minPct}%) are shown.</p>
       </div>
       <ul className="mt-3 grid gap-3 md:grid-cols-2">
         {rows.map((r) => (
@@ -170,7 +177,7 @@ export function ComparisonStrip({
                   <p className="mb-2 text-sm text-danger" data-weak-note>Weak evidence: every match here is below {weakPct}% identity.</p>
                 )}
                 {r.top.map((m) => (
-                  <TopMatch key={m.entry.id} m={m} weak={r.label === "highest"} database={r.database} minIdentity={minIdentity} weakBelow={weakBelow} />
+                  <TopMatch key={m.entry.id} m={m} weak={r.label === "highest"} database={r.database} weakBelow={weakBelow} />
                 ))}
               </div>
             )}
