@@ -113,7 +113,7 @@ test("once a result is shown the example cards become one row of small chips, an
   expect((await row.boundingBox())!.height).toBeLessThan(40); // one line
   for (const ex of EXAMPLES.filter((e) => e.ids.length === 1)) {
     await page.getByRole("button", { name: `Example: ${ex.query}` }).click();
-    await expect(page.getByRole("region", { name: "Query entry" })).toContainText(ex.ids[0]);
+    await expect(page.getByRole("region", { name: "Query entry" })).toHaveAttribute("data-query", ex.ids[0]); // the queried entry (the heading no longer repeats an id that is only the name)
   }
 });
 
