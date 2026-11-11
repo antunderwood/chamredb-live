@@ -71,7 +71,7 @@ export function Examples({ index, onPick, compact = false }: { index: Index | nu
               aria-describedby={`ex-note-${i}`}
               className="example-button w-full rounded-lg border border-control-border px-2.5 py-2 text-left"
             >
-              <span className="block break-words text-sm font-medium">{ex.query}</span>
+              <span className="block break-words text-xs font-medium sm:text-sm lg:text-xs min-[1500px]:text-sm">{ex.query}</span>
               <span id={`ex-note-${i}`} className="mt-1 block text-xs text-muted">{ex.note}</span>
             </button>
           </li>

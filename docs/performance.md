@@ -221,3 +221,19 @@ Measured with `npm run build` then `node scripts/measure-startup.mjs --runs 5 --
 | cpu6-gzip | 603 / 623 / 655 | 172 / 183 / 192 | 131 | ready PASS, block PASS |
 
 The budget holds (ready under 2 s, no task over 200 ms). The longest 6x task is still the startup JSON parse; the picture is built after a search and the search-to-paint time at 6x was 61 ms. Honest caveats: the 6x longest task (192 ms at the maximum) sits 8 ms under the 200 ms line, as before; the picture's own cost (a model build, a layout and up to 25 chips) was not profiled separately, and the bundle grew (JS 264.8 kB, 83.5 kB gzip, CSS 22.5 kB). Earlier figures in this file were taken on a different day and load, so a small difference from them is not attributed to this change.
+
+## Check after the layout tickets (#11, 2026-11-11)
+
+Quick check (`npm run measure`, default and CPU 4x, gzip, 3 runs) on the release build, before the layout work (main at
+the end of #25) and after it (#21 to #26), on the same machine (Linux, Intel Xeon 2.10 GHz x4, Chromium 153, which is
+slower than the M2 above):
+
+| Build | Default: ready (median) | Default: longest task | CPU 4x: ready (median) | CPU 4x: longest task (median) | CPU 4x: longest task after ready |
+|---|---|---|---|---|---|
+| Before #21 | 299 ms | 90 ms (PASS) | 920 ms | 302 ms | 252 ms |
+| After #26 | 316 ms | 80 ms (PASS) | 1081 ms | 317 ms | 294 ms |
+
+Nothing crosses the 2 s line, and the default profile is clean before and after. At CPU 4x the longest task is over 200
+ms both before and after on this slower machine (the M2 above measured 112 ms): this is not new, so it is not a
+regression from the layout work. The after numbers are a little higher (3 runs each, so differences of this size are
+close to noise). Speed is not mission critical (owner decision, 2026-11-11); this is recorded, not a gate.
