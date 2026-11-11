@@ -4,8 +4,11 @@ Spec trigger (issue #1, Performance): index parsed and search ready in under 2 s
 after one warm-up, in the browser); no main-thread block over 200 ms; Rust/WASM only if this is missed. Timing is a
 measurement, not a test: nothing here runs in `npm test` or `npm run e2e`.
 
-Reproduce: `npm run build && npm run measure` (roughly 15 to 20 minutes, mostly the raw 9 MB transfer at 1.6 Mbit/s;
-`--profiles default-gzip,cpu6-gzip --runs 5` for a quick look, `--list` for profile names, `--json out.json` for every run).
+Reproduce: `npm run build && npm run measure` runs a quick check (default and CPU 4x, gzip, 3 runs each, about a
+minute). The app is not speed critical (owner decision, 2026-11-11), so this is a look for regressions after a change,
+not a gate on every ticket. `npm run measure -- --full` repeats the whole #12 measurement below (every profile, 5 runs,
+15 to 20 minutes, mostly the raw 9 MB transfer at 1.6 Mbit/s); `--profiles a,b` and `--runs N` pick a subset, `--list`
+names the profiles, `--json out.json` keeps every run.
 
 ## Verdict
 
