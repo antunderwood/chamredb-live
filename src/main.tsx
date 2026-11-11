@@ -4,7 +4,7 @@ import "./app.css";
 import { Footer } from "./Footer";
 import { Examples } from "./Examples";
 import { Header } from "./Header";
-import { HowToRead } from "./HowToRead";
+import { HowToRead, type HowToReadHandle } from "./HowToRead";
 import { formatHash, MAX_QUERY, parseHash, type HashState } from "./hash";
 import { ResultPanels } from "./ResultPanels";
 import { AboutPanel, type AboutPanelHandle } from "./AboutPanel";
@@ -28,6 +28,8 @@ function syncUrl(state: HashState) {
 
 function App() {
   const panel = useRef<AboutPanelHandle>(null);
+  const howTo = useRef<HowToReadHandle>(null);
+  const showPrivacy = () => howTo.current?.showPrivacy();
   const openPanel = (section: "about" | "data") => panel.current?.open(section);
   const [index, setIndex] = useState<Index | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -139,12 +141,16 @@ function App() {
   return (
     <>
     <Header onAbout={() => openPanel("about")} />
-    <main className="mx-auto max-w-shell px-4 py-8">
+    <main className="mx-auto max-w-shell px-4 py-3 sm:py-6 wide:py-4">
       {/* The page head and the controls keep a reading width; the results below use the whole shell (#25). */}
-      <div className="max-w-3xl">
-        <h1 className="text-2xl font-semibold tracking-tight">chAMReDB</h1>
-        <p className="mt-2 text-muted">
+      <div className="max-w-3xl wide:max-w-none">
+        {/* The one h1 is the tagline: the wordmark in the header carries the brand (#26). */}
+        <h1 className="text-base font-semibold tracking-tight sm:text-2xl">
           Find the equivalent of an antimicrobial resistance gene in CARD, NCBI AMRFinderPlus and ResFinder.
+        </h1>
+        <p className="mt-2 text-xs text-muted sm:text-sm" data-testid="privacy-line">
+          Searches run in your browser; nothing is sent.{" "}
+          <button type="button" className="underline underline-offset-2" onClick={showPrivacy}>Full privacy statement</button>
         </p>
         {index && !index.release && (
           <p role="note" className="mt-4 rounded-lg border border-border border-l-4 border-l-accent bg-surface px-3 py-2 text-sm">
@@ -152,8 +158,12 @@ function App() {
           </p>
         )}
 
-        <form onSubmit={submit} className="mt-6 flex flex-wrap gap-3 rounded-xl border border-border bg-surface p-4 shadow-card">
-          <label>
+        {/* From 1152 px the controls sit in two columns that line up with the results grid below: the search on the left,
+            the messages, the slider and the short results line on the right, so the results start higher (#26). */}
+        <div className="wide:grid wide:grid-cols-[minmax(0,43rem)_minmax(24rem,1fr)] wide:items-start wide:gap-x-6">
+        <div className="min-w-0">
+        <form onSubmit={submit} className="mt-4 grid grid-cols-[minmax(0,1fr)_auto] gap-x-3 gap-y-2 rounded-xl border border-border bg-surface p-3 shadow-card sm:mt-6 sm:flex sm:flex-wrap sm:gap-3 sm:p-4">
+          <label className="col-span-2 sm:col-auto">
             <span className="block text-sm font-medium">Search in database</span>
             <select
               value={db ?? ""}
@@ -167,7 +177,7 @@ function App() {
               ))}
             </select>
           </label>
-          <label className="min-w-48 flex-1">
+          <label className="min-w-0 sm:min-w-48 sm:flex-1">
             <span className="block text-sm font-medium">Entry id or name</span>
             <input
               value={text}
@@ -194,12 +204,10 @@ function App() {
             Search
           </button>
         </form>
-        <p className="mt-2 text-sm text-muted">
-          Privacy: your searches never leave your browser, and this site loads no third-party scripts, fonts or
-          analytics. The web host keeps ordinary access logs, and anyone you give a link to can read the search in it.
-          More under How to read this, below.
-        </p>
-        <Examples index={index} onPick={pickExample} />
+        <Examples index={index} onPick={pickExample} compact={found.length === 1} />
+        <HowToRead ref={howTo} weakPct={WEAK_PCT} />
+        </div>
+        <div className="min-w-0">
 
         {error && <p role="alert" className="mt-6 text-danger">{error}</p>}
         {index && searched !== null && found.length === 0 && (
@@ -245,7 +253,7 @@ function App() {
           </p>
         )}
         {found.length === 1 && (
-          <div className="mt-6 rounded-xl border border-border bg-surface p-4 shadow-card">
+          <div className="mt-4 rounded-xl border border-border bg-surface p-3 shadow-card sm:mt-6 sm:p-4">
             <label htmlFor="min-identity" className="block rounded-md bg-label px-3 py-1 text-sm font-medium text-label-fg">Minimum identity</label>
             <div className="mt-1 flex items-center gap-3">
               <input
@@ -269,19 +277,18 @@ function App() {
           </p>
         )}
         {groups.length > 0 && (
-          <p role="status" className="mt-4 text-sm text-muted">
+          <p role="status" className="mt-2 text-xs text-muted sm:mt-4 sm:text-sm">
             {groups.length} {groups.length === 1 ? "database" : "databases"} with matches at or above {minPct}% identity.
             Best marks the highest identity shown in each database, by identity only (below {WEAK_PCT}% the label is
             Highest identity shown). RBH: reciprocal best hit; OWH: one-way hit. More under How to read this.
           </p>
         )}
+        </div>
+        </div>
       </div>
       {index && found.length === 1 && index.entries[found[0].id] && (
         <ResultPanels index={index} query={index.entries[found[0].id]!} groups={groups} allGroups={allGroups} weakBelow={WEAK_PCT / 100} minIdentity={minIdentity} onNavigate={navigate} />
       )}
-      <div className="max-w-3xl">
-        <HowToRead weakPct={WEAK_PCT} />
-      </div>
     </main>
     <Footer release={index?.release} provenance={provenance} error={provenanceError} onOpen={openPanel} />
     <AboutPanel ref={panel} provenance={provenance} error={provenanceError} release={index?.release} />

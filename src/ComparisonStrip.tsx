@@ -39,7 +39,7 @@ function TopMatch({ m, weak, database, weakBelow }: { m: Match; weak: boolean; d
       </button>
       {/* The bar column is capped at the bar's drawn width (VIEW_W, the same cap as Bar), so the printed value sits next to
           its bar rather than at the far edge of a wide row. */}
-      <dl className="mt-1 grid items-center gap-x-2 gap-y-1 text-sm" style={{ gridTemplateColumns: `5.5rem minmax(0, ${VIEW_W}px) 5.5rem` }}>
+      <dl className="mt-1 grid items-center gap-x-2 gap-y-1 text-sm" style={{ gridTemplateColumns: `4.5rem minmax(0, ${VIEW_W}px) 4.75rem` }}>
         <dt className="text-muted">Identity</dt>
         <dd className="contents">
           <Bar value={m.identity} weakBelow={weakBelow} kind="identity" />
@@ -92,7 +92,7 @@ export function ComparisonStrip({
         </p>
         <p data-key="min">Only matches at or above the minimum identity ({minPct}%) are shown.</p>
       </div>
-      <ul className="mt-3 grid gap-3 @3xl:grid-cols-2">
+      <ul className="mt-3 grid gap-3 @2xl:grid-cols-2">
         {rows.map((r) => (
           <li key={r.database} className="min-w-0 rounded-xl bg-surface p-3 shadow-card" data-db={r.database} data-kind={r.kind}>
             <h3 className="flex flex-wrap items-center gap-2">

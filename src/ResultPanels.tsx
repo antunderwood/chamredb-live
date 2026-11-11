@@ -42,7 +42,7 @@ export function ResultPanels({
   const rail = groups.length > 0 ? "wide:sticky wide:top-4 wide:max-h-[calc(100dvh-2rem)] wide:overflow-y-auto" : "";
   return (
     // The right column never drops below 24rem (from 1152 px both the one-step network (644 px) and 24rem of cards fit).
-    <div className="mt-6 wide:grid wide:grid-cols-[minmax(0,43rem)_minmax(24rem,1fr)] wide:items-start wide:gap-6" data-testid="results">
+    <div className="mt-4 sm:mt-6 wide:grid wide:grid-cols-[minmax(0,43rem)_minmax(24rem,1fr)] wide:items-start wide:gap-6" data-testid="results">
       {/* The rail: sticky from 1152 px and never taller than the window, so the network stays beside the cards it pairs
           with; when its content is taller it scrolls on its own, and the wheel passes on to the page at its ends. Its
           Tab stops are the strip's buttons and the network's scroll box and nodes. A size container for the strip. */}

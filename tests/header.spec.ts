@@ -38,7 +38,9 @@ test("keyboard only: Query, About, Code, the toggle, then the search form, each 
     if (f.inHeader) expect(f.colour, f.name).toBe(rgb(light["--brand-fg"])); // --accent would not show on the purple bar
   }
   expect(order).toEqual(["Query", "About", "Code", "Dark mode"]);
-  await page.keyboard.press("Tab"); // then the search form
+  await page.keyboard.press("Tab"); // then the privacy link (#26), then the search form
+  await expect(page.getByRole("button", { name: "Full privacy statement" })).toBeFocused();
+  await page.keyboard.press("Tab");
   await expect(page.getByLabel("Search in database")).toBeFocused();
 });
 

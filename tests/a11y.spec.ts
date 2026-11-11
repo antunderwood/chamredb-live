@@ -11,6 +11,8 @@ test("keyboard only: select, search box, Search, slider in reading order; Enter 
   await expect(page.getByLabel("Entry id")).toBeEnabled();
   await page.getByRole("button", { name: "Dark mode" }).focus(); // the header (tests/header.spec.ts) comes first in reading order; start after it
   await press(page, "Tab");
+  await expect(page.getByRole("button", { name: "Full privacy statement" })).toBeFocused(); // #26: the privacy link comes before the form
+  await press(page, "Tab");
   await expect(page.getByLabel("Search in database")).toBeFocused();
   await press(page, "Tab");
   await expect(page.getByLabel("Entry id")).toBeFocused();
@@ -20,7 +22,7 @@ test("keyboard only: select, search box, Search, slider in reading order; Enter 
   await press(page, "Shift+Tab");
   await press(page, "Enter"); // submits from the search box
   await expect(page.getByRole("region", { name: "Matches in ncbi" })).toBeVisible();
-  await press(page, "Tab", 2); // Search button, then the slider
+  await press(page, "Tab", 3); // Search button, How to read this (#26: it now follows the form and the examples), then the slider
   const slider = page.getByLabel("Minimum identity");
   await expect(slider).toBeFocused();
   await expect(slider).toHaveValue("90");
@@ -52,6 +54,8 @@ test("keyboard only: the candidate buttons follow the Search button and are oper
   await expect(cards).toBeVisible();
   await press(page, "Tab"); // Search button
   await expect(page.getByRole("button", { name: "Search" })).toBeFocused();
+  await press(page, "Tab");
+  await expect(page.getByTestId("how-to-read").locator("summary")).toBeFocused(); // #26: How to read this sits between the form and the messages
   await press(page, "Tab");
   await expect(cards).toBeFocused();
   await press(page, "Tab");

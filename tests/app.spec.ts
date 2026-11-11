@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 import { CSP } from "../src/csp";
 
 // Expected values: tests/fixtures/README.md (worked by hand).
-const privacy = /searches never leave your browser/i;
+const privacy = /Searches run in your browser; nothing is sent\./; // the one visible sentence (#26); the full statement is in How to read this
 
 type Page = import("@playwright/test").Page;
 
