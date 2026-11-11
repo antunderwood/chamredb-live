@@ -28,7 +28,7 @@ const goToCard = (id: string) => {
 function TopMatch({ m, weak, database, weakBelow }: { m: Match; weak: boolean; database: Database; weakBelow: number }) {
   const d = matchDetails(m, weak);
   return (
-    <div className="mt-3 first:mt-0" data-top={m.entry.id}>
+    <div className="mt-3 border-t border-border pt-3 first-of-type:mt-0 first-of-type:border-t-0 first-of-type:pt-0" data-top={m.entry.id}>
       <button
         type="button"
         onClick={() => goToCard(m.entry.id)}
@@ -85,8 +85,8 @@ export function ComparisonStrip({
       <div className="mt-1 space-y-1 text-sm text-muted" data-testid="comparison-key">
         <p>Matches from this entry to each other database. Best: highest identity only; coverage and RBH or OWH are not considered.</p>
         <p className="flex flex-wrap items-center gap-x-4 gap-y-1">
-          <span className="inline-flex items-center gap-1.5" data-key="weak">
-            <svg viewBox="0 0 4 14" width="4" height="14" aria-hidden="true" focusable="false"><line x1={2} x2={2} y1={0} y2={14} style={{ stroke: "var(--danger)", strokeWidth: 2, strokeDasharray: "3 2" }} /></svg>
+          <span className="inline-flex items-start gap-2" data-key="weak">
+            <svg viewBox="0 0 4 14" width="4" height="14" aria-hidden="true" focusable="false" className="mt-[3px] shrink-0"><line x1={2} x2={2} y1={0} y2={14} style={{ stroke: "var(--danger)", strokeWidth: 2, strokeDasharray: "3 2" }} /></svg>
             {weakPct}% mark: identity below it is weak evidence (a working default, not a validated cut-off). It does not hide anything.
           </span>
         </p>
@@ -103,12 +103,13 @@ export function ComparisonStrip({
                   {r.top.length > 1 && ` (${r.top.length} tied)`}
                 </span>
               )}
-              {r.kind === "match" && (
-                <span className="ml-auto text-sm text-muted" data-count={r.count}>
-                  {r.count} {r.count === 1 ? "match" : "matches"} shown
-                </span>
-              )}
             </h3>
+            {/* The count has its own line under the heading, so every row reads the same whether or not the label wraps. */}
+            {r.kind === "match" && (
+              <p className="mt-1 text-sm text-muted" data-count={r.count}>
+                {r.count} {r.count === 1 ? "match" : "matches"} shown
+              </p>
+            )}
             {r.kind === "none" ? (
               <div className="mt-2" data-none data-below={r.below}>
                 <p>No match at or above {minPct}% identity</p>
