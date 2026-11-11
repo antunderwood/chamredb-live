@@ -138,14 +138,6 @@ button[type="submit"]:not(:disabled):active {
   max-width: none;
   overflow: visible;
 }
-/* A wide screen lets the section break out of the text column so the expanded picture (three columns) fits without scrolling. */
-@media (min-width: 1100px) {
-  .network-section {
-    width: min(1080px, calc(100vw - 2rem));
-    margin-left: 50%;
-    transform: translateX(-50%);
-  }
-}
 .net-head {
   fill: var(--muted);
   font-size: 11px;

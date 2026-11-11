@@ -107,6 +107,7 @@ export function NetworkView({
   const navigated = useRef<string | null>(null); // the id a click or Enter asked for
   const svgRef = useRef<SVGSVGElement>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
   const tipRef = useRef<HTMLDivElement>(null);
 
   const network = useMemo(() => buildNetwork(index, query.id, minIdentity, expanded), [index, query.id, minIdentity, expanded.join("\n")]);
@@ -155,12 +156,17 @@ export function NetworkView({
 
   const shownNode = shown ? nodeById.get(shown) : undefined;
   const tip = useMemo(() => (shownNode ? tooltip(shownNode, index.entries[shownNode.id]!) : null), [shownNode, index]);
-  // The tooltip sits under the node, or above it when there is no room, and is clamped into the figure.
-  useLayoutEffect(() => {
+  // The tooltip sits under the node, or above it when there is no room, and is clamped into the figure. It follows its
+  // node when the box scrolls sideways (focusing or hovering a node off to the side scrolls the box first; from #25
+  // the expanded picture is wider than the left rail), and is hidden while its node is outside the visible box.
+  const place = () => {
     const t = tipRef.current;
     const wrap = wrapRef.current;
     const chip = shown && svgRef.current?.querySelector(`[data-node="${CSS.escape(shown)}"] .net-hit`);
     if (!t || !wrap || !chip) return;
+    const view = scrollRef.current?.getBoundingClientRect();
+    const c = chip.getBoundingClientRect();
+    t.style.visibility = view && (c.right <= view.left || c.left >= view.right) ? "hidden" : "";
     t.style.left = "0px"; // measure at the left edge, where the box has its widest room (its final width)
     t.style.top = "0px";
     const [w, r] = [wrap.getBoundingClientRect(), chip.getBoundingClientRect()];
@@ -174,7 +180,8 @@ export function NetworkView({
     const at = below + th <= w.height ? { x: centred, y: below } : above >= 0 ? { x: centred, y: above } : right + tw <= w.width ? { x: right, y: middle } : left >= 0 ? { x: left, y: middle } : { x: centred, y: middle };
     t.style.left = `${at.x}px`;
     t.style.top = `${at.y}px`;
-  }, [shown, tip, layout]);
+    };
+  useLayoutEffect(place, [shown, tip, layout]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const toggle = (id: string) => setExp({ for: query.id, ids: expanded.includes(id) ? expanded.filter((x) => x !== id) : [...expanded, id] });
   const go = (id: string) => {
@@ -191,7 +198,7 @@ export function NetworkView({
   return (
     <figure className="mt-2" data-testid="network-figure">
       <div ref={wrapRef} className="net-wrap">
-        <div className="net-scroll" tabIndex={0} role="region" aria-label="Network picture, scrolls sideways when the screen is narrow" onScroll={() => setDismissed(true)}>
+        <div ref={scrollRef} className="net-scroll" tabIndex={0} role="region" aria-label="Network picture, scrolls sideways when the screen is narrow" onScroll={place}>
           <svg
             ref={svgRef}
             viewBox={`0 0 ${layout.width} ${layout.height}`}

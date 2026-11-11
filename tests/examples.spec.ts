@@ -86,3 +86,12 @@ test("the example buttons and a result do not scroll sideways at 390 px", async 
   await expect(page.getByRole("region", { name: "Matches in card" })).toBeVisible();
   expect(await overflow()).toBeLessThanOrEqual(0);
 });
+
+test("no horizontal page scroll at 360 px on a real result, footer included (#25)", async ({ page }) => {
+  // The footer lists a 40 character ResFinder git commit; before #25 it pushed the page 5 px sideways at 360 px.
+  await page.setViewportSize({ width: 360, height: 800 });
+  await page.goto("./#q=card%3AARO%3A3000230");
+  await expect(page.getByTestId("comparison")).toBeVisible();
+  await expect(page.locator("footer")).toContainText("git commit");
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(360);
+});

@@ -92,7 +92,7 @@ function TopMatch({ m, weak, database, weakBelow }: { m: Match; weak: boolean; d
         {m.entry.name} ({m.entry.id.slice(database.length + 1)})
         <span className="sr-only">, go to its card</span>
       </button>
-      <dl className="mt-1 grid grid-cols-[5.5rem_minmax(0,1fr)_5.5rem] items-center gap-x-2 gap-y-1 text-sm">
+      <dl className="mt-1 grid grid-cols-[5.5rem_minmax(0,214px)_5.5rem] items-center gap-x-2 gap-y-1 text-sm">
         <dt className="text-muted">Identity</dt>
         <dd className="contents">
           <Bar value={m.identity} weakBelow={weakBelow} kind="identity" />
@@ -133,7 +133,7 @@ export function ComparisonStrip({
   const minPct = Math.round(minIdentity * 100);
   const weakPct = Math.round(weakBelow * 100);
   return (
-    <section aria-labelledby="glance-title" className="mt-6 rounded-2xl bg-panel p-3 sm:p-4" data-testid="comparison">
+    <section aria-labelledby="glance-title" className="rounded-2xl bg-panel p-3 sm:p-4" data-testid="comparison">
       <h2 id="glance-title" className="text-lg font-semibold">At a glance</h2>
       <div className="mt-1 space-y-1 text-sm text-muted" data-testid="comparison-key">
         <p>Matches from this entry to each other database. Best: highest identity only; coverage and RBH or OWH are not considered.</p>
@@ -145,7 +145,7 @@ export function ComparisonStrip({
         </p>
         <p data-key="min">Only matches at or above the minimum identity ({minPct}%) are shown.</p>
       </div>
-      <ul className="mt-3 grid gap-3 md:grid-cols-2">
+      <ul className="mt-3 grid gap-3 md:grid-cols-2 lg:grid-cols-1">
         {rows.map((r) => (
           <li key={r.database} className="min-w-0 rounded-xl bg-surface p-3 shadow-card" data-db={r.database} data-kind={r.kind}>
             <h3 className="flex flex-wrap items-center gap-2">

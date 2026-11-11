@@ -135,7 +135,9 @@ function App() {
   return (
     <>
     <Header />
-    <main className="mx-auto max-w-3xl px-4 py-8">
+    <main className="mx-auto max-w-[75rem] px-4 py-8">
+      {/* The page head and the controls keep a reading width; the results below use the whole shell (#25). */}
+      <div className="max-w-3xl">
       <h1 className="text-2xl font-semibold tracking-tight">chAMReDB</h1>
       <p className="mt-2 text-muted">
         Find the equivalent of an antimicrobial resistance gene in CARD, NCBI AMRFinderPlus and ResFinder.
@@ -269,11 +271,14 @@ function App() {
           Highest identity shown). RBH: reciprocal best hit; OWH: one-way hit. More under How to read this.
         </p>
       )}
+      </div>
       {index && found.length === 1 && index.entries[found[0].id] && (
         <ResultPanels index={index} query={index.entries[found[0].id]!} groups={groups} allGroups={allGroups} weakBelow={WEAK_PCT / 100} minIdentity={minIdentity} onNavigate={navigate} />
       )}
-      <HowToRead weakPct={WEAK_PCT} />
-      <About />
+      <div className="max-w-3xl">
+        <HowToRead weakPct={WEAK_PCT} />
+        <About />
+      </div>
     </main>
     <Footer release={index?.release} />
     </>
