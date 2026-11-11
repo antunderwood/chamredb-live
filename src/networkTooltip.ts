@@ -24,6 +24,7 @@ export function tooltip(node: NetNode, entry: Entry, maxPhenotype = PHENOTYPE_MA
   if (node.hit) {
     lines.push(`Identity: ${pct(node.hit.identity)}`, `Coverage: ${pct(node.hit.coverage)}`, `Type: ${TYPE[node.hit.type]}`);
     if (node.best) lines.push(node.weak ? "highest identity shown (weak evidence)" : "best");
+    if (node.below) lines.push("Below 90% identity: weak evidence of equivalence."); // the list's own wording
     // identity and coverage of a step-2 node are between `via` and the node, not between the query and the node
     if (node.role === "step2") lines.push(`identity, coverage and best are relative to ${node.via}, not to the query`);
   }
