@@ -245,7 +245,7 @@ function App() {
         </p>
       )}
       {index && found.length === 1 && index.entries[found[0].id] && (
-        <ResultPanels query={index.entries[found[0].id]!} groups={groups} weakBelow={WEAK_PCT / 100} />
+        <ResultPanels query={index.entries[found[0].id]!} groups={groups} minIdentity={minIdentity} weakBelow={WEAK_PCT / 100} />
       )}
       <HowToRead weakPct={WEAK_PCT} />
       <About />

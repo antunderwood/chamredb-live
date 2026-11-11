@@ -74,6 +74,7 @@ Earlier change to reach the thresholds: the default `--border` (`#d0d0d0` light,
 | theme.css | light | --chip-db on --panel | 4.94 | 3:1 | pass |
 | theme.css | light | --chip-name on --panel | 5.42 | 3:1 | pass |
 | theme.css | light | --chip-match on --panel | 6.20 | 3:1 | pass |
+| theme.css | light | --label on --panel | 4.87 | 3:1 | pass |
 | theme.css | dark | --fg on --bg | 15.16 | 4.5:1 | pass |
 | theme.css | dark | --fg on --surface | 11.50 | 4.5:1 | pass |
 | theme.css | dark | --muted on --bg | 8.79 | 4.5:1 | pass |
@@ -106,6 +107,7 @@ Earlier change to reach the thresholds: the default `--border` (`#d0d0d0` light,
 | theme.css | dark | --chip-db on --panel | 8.31 | 3:1 | pass |
 | theme.css | dark | --chip-name on --panel | 7.72 | 3:1 | pass |
 | theme.css | dark | --chip-match on --panel | 8.39 | 3:1 | pass |
+| theme.css | dark | --label on --panel | 8.76 | 3:1 | pass |
 | theme.bsb.css | light | --fg on --bg | 16.29 | 4.5:1 | pass |
 | theme.bsb.css | light | --fg on --surface | 18.48 | 4.5:1 | pass |
 | theme.bsb.css | light | --muted on --bg | 5.07 | 4.5:1 | pass |
@@ -138,6 +140,7 @@ Earlier change to reach the thresholds: the default `--border` (`#d0d0d0` light,
 | theme.bsb.css | light | --chip-db on --panel | 5.44 | 3:1 | pass |
 | theme.bsb.css | light | --chip-name on --panel | 4.98 | 3:1 | pass |
 | theme.bsb.css | light | --chip-match on --panel | 5.07 | 3:1 | pass |
+| theme.bsb.css | light | --label on --panel | 5.07 | 3:1 | pass |
 | theme.bsb.css | dark | --fg on --bg | 16.29 | 4.5:1 | pass |
 | theme.bsb.css | dark | --fg on --surface | 14.36 | 4.5:1 | pass |
 | theme.bsb.css | dark | --muted on --bg | 11.56 | 4.5:1 | pass |
@@ -170,6 +173,7 @@ Earlier change to reach the thresholds: the default `--border` (`#d0d0d0` light,
 | theme.bsb.css | dark | --chip-db on --panel | 5.10 | 3:1 | pass |
 | theme.bsb.css | dark | --chip-name on --panel | 7.43 | 3:1 | pass |
 | theme.bsb.css | dark | --chip-match on --panel | 10.95 | 3:1 | pass |
+| theme.bsb.css | dark | --label on --panel | 10.95 | 3:1 | pass |
 
 Limits: the pairs are the ones the components use today, plus the reserved chip and label tokens; a new component that pairs tokens differently needs a new row in `PAIRS` (`src/contrast.ts`). Text drawn at the page default size is assumed (no large-text relaxation is used). The BSB light accent on Pearl is 3.03:1, a thin margin over 3:1.
 

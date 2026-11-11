@@ -29,6 +29,14 @@ test("each single-entry example loads its expected entry", async ({ page }) => {
     await expect(page.getByRole("region", { name: "Query entry" })).toHaveAttribute("data-query", ex.ids[0]); // the queried entry (#8 query panel)
     // Matches at 90% or more, from a raw scan of data/graph.json (all three are reciprocal best hits).
     for (const m of MATCHES[ex.query]) await expect(page.getByRole("region", { name: `Matches in ${m.db}` })).toContainText(m.native);
+    // The comparison strip (#20): the same match is the Best row of its database, and no database is missing.
+    const strip = page.getByTestId("comparison");
+    await expect(strip.locator("li[data-db]")).toHaveCount(2);
+    for (const m of MATCHES[ex.query]) {
+      const r = strip.locator(`li[data-db="${m.db}"]`);
+      await expect(r.locator("[data-label]")).toHaveText("Best");
+      await expect(r.locator("[data-top]")).toHaveAttribute("data-top", `${m.db}:${m.native}`);
+    }
     expect(new URL(page.url()).hash).toContain(`q=${encodeURIComponent(ex.query)}`);
   }
 });

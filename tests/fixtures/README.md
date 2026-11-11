@@ -61,3 +61,32 @@ Sign-off: signed off by the repo owner on 2026-11-10 after reviewing the edge li
 | resfinder:orphan (no field at all) | none | none | none |
 
 The invented `is_a`, `product` and PMIDs on card:ARO:2000 exist to cover an entry with every field; a real CARD entry never has a product.
+
+### Comparison strip (ticket #20; worked by hand from the match table above)
+
+One row per source database other than the query's, in the order card, ncbi, resfinder. A row lists every match flagged best (ties all listed), its identity, coverage and type, and the number of matches shown in that database. A database with no match at or above the minimum identity has one "No match at or above N% identity" row and no bar. Below 90% the label is "Highest identity shown", not "Best".
+
+| Query | Min | Database | Row |
+| --- | --- | --- | --- |
+| card:ARO:1000 | 90% | ncbi | Best: WP_1.1 (97.0%, 100.0%, RBH) and WP_3.1 (97.0%, 100.0%, OWH); 3 matches shown |
+| card:ARO:1000 | 90% | resfinder | Best: blaX (100.0%, 100.0%, RBH); 1 match shown |
+| card:ARO:2000 | 90% | ncbi | Best: WP_4.1 (92.0%, 105.0% with the overflow mark, RBH); 1 match shown |
+| card:ARO:2000 | 90% | resfinder | No match at or above 90% identity |
+| card:ARO:2000 | 80% | resfinder | Highest identity shown: tetM (88.0%, 100.0%, OWH); 1 match shown |
+| resfinder:orphan | 90% | card, ncbi | No match at or above 90% identity (both) |
+
+### Bar scale (src/bars.ts; worked by hand, bar width W = 200 px)
+
+`length = min(max(value, 0), 1) x W`, `overflow = value > 1`.
+
+| Value | Length (px) | Overflow |
+| --- | --- | --- |
+| 0 | 0 | no |
+| 0.5 | 100 | no |
+| 0.9 (the weak line) | 180 | no |
+| 1.0 | 200 | no |
+| 1.3 (a coverage) | 200 | yes |
+
+So in the strip the weak line is drawn at x = 180, and the minimum identity line at x = 2 x the slider percent (180 at 90%, 160 at 80%).
+
+Sign-off: worked by the implementer from the signed match table above; not yet signed off by the owner (oracle unsigned until then).

@@ -1,14 +1,16 @@
 import { isWeakGroup } from "./cardModel";
+import { ComparisonStrip } from "./ComparisonStrip";
 import { MatchPanel } from "./MatchPanel";
 import { NetworkView } from "./NetworkView";
 import { QueryPanel } from "./QueryPanel";
 import type { Entry, MatchGroup } from "./types";
 
-// The results area under the slider: the query panel, the network picture in its own section, then one panel per
+// The results area under the slider: the at-a-glance comparison strip (ADR 0006), the query panel, the network picture in its own section, then one panel per
 // match grouped by database. The picture and the panels are built from the same groups, so they list the same matches.
-export function ResultPanels({ query, groups, weakBelow }: { query: Entry; groups: MatchGroup[]; weakBelow: number }) {
+export function ResultPanels({ query, groups, minIdentity, weakBelow }: { query: Entry; groups: MatchGroup[]; minIdentity: number; weakBelow: number }) {
   return (
     <>
+      <ComparisonStrip queryDatabase={query.database} groups={groups} minIdentity={minIdentity} weakBelow={weakBelow} />
       <QueryPanel entry={query} />
       {groups.length > 0 && (
         <details open className="mt-6 rounded-2xl bg-panel px-3 pb-3 pt-2 sm:px-4" data-testid="network-section">

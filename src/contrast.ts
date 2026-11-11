@@ -81,4 +81,5 @@ export const PAIRS: [string, string, number, string][] = [
   ["--chip-db", "--panel", 3, "mark"],
   ["--chip-name", "--panel", 3, "mark"],
   ["--chip-match", "--panel", 3, "mark"],
+  ["--label", "--panel", 3, "bar fill on its track (comparison strip)"],
 ];

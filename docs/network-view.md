@@ -35,3 +35,7 @@ The expected values in `src/layout.test.ts` are these numbers, not computed by t
 - Zero matches: nothing is drawn; the list says so.
 
 The interactive network (tickets #9 and #10) has its own geometry in `src/networkLayout.ts`, described in `network-layout.md`; this file's `layout.ts` is retired when the UI tickets wire it in.
+
+## Comparison strip bars (#20, ADR 0006)
+
+The bars in the at-a-glance strip have their own single mapping, `scale(value, width)` in `src/bars.ts`, with a bar width W of 200 px: `length = min(max(value, 0), 1) x W`, and `overflow` is true when the value is above 1 (a coverage over 100% is drawn full length with a chevron, and its exact percentage is printed). The weak-evidence line is drawn at `scale(0.90)` = 180 px and the minimum identity line at `scale(slider / 100)`, so 180 px at 90% and 160 px at 80%. The minimum identity line is drawn first and the dashed weak line on top, so both stay visible when they coincide. Hand-worked values: `tests/fixtures/README.md`, "Bar scale"; tests: `src/bars.test.ts` and `tests/comparison.spec.ts`.
