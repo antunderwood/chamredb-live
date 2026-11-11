@@ -31,9 +31,11 @@ jobs:
       - uses: actions/setup-python@v7
         with: { python-version: "3.14" }
       - run: pip install -r tests/oracle/requirements.txt
-      - run: |
+      - shell: bash
+        run: |
           python tests/oracle/lookup.py data/graph.json | diff - tests/oracle/lookup_expected.json
           python tests/oracle/matches.py data/graph.json | diff - tests/oracle/matches_expected.json
+          python tests/oracle/expand.py data/graph.json | diff - tests/oracle/expand_expected.json
   deploy:
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     needs: [build, oracle]
