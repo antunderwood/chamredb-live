@@ -118,12 +118,16 @@ test("non-colour encodings: best, weak and RBH versus OWH are carried by text, s
   await expect(ncbi.nth(0)).toContainText("Best"); // text, not only the badge colour
   await expect(ncbi.nth(2)).not.toContainText("Best");
   const net = page.getByTestId("network");
-  const dash = (id: string) => net.locator(`[data-edge="${id}"]`).evaluate((el) => getComputedStyle(el).strokeDasharray);
+  const dash = (id: string) => net.locator(`[data-edge="card:ARO:1000>${id}"] path`).evaluate((el) => getComputedStyle(el).strokeDasharray);
   expect(await dash("ncbi:WP_1.1")).toBe("none"); // RBH solid
   expect(await dash("ncbi:WP_3.1")).not.toBe("none"); // OWH dashed
-  await expect(net.locator('g[data-node="ncbi:WP_1.1"] rect')).toHaveCount(1); // best: square
-  await expect(net.locator('g[data-node="ncbi:WP_4.1"] circle')).toHaveCount(1); // other: circle
-  await expect(net.locator("text", { hasText: "best" }).first()).toBeVisible(); // best also in the label text
+  await expect(net.locator('g[data-node="ncbi:WP_1.1"] .net-ribbon')).toContainText("Best"); // best is a text ribbon, not only a colour
+  await expect(net.locator('g[data-node="ncbi:WP_4.1"] .net-ribbon')).toHaveCount(0);
+  // the database is carried by the badge text and the outline shape as well as by colour
+  await expect(net.locator('g[data-node="ncbi:WP_1.1"] .net-badge-text')).toHaveText("NCBI");
+  await expect(net.locator('g[data-node="ncbi:WP_1.1"]')).toHaveAttribute("data-shape", "cut");
+  await expect(net.locator('g[data-node="resfinder:blaX"]')).toHaveAttribute("data-shape", "pill");
+  await expect(net.locator('g[data-node="card:ARO:1000"]')).toHaveAttribute("data-shape", "round");
   // Weak group: wording, not red text alone.
   await page.getByLabel("Entry id").fill("card:ARO:2000");
   await page.getByLabel("Entry id").press("Enter");

@@ -1,20 +1,33 @@
+import type { HTMLAttributes } from "react";
 import { Card, Chip, ChipRow, Field, MetadataCard, PhenotypeCard } from "./Cards";
 import { isBelow, matchDetails } from "./cardModel";
+import { showInNetwork } from "./NetworkView";
 import type { Match } from "./types";
 
 // One match of the query, as three cards: the match's own Phenotype and Other metadata (never the query's) and
 // Match details. `weak`: the group's top identity is below the weak-evidence line, so the top match is
 // "Highest identity shown", not "Best".
-export function MatchPanel({ match, native, weak, weakBelow }: { match: Match; native: string; weak: boolean; weakBelow: number }) {
+export function MatchPanel({ match, native, weak, weakBelow, pair }: { match: Match; native: string; weak: boolean; weakBelow: number; pair?: HTMLAttributes<HTMLElement> }) {
   const d = matchDetails(match, weak);
   const { entry } = match;
+  // tabIndex -1: the picture can move focus to this card ("L" on a node); `pair` lights it up with its node.
   return (
-    <li className="rounded-2xl bg-panel p-3 sm:p-4" data-match={entry.id} data-best={d.badge ?? undefined}>
-      <h3 className="mb-3">
-        <ChipRow>
-          <Chip kind="match">Match</Chip> <Chip kind="db">{entry.database}</Chip> <Chip kind="name">{entry.name} ({native})</Chip>
-        </ChipRow>
-      </h3>
+    <li className="rounded-2xl bg-panel p-3 sm:p-4" data-match={entry.id} data-best={d.badge ?? undefined} tabIndex={-1} {...pair}>
+      <div className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-2">
+        <h3>
+          <ChipRow>
+            <Chip kind="match">Match</Chip> <Chip kind="db">{entry.database}</Chip> <Chip kind="name">{entry.name} ({native})</Chip>
+          </ChipRow>
+        </h3>
+        <button
+          type="button"
+          data-action="show-in-network"
+          className="rounded-md border border-control-border bg-surface px-2.5 py-1 text-sm hover:border-fg"
+          onClick={() => showInNetwork(entry.id)}
+        >
+          Show in network<span className="sr-only"> ({entry.id})</span>
+        </button>
+      </div>
       <div className="grid gap-3 md:grid-cols-[minmax(0,1.2fr)_minmax(0,1.35fr)_minmax(0,1fr)]">
         <PhenotypeCard entry={entry} of="match" />
         <MetadataCard entry={entry} />

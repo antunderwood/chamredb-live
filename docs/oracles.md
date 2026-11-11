@@ -10,9 +10,9 @@ An oracle is a source of expected answers that does not come from the code under
 | `tests/oracle/expand.py` | networkx 3.7, no code shared with the app | The network model with step-1 nodes expanded: nodes, roles, via, flags, edges and the 25 node cap for 10 fixed entries at 90% and 50%, and every entry at 90% by hash |
 | Release facts | Release notes, `diff_report.md`, GitHub asset digests, plain Python counts of `data/graph.json` | Entry and edge counts, per-database counts, phenotype counts, sha256 of the data files |
 | Raw JSON read in tests | `data/graph.json` read directly, not through the app's index | Shown phenotype text equals the stored value for every entry |
-| Hand-worked pixels (`src/layout.test.ts`, `docs/network-view.md`) | Arithmetic written out by hand | Coordinates of the network picture's first, last and mirrored neighbour |
-| Hand-worked pixels (`src/networkLayout.test.ts`, `docs/network-layout.md`) | Arithmetic written out by hand | Coordinates, edge ends, hit regions and viewBox of the interactive network, including a step-2 slot |
+| Hand-worked pixels (`src/networkLayout.test.ts`, `docs/network-layout.md`) | Arithmetic written out by hand | Coordinates, chip rectangles, text baselines, ribbons, expand pills, edge curves and labels, chip outlines, hit regions and viewBox of the interactive network, including step-2 slots |
 | Hand-worked network model (`src/networkModel.test.ts`) | Worked by hand from `tests/fixtures/graph.json` and made-up graphs | Ties, weak groups, step-2 nodes, extra edges, the cap |
+| Playwright on the picture (`tests/network.spec.ts`, `tests/network-release.spec.ts`) | The fixture and the list on the same page; tooltip lines from `src/networkTooltip.ts`; a raw read of `data/graph.json` for the release entry card:ARO:3002546 and the cap entry | Drawn nodes and edges equal the list, labels, Best and weak, history, expansion, contrast, truncation |
 | Same-page comparison (`tests/app.spec.ts`) | The interactive path | A hash URL renders the same page as the interactive search |
 
 ## Limits

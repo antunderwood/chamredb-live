@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { MAX_NODES, buildNetwork, type Network } from "./networkModel";
+import { MAX_NODES, buildNetwork, ownMatchCount, visibleEdges, type NetEdge, type NetNode, type Network } from "./networkModel";
 import { buildIndex } from "./parse";
 import { matchGroups } from "./query";
 import type { Database, MatchType, ReleaseGraph } from "./types";
@@ -281,5 +281,47 @@ describe("network model: cap, duplicates and extra edges (hand-worked on made-up
     expect(n.nodes.find((x) => x.id === "resfinder:b")).toMatchObject({ role: "match", best: true, weak: true });
     expect(n.nodes.find((x) => x.id === "resfinder:b")!.via).toBeUndefined();
     expect(n.edges.at(-1)).toMatchObject({ source: "ncbi:a", target: "resfinder:b", identity: 0.99, step: 2 });
+  });
+});
+
+// visibleEdges and ownMatchCount, hand-worked.
+describe("visibleEdges: the reverse of an RBH match is hidden by default, nothing else", () => {
+  const fx = buildIndex(JSON.parse(readFileSync("tests/fixtures/graph.json", "utf8")) as ReleaseGraph);
+  it("fixture: expanding WP_1.1, blaX (RBH with the query, which list it back) and WP_4.1", () => {
+    // card:ARO:1000 at 0.9: WP_1.1 RBH and blaX RBH (both list the query back, so step-2 edges to the query), WP_4.1
+    // OWH (its own match is card:ARO:2000, a new step-2 node). Two reverse edges are hidden.
+    const n = buildNetwork(fx, "card:ARO:1000", 0.9, ["ncbi:WP_1.1", "resfinder:blaX", "ncbi:WP_4.1"]);
+    const v = visibleEdges(n);
+    expect(v.hidden).toBe(2);
+    expect(v.edges.filter((e) => e.step === 2).map((e) => `${e.source}>${e.target}`)).toEqual(["ncbi:WP_4.1>card:ARO:2000"]);
+    expect(v.edges.filter((e) => e.step === 1)).toHaveLength(4);
+  });
+  it("a reverse hit behind a one-way match stays visible (made-up: q to b is OWH and b lists q back)", () => {
+    const node = (id: string, role: NetNode["role"]): NetNode => ({ id, database: "card", name: id, role, best: false, weak: false });
+    const e = (source: string, target: string, type: "RBH" | "OWH", step: 1 | 2): NetEdge => ({ source, target, identity: 1, coverage: 1, type, step });
+    const net = {
+      nodes: [node("q", "query"), node("a", "match"), node("b", "match")],
+      edges: [e("q", "a", "RBH", 1), e("q", "b", "OWH", 1), e("a", "q", "RBH", 2), e("b", "q", "OWH", 2), e("a", "b", "OWH", 2)],
+    };
+    const v = visibleEdges(net);
+    expect(v.hidden).toBe(1); // only a to q
+    expect(v.edges.map((x) => `${x.source}>${x.target}`)).toEqual(["q>a", "q>b", "b>q", "a>b"]);
+  });
+  it("nothing to hide when nothing is expanded", () => {
+    expect(visibleEdges(buildNetwork(fx, "card:ARO:1000", 0.9)).hidden).toBe(0);
+  });
+});
+
+describe("ownMatchCount: the number the expand control promises", () => {
+  const fx = buildIndex(JSON.parse(readFileSync("tests/fixtures/graph.json", "utf8")) as ReleaseGraph);
+  it("fixture: WP_4.1 lists card:ARO:2000 (0.92) and the query does not count; WP_1.1 lists only the query", () => {
+    expect(ownMatchCount(fx, "ncbi:WP_4.1", 0.9, "card:ARO:1000")).toBe(1); // card:ARO:2000
+    expect(ownMatchCount(fx, "ncbi:WP_1.1", 0.9, "card:ARO:1000")).toBe(0); // only the query (0.97)
+    expect(ownMatchCount(fx, "ncbi:WP_4.1", 0.95, "card:ARO:1000")).toBe(0); // 0.92 is under 0.95
+  });
+  it("counts every own match when the query is not among them", () => {
+    const all = matchGroups(index, "card:ARO:3002546", 0.9).reduce((n, g) => n + g.matches.length, 0);
+    expect(all).toBe(6); // the six-match entry (raw read: out-degree 6)
+    expect(ownMatchCount(index, "card:ARO:3002546", 0.9, "ncbi:not-a-match")).toBe(6);
   });
 });

@@ -1,115 +1,447 @@
-import { layout, truncate, type Orientation } from "./layout";
-import type { Entry, MatchGroup } from "./types";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
+import { pct, TYPE_LABEL } from "./cardModel";
+import {
+  DB_SHAPE,
+  ID_MAX,
+  DETAIL_MAX,
+  NAME_MAX,
+  PILL,
+  QUERY_NAME_MAX,
+  SWATCH,
+  chipPath,
+  ellipsize,
+  layoutNetwork,
+  pillRect,
+  ribbonRect,
+  EXPAND_H,
+  type Cubic,
+  type NodeSlot,
+} from "./networkLayout";
+import { MAX_NODES, buildNetwork, ownMatchCount, visibleEdges, type NetNode } from "./networkModel";
+import { tooltip } from "./networkTooltip";
+import type { Database, Entry, Index } from "./types";
 
-const pct = (fraction: number) => `${(fraction * 100).toFixed(1)}%`;
-const LABEL_MAX = 24; // characters; the full id and name are in the node title and the list
-const NODE_R = 9;
-const BEST_HALF = 8; // best match is a square of side 2 * BEST_HALF, the others are circles
+// The interactive network picture (tickets #9 and #10). It draws what networkModel.ts decided (nodes, edges, flags)
+// at the positions networkLayout.ts computed, and adds nothing of its own: every number below is a constant or a
+// field of the layout. The list under it stays the accessible equivalent: both are built from the same matches.
+//
+// Each node is a focusable button (SVG group, role=button): click or Enter makes it the new query (the parent
+// pushes a history entry), hover or focus shows a tooltip and highlights the node, its edges and its card. A step-1
+// node has a second, separate button (the "+n" pill) that adds that entry's own matches as step-2 nodes, drawn
+// lighter with a dashed outline in a third column: a match of a match, never a match of the query. Expansion is
+// React state here: it is not in the address and it resets when the query changes. Colours are tokens (app.css).
 
-// Tiny picture of the query and its shown matches (ticket #11). Same groups as the list, so the same rows, the
-// same identity text and the same best flag; the list stays the accessible equivalent. All geometry comes from
-// layout.ts, all colours from the tokens in public/theme.css. Edges are directed from the query: RBH is a
-// reciprocal pair (solid, arrowhead at both ends), OWH is a one-way hit (dashed, arrowhead at the match only).
+const BADGE: Record<Database, string> = { card: "CARD", ncbi: "NCBI", resfinder: "ResFinder" };
+const HEAD = ["Query", "Matches of the query", "Matches of a match"] as const;
+const MINUS = "−";
+const native = (n: NetNode) => n.id.slice(n.database.length + 1);
+const curve = (c: Cubic) => `M${c.from.x},${c.from.y} C${c.c1.x},${c.c1.y} ${c.c2.x},${c.c2.y} ${c.to.x},${c.to.y}`;
+const reduced = () => typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
+const activate = (e: KeyboardEvent, act: () => void) => {
+  if (e.key === "Enter" || e.key === " ") {
+    e.preventDefault();
+    act();
+  }
+};
+
+// The card of an entry in the list (the query panel or a match panel), if it has one: step-2 entries do not.
+function cardOf(id: string): HTMLElement | null {
+  return document.querySelector<HTMLElement>(`[data-match="${CSS.escape(id)}"], [data-query="${CSS.escape(id)}"]`);
+}
+export function showCard(id: string) {
+  const card = cardOf(id);
+  if (!card) return;
+  card.scrollIntoView({ behavior: reduced() ? "auto" : "smooth", block: "center" });
+  card.focus({ preventScroll: true });
+}
+
+// The reverse pairing: from a card, focus its node (which also shows its tooltip and highlights the card).
+export function showInNetwork(id: string) {
+  const node = document.querySelector<SVGGElement>(`[data-testid="network"] [data-node="${CSS.escape(id)}"]`);
+  if (!node) return;
+  const section = node.closest("details");
+  if (section) section.open = true;
+  node.scrollIntoView({ behavior: reduced() ? "auto" : "smooth", block: "center", inline: "center" });
+  node.focus({ preventScroll: true });
+}
+
+function ariaLabel(n: NetNode, via?: NetNode): string {
+  const head = `${n.name}, ${n.database}, ${n.id}`;
+  if (n.role === "query") return `${head}. The query.`;
+  const hit = `identity ${pct(n.hit!.identity)}, ${TYPE_LABEL[n.hit!.type].toLowerCase()}`;
+  if (n.role === "step2") return `${head}. Match of ${via?.name ?? n.via} (${n.via}), not a match of the query; ${hit} between them. Press Enter to make it the query.`;
+  const flag = n.best ? (n.weak ? ", highest identity shown (weak evidence)" : ", best") : "";
+  return `${head}. ${hit}${flag}. Press Enter to make it the query.`;
+}
+
 export function NetworkView({
+  index,
   query,
-  groups,
-  weakBelow,
-  orientation = "ltr",
+  minIdentity,
+  onNavigate,
+  highlight,
+  onHighlight,
 }: {
+  index: Index;
   query: Entry;
-  groups: MatchGroup[];
-  weakBelow: number; // fraction: a group whose top identity is under this has no "best", as in the list
-  orientation?: Orientation;
+  minIdentity: number;
+  onNavigate: (id: string) => void; // the parent pushes a history entry and searches for it
+  highlight: string | null; // entry id highlighted from the picture or from its card
+  onHighlight: (id: string | null) => void;
 }) {
-  const rows = groups.flatMap((g) => {
-    const weak = Math.max(...g.matches.map((m) => m.identity)) < weakBelow;
-    return g.matches.map((m) => ({ m, weak, native: m.entry.id.slice(g.database.length + 1), db: g.database }));
+  // Expansion belongs to one query: a state for another query counts as empty, so it resets without an effect.
+  const [exp, setExp] = useState<{ for: string; ids: string[] }>({ for: query.id, ids: [] });
+  const expanded = exp.for === query.id ? exp.ids : [];
+  useEffect(() => {
+    if (exp.for !== query.id) setExp({ for: query.id, ids: [] }); // forget it for good: coming back to an entry starts collapsed
+  }, [exp.for, query.id]);
+  // The node the tooltip and the highlight follow: the most recent of the pointer and the keyboard focus (a pointer
+  // resting on a node must not override Tab). Leaving with the pointer falls back to the focused node, if any.
+  const [active, setActive] = useState<string | null>(null);
+  const focused = useRef<string | null>(null);
+  const [dismissed, setDismissed] = useState(false);
+  const navigated = useRef<string | null>(null); // the id a click or Enter asked for
+  const svgRef = useRef<SVGSVGElement>(null);
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const tipRef = useRef<HTMLDivElement>(null);
+
+  const network = useMemo(() => buildNetwork(index, query.id, minIdentity, expanded), [index, query.id, minIdentity, expanded.join("\n")]);
+  const vis = useMemo(() => visibleEdges(network), [network]);
+  const layout = useMemo(() => layoutNetwork({ nodes: network.nodes, edges: vis.edges }), [network, vis]);
+  const counts = useMemo(
+    () => new Map(network.nodes.filter((n) => n.role === "match").map((n) => [n.id, ownMatchCount(index, n.id, minIdentity, query.id)])),
+    [index, network, minIdentity, query.id],
+  );
+  const nodeById = new Map(network.nodes.map((n) => [n.id, n]));
+  // A focused or hovered node can disappear (collapse, slider) without a blur event: forget it.
+  useEffect(() => {
+    if (active && !nodeById.has(active)) {
+      if (focused.current === active) focused.current = null;
+      setActive(null);
+    }
   });
-  if (rows.length === 0) return null; // the list says there are no matches
-  const l = layout(rows.length, orientation);
-  const summary = `${query.id} and its ${rows.length} shown ${rows.length === 1 ? "match" : "matches"}, drawn from the query to each match`;
-  const description = rows
-    .map(
-      ({ m, weak }) =>
-        `${m.entry.id}, identity ${pct(m.identity)}, ${m.type === "RBH" ? "reciprocal best hit" : "one-way hit"}${
-          m.best ? (weak ? ", highest identity shown" : ", best") : ""
-        }`,
-    )
-    .join("; ");
+
+  const shown = dismissed ? null : active;
+  useEffect(() => onHighlight(active), [active]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => () => onHighlight(null), []); // eslint-disable-line react-hooks/exhaustive-deps
+  // Escape dismisses the tooltip wherever the focus is (WCAG 1.4.13): the pointer may be the one that opened it.
+  useEffect(() => {
+    if (!shown) return;
+    const onKey = (e: globalThis.KeyboardEvent) => e.key === "Escape" && setDismissed(true);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [shown]);
+  const hoverNode = (id: string, on: boolean) => {
+    setDismissed(false);
+    setActive(on ? id : focused.current);
+  };
+  const focusNode = (id: string, on: boolean) => {
+    setDismissed(false);
+    focused.current = on ? id : null;
+    setActive((cur) => (on ? id : cur === id ? null : cur));
+  };
+
+  // After a click or Enter on a node the clicked chip is gone: keep keyboard focus in the picture, on the new query.
+  useEffect(() => {
+    const wanted = navigated.current;
+    navigated.current = null;
+    if (wanted !== query.id) return; // the parent did not move to the clicked entry: do not steal focus later
+    svgRef.current?.querySelector<SVGGElement>('[data-role="query"]')?.focus();
+  }, [query.id]);
+
+  const shownNode = shown ? nodeById.get(shown) : undefined;
+  const tip = useMemo(() => (shownNode ? tooltip(shownNode, index.entries[shownNode.id]!) : null), [shownNode, index]);
+  // The tooltip sits under the node, or above it when there is no room, and is clamped into the figure.
+  useLayoutEffect(() => {
+    const t = tipRef.current;
+    const wrap = wrapRef.current;
+    const chip = shown && svgRef.current?.querySelector(`[data-node="${CSS.escape(shown)}"] .net-hit`);
+    if (!t || !wrap || !chip) return;
+    t.style.left = "0px"; // measure at the left edge, where the box has its widest room (its final width)
+    t.style.top = "0px";
+    const [w, r] = [wrap.getBoundingClientRect(), chip.getBoundingClientRect()];
+    const [tw, th, gap] = [t.offsetWidth, t.offsetHeight, 8];
+    const clamp = (v: number, max: number) => Math.max(0, Math.min(v, max));
+    const centred = clamp(r.left - w.left + r.width / 2 - tw / 2, w.width - tw);
+    const middle = clamp(r.top - w.top + r.height / 2 - th / 2, w.height - th);
+    // Below the node, else above it, else beside it (right, then left): never over the node, always inside the figure.
+    const [below, above] = [r.bottom - w.top + gap, r.top - w.top - th - gap];
+    const [right, left] = [r.right - w.left + gap, r.left - w.left - tw - gap];
+    const at = below + th <= w.height ? { x: centred, y: below } : above >= 0 ? { x: centred, y: above } : right + tw <= w.width ? { x: right, y: middle } : left >= 0 ? { x: left, y: middle } : { x: centred, y: middle };
+    t.style.left = `${at.x}px`;
+    t.style.top = `${at.y}px`;
+  }, [shown, tip, layout]);
+
+  const toggle = (id: string) => setExp({ for: query.id, ids: expanded.includes(id) ? expanded.filter((x) => x !== id) : [...expanded, id] });
+  const go = (id: string) => {
+    if (id === query.id) return;
+    navigated.current = id;
+    onNavigate(id);
+  };
+
+  const step2 = network.nodes.filter((n) => n.role === "step2").length;
+  const matches = network.nodes.filter((n) => n.role === "match").length;
+  const label = `Network of ${query.id} and its ${matches} shown ${matches === 1 ? "match" : "matches"}${step2 ? `, with ${step2} ${step2 === 1 ? "match" : "matches"} of matches` : ""}. The list below has the same matches in text.`;
+  const hl = (id: string) => (highlight === id ? " is-hl" : "");
+
   return (
-    <figure className="mt-6">
-      <svg
-        viewBox={`0 0 ${l.width} ${l.height}`}
-        width="100%"
-        role="img"
-        aria-labelledby="nv-title nv-desc"
-        style={{ maxWidth: l.width * 1.5, height: "auto" }}
-        data-testid="network"
-      >
-        <title id="nv-title">{summary}</title>
-        <desc id="nv-desc">{description}. The list below has the same matches in text.</desc>
-        <defs>
-          <marker id="nv-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
-            <path d="M0,0 L10,5 L0,10 z" style={{ fill: "var(--fg)" }} />
-          </marker>
-        </defs>
-        {rows.map(({ m }, i) => {
-          const { from, to } = l.neighbours[i]!.edge;
-          const rbh = m.type === "RBH";
-          return (
-            <line
-              key={m.entry.id}
-              data-edge={m.entry.id}
-              data-type={m.type}
-              x1={from.x}
-              y1={from.y}
-              x2={to.x}
-              y2={to.y}
-              strokeWidth={1.5}
-              strokeDasharray={rbh ? undefined : "5 4"}
-              style={{ stroke: "var(--fg)" }}
-              markerEnd="url(#nv-arrow)"
-              markerStart={rbh ? "url(#nv-arrow)" : undefined}
-            />
-          );
-        })}
-        <g data-node={query.id}>
-          <title>{`${query.id} (${query.name}), the query`}</title>
-          <circle cx={l.query.centre.x} cy={l.query.centre.y} r={NODE_R} style={{ fill: "var(--fg)", stroke: "var(--fg)" }} strokeWidth={1.5} />
-          <text x={l.query.label.x} y={l.query.label.y} textAnchor="middle" fontSize={11} fontWeight={600} style={{ fill: "var(--fg)" }}>
-            {truncate(query.id, 18)}
-          </text>
-        </g>
-        {rows.map(({ m, weak, native, db }, i) => {
-          const s = l.neighbours[i]!;
-          const note = m.best ? (weak ? ", highest" : ", best") : "";
-          const shape = { fill: m.best && !weak ? "var(--accent)" : "var(--surface)", stroke: "var(--fg)" };
-          return (
-            <g key={m.entry.id} data-node={m.entry.id}>
-              <title>{`${m.entry.id} (${m.entry.name}), identity ${pct(m.identity)}, ${m.type}`}</title>
-              {m.best ? (
-                <rect x={s.centre.x - BEST_HALF} y={s.centre.y - BEST_HALF} width={2 * BEST_HALF} height={2 * BEST_HALF} style={shape} strokeWidth={1.5} />
-              ) : (
-                <circle cx={s.centre.x} cy={s.centre.y} r={NODE_R} style={shape} strokeWidth={1.5} />
-              )}
-              <text x={s.label.x} y={s.label.y - 3} textAnchor={s.anchor} fontSize={11} style={{ fill: "var(--fg)" }}>
-                {truncate(`${db} ${native}`, LABEL_MAX)}
+    <figure className="mt-2" data-testid="network-figure">
+      <div ref={wrapRef} className="net-wrap">
+        <div className="net-scroll" tabIndex={0} role="region" aria-label="Network picture, scrolls sideways when the screen is narrow" onScroll={() => setDismissed(true)}>
+          <svg
+            ref={svgRef}
+            viewBox={`0 0 ${layout.width} ${layout.height}`}
+            width={layout.width}
+            height={layout.height}
+            role="group"
+            aria-label={label}
+            data-testid="network"
+            className={`net-svg${highlight ? " net-dim" : ""}`}
+          >
+            <defs>
+              {(["main", "soft", "hl"] as const).map((k) => (
+                <marker key={k} id={`net-arrow-${k}`} viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" markerUnits="userSpaceOnUse" orient="auto-start-reverse">
+                  <path d="M0,0 L10,5 L0,10 L2.5,5 z" className={`net-arrowhead net-arrowhead-${k}`} />
+                </marker>
+              ))}
+              {layout.nodes.map((s, i) => (
+                <clipPath key={s.id} id={`net-clip-${i}`}>
+                  <path d={chipPath(s.rect, DB_SHAPE[nodeById.get(s.id)!.database])} />
+                </clipPath>
+              ))}
+            </defs>
+            {layout.heads.map((h) => (
+              <text key={h.column} x={h.x} y={h.y} className="net-head">
+                {HEAD[h.column]}
               </text>
-              <text x={s.label.x} y={s.label.y + 11} textAnchor={s.anchor} fontSize={11} style={{ fill: "var(--muted)" }}>
-                {`${pct(m.identity)} ${m.type}${note}`}
-              </text>
+            ))}
+            <g>
+              {layout.edges.map((e, i) => {
+                const m = vis.edges[i]!;
+                const on = highlight !== null && (e.source === highlight || e.target === highlight);
+                const tone = on ? "hl" : e.step === 2 ? "soft" : "main";
+                const text = e.kind === "query" ? pct(m.identity) : "match of a match";
+                const pill = e.label && pillRect(e.label, text.length, PILL.labelH);
+                return (
+                  <g
+                    key={`${e.source}>${e.target}`}
+                    className={`net-edge${on ? " is-hl" : ""}`}
+                    data-edge={`${e.source}>${e.target}`}
+                    data-type={m.type}
+                    data-step={e.step}
+                    data-kind={e.kind}
+                    aria-hidden="true"
+                  >
+                    <path d={curve(e.path)} markerEnd={`url(#net-arrow-${tone})`} markerStart={m.type === "RBH" ? `url(#net-arrow-${tone})` : undefined} />
+                    {pill && (
+                      <g className="net-pill">
+                        <rect x={pill.x} y={pill.y} width={pill.width} height={pill.height} rx={pill.height / 2} />
+                        <text x={e.label!.x} y={e.label!.y}>{text}</text>
+                      </g>
+                    )}
+                  </g>
+                );
+              })}
             </g>
-          );
-        })}
-      </svg>
-      <figcaption className="mt-1 text-sm text-muted">
-        Network of the query and its shown matches (the same matches as the list below). Arrows run from the query.
-        Solid line with an arrowhead at both ends: RBH, a reciprocal pair. Dashed line with one arrowhead: OWH, a
-        one-way hit (the reverse direction is not implied). Square: best match (filled), or the highest identity shown when
-        the group is below {pct(weakBelow)} (unfilled, weak evidence); circle: other match. Best is one per database
-        (ties all best), by identity only: it ignores coverage and the match type. The order of the rows is not a
-        ranking across databases.
+            <g>
+              {layout.nodes.map((s, i) => {
+                const n = network.nodes[i]!;
+                const via = n.via ? nodeById.get(n.via) : undefined;
+                return (
+                  <g key={n.id}>
+                    <Chip
+                      slot={s}
+                      node={n}
+                      via={via}
+                      clip={`net-clip-${i}`}
+                      cls={hl(n.id)}
+                      describedby={shown === n.id}
+                      onActivate={() => go(n.id)}
+                      onShowCard={() => showCard(n.id)}
+                      onHover={(on) => hoverNode(n.id, on)}
+                      onFocus={(on) => focusNode(n.id, on)}
+                    />
+                    {s.expand && counts.get(n.id)! > 0 && (
+                      <ExpandPill slot={s} node={n} count={counts.get(n.id)!} open={expanded.includes(n.id)} onToggle={() => toggle(n.id)} />
+                    )}
+                  </g>
+                );
+              })}
+            </g>
+          </svg>
+        </div>
+        {shown && tip && shownNode && (
+          <div ref={tipRef} id="net-tip" role="tooltip" className="net-tip" data-testid="network-tooltip">
+            {tip.lines.map((l, i) => (
+              <div key={i} data-line className={i === 0 ? "font-semibold" : undefined}>
+                {l}
+              </div>
+            ))}
+            <p className="net-tip-hint">
+              Press Enter to make this the query.
+              {cardOf(shownNode.id) ? " Press L to show its card in the list." : " It is not in the list: it is a match of a match."}
+              {tip.truncated ? " The phenotype is cut here; the full text is in the list." : ""}
+            </p>
+          </div>
+        )}
+      </div>
+      <figcaption className="mt-2 text-sm text-muted">
+        <ul className="net-legend" aria-label="Legend">
+          {(["card", "ncbi", "resfinder"] as const).map((d) => (
+            <li key={d}>
+              <svg width={SWATCH.width} height={SWATCH.height} viewBox={`0 0 ${SWATCH.width} ${SWATCH.height}`} aria-hidden="true">
+                <path d={chipPath(SWATCH.chip, DB_SHAPE[d])} className="net-swatch" data-db={d} />
+              </svg>
+              {BADGE[d]} ({{ card: "rounded", ncbi: "cut corners", resfinder: "pill" }[d]})
+            </li>
+          ))}
+          <li>
+            <Swatch type="RBH" />
+            RBH, reciprocal best hit
+          </li>
+          <li>
+            <Swatch type="OWH" />
+            OWH, one-way hit
+          </li>
+          <li>
+            <svg width={SWATCH.width} height={SWATCH.height} viewBox={`0 0 ${SWATCH.width} ${SWATCH.height}`} aria-hidden="true">
+              <path d={chipPath(SWATCH.chip, "round")} className="net-swatch net-swatch-step2" />
+            </svg>
+            Match of a match (dashed)
+          </li>
+        </ul>
+        <p className="mt-2" data-testid="network-note">
+          The same matches as the list below. Solid-line arrows run from the query and the percentage on them is the identity; after an expand, the lighter arrows run from the match that was expanded. Best is the highest identity in
+          its database (ties all best), by identity only; in a group below 90% the label is Highest identity shown. Click a node or press Enter to make it the
+          query; hover or focus shows its details. The + button on a match adds that entry&apos;s own matches.
+        </p>
+        {step2 > 0 || expanded.length > 0 ? (
+          <p className="mt-1" data-testid="network-step2-note">
+            A match of a match is not a match of the query. On a dashed chip, identity, coverage and type are between that chip and the entry named on
+            it, not the query.
+            {vis.hidden > 0 ? ` ${vis.hidden} reverse ${vis.hidden === 1 ? "hit" : "hits"} back to the query (expected for a reciprocal pair) ${vis.hidden === 1 ? "is" : "are"} not drawn.` : ""}
+          </p>
+        ) : null}
+        {network.truncated && (
+          <p className="mt-1" data-testid="network-cap">
+            Showing {network.nodes.length} of {network.nodes.length + network.truncated.dropped} nodes: the limit is {MAX_NODES}, so {network.truncated.dropped} lower-ranked (identity, then id) {network.truncated.dropped === 1 ? "match" : "matches"} of matches {network.truncated.dropped === 1 ? "is" : "are"} not drawn. Collapse one of the expanded matches to see others.
+          </p>
+        )}
+        <p className="sr-only" role="status" data-testid="network-status">
+          {step2 > 0 ? `${step2} ${step2 === 1 ? "match" : "matches"} of matches shown, not matches of the query.` : ""}
+        </p>
       </figcaption>
     </figure>
+  );
+}
+
+function Swatch({ type }: { type: "RBH" | "OWH" }) {
+  return (
+    <svg width={SWATCH.width} height={SWATCH.height} viewBox={`0 0 ${SWATCH.width} ${SWATCH.height}`} aria-hidden="true">
+      <g className="net-edge" data-type={type}>
+        <path
+          d={`M${SWATCH.line.from.x},${SWATCH.line.from.y} L${SWATCH.line.to.x},${SWATCH.line.to.y}`}
+          markerEnd="url(#net-arrow-main)"
+          markerStart={type === "RBH" ? "url(#net-arrow-main)" : undefined}
+        />
+      </g>
+    </svg>
+  );
+}
+
+// One chip: outline in the database's shape, a database badge with its name as text, up to three lines of text, the
+// Best ribbon, and an invisible rectangle (the click target, the size of the chip) on top.
+function Chip({
+  slot,
+  node: n,
+  via,
+  clip,
+  cls,
+  describedby,
+  onActivate,
+  onShowCard,
+  onHover,
+  onFocus,
+}: {
+  slot: NodeSlot;
+  node: NetNode;
+  via?: NetNode;
+  clip: string;
+  cls: string;
+  describedby: boolean;
+  onActivate: () => void;
+  onShowCard: () => void;
+  onHover: (on: boolean) => void;
+  onFocus: (on: boolean) => void;
+}) {
+  const shape = DB_SHAPE[n.database];
+  const query = n.role === "query";
+  const [l1, l2, l3] = slot.lines;
+  const detail = query ? "Query" : `${pct(n.hit!.identity)} · ${n.hit!.type}`;
+  const second = n.role === "step2" ? ellipsize(`match of ${via?.name ?? n.via}`, DETAIL_MAX) : ellipsize(native(n), ID_MAX);
+  const ribbon = n.role === "match" && n.best ? ribbonRect(slot, n.weak) : null;
+  return (
+    <g
+      className={`net-node${cls}`}
+      data-node={n.id}
+      data-role={n.role}
+      data-db={n.database}
+      data-shape={shape}
+      data-best={n.role === "match" && n.best ? (n.weak ? "highest" : "best") : undefined}
+      data-via={n.via}
+      role="button"
+      tabIndex={0}
+      aria-label={ariaLabel(n, via)}
+      aria-disabled={query || undefined}
+      aria-describedby={describedby ? "net-tip" : undefined}
+      onClick={onActivate}
+      onKeyDown={(e) => {
+        if (e.key === "l" || e.key === "L") {
+          if (!e.ctrlKey && !e.metaKey && !e.altKey) onShowCard();
+        } else activate(e, onActivate);
+      }}
+      onMouseEnter={() => onHover(true)}
+      onMouseLeave={() => onHover(false)}
+      onFocus={() => onFocus(true)}
+      onBlur={() => onFocus(false)}
+    >
+      <path className="net-shape" d={chipPath(slot.rect, shape)} />
+      <rect className="net-badge" x={slot.badge.x} y={slot.badge.y} width={slot.badge.width} height={slot.badge.height} clipPath={`url(#${clip})`} />
+      <text className="net-badge-text" x={slot.badgeText.x} y={slot.badgeText.y}>{BADGE[n.database]}</text>
+      <text className="net-name" x={l1.x} y={l1.y}>{ellipsize(n.name, query ? QUERY_NAME_MAX : NAME_MAX)}</text>
+      <text className="net-sub" x={l2.x} y={l2.y}>{query ? ellipsize(native(n), ID_MAX) : second}</text>
+      <text className="net-detail" x={l3.x} y={l3.y}>{detail}</text>
+      {ribbon && (
+        <g className="net-ribbon" data-weak={n.weak || undefined}>
+          <rect x={ribbon.x} y={ribbon.y} width={ribbon.width} height={ribbon.height} rx={ribbon.height / 2} />
+          <text x={ribbon.x + ribbon.width / 2} y={ribbon.y + ribbon.height / 2}>{n.weak ? "Highest identity shown" : "Best"}</text>
+        </g>
+      )}
+      <rect className="net-hit" x={slot.hit.x} y={slot.hit.y} width={slot.hit.width} height={slot.hit.height} />
+    </g>
+  );
+}
+
+// The "+n" pill on the right edge of a match: a button of its own (Tab reaches it after its chip) that adds or
+// removes that entry's own matches. Its name says what it does and how many matches it promises.
+function ExpandPill({ slot, node: n, count, open, onToggle }: { slot: NodeSlot; node: NetNode; count: number; open: boolean; onToggle: () => void }) {
+  const text = open ? MINUS : `+${count}`;
+  const p = pillRect(slot.expand!.centre, text.length, EXPAND_H);
+  const hit = slot.expand!.hit;
+  return (
+    <g
+      className={`net-expand${open ? " is-open" : ""}`}
+      data-expand={n.id}
+      role="button"
+      tabIndex={0}
+      aria-expanded={open}
+      aria-label={`${open ? "Collapse" : "Expand"} matches of ${n.name} (${count})`}
+      onClick={onToggle}
+      onKeyDown={(e) => activate(e, onToggle)}
+    >
+      <rect className="net-expand-hit" x={hit.x} y={hit.y} width={hit.width} height={hit.height} />
+      <rect className="net-expand-pill" x={p.x} y={p.y} width={p.width} height={p.height} rx={p.height / 2} />
+      <text x={slot.expand!.centre.x} y={slot.expand!.centre.y}>{text}</text>
+    </g>
   );
 }

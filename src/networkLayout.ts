@@ -1,21 +1,51 @@
 // Pure geometry for the interactive network (tickets #9 and #10). `pixel` is the ONLY function that maps a slot to
-// pixel coordinates: node centres, edge endpoints, label anchors, tooltip anchors and hit regions all go through
-// it, so there is no second mapping to drift. It works on internal slot numbers only (column, row), never on ids.
-// src/layout.ts is the older, smaller picture and is not used here.
+// pixel coordinates: chip rectangles, edge ends, text baselines, the Best ribbon, the expand pill, tooltip anchors
+// and hit regions all derive from it (through `layoutNetwork`), so there is no second mapping to drift. It works on
+// internal slot numbers only (column, row), never on ids. The UI draws what is returned here and adds no coordinate
+// of its own: every offset it needs is a named constant of this file. Derivation: docs/network-layout.md.
 //
 // Three columns, left to right: the query (column 0), its shown matches (column 1) and, when an entry is
 // expanded, the matches of those matches (column 2). A column of k nodes is centred on the tallest column. The
-// viewBox is computed from the content, so a picture with no step-2 nodes is narrower. Derivation: docs/network-layout.md.
-import type { NetEdge, NetNode, Network } from "./networkModel";
+// viewBox is computed from the content, so a picture with no step-2 nodes is narrower.
+//
+// Every number is a viewBox unit. A unit is one CSS pixel only when the figure is drawn at its own width, so the UI
+// keeps the figure at its design width inside a horizontally scrolling container (a node is at least 44 units high).
+import type { NetEdge, NetNode, Network, Role } from "./networkModel";
 
-export const ROW = 56; // vertical space per node: the 48 unit hit target plus an 8 unit gap
+export const ROW = 64; // vertical space per node: a 52 unit chip plus a 12 unit gap
 export const PAD = 16; // space above the first and below the last row
-export const MARGIN_X = 96; // column 0 centre, and the space right of the last column's centre (room for a 24 character label)
-export const COL_GAP = 192; // distance between column centres
-export const CLEARANCE = 20; // an edge stops this far from a node centre: node radius 16 plus room for the arrowhead
-export const LABEL_RISE = 24; // label baseline sits this far above the node centre, anchored at its middle
-export const HIT = 48; // side of the square click target, at least 44 CSS pixels when the picture is drawn at its own width
-export const BOW = 42; // a same-column edge bows out this far to the right
+export const HEADER = 32; // column headings sit in this band above the first row (baseline HEAD_Y)
+export const HEAD_Y = 20;
+export const SIDE = 16; // space left of the query chip and right of the last chip
+export const QUERY_W = 224;
+export const QUERY_H = 72;
+export const CHIP_W = 248; // a match or step-2 chip
+export const CHIP_H = 52; // at least 44, so the chip is its own click target
+export const MARGIN_X = SIDE + QUERY_W / 2; // column 0 centre: 128
+export const COL_GAP = 376; // distance between column centres
+export const BADGE_W = 64; // the database badge at the left of a chip (text label, never colour alone)
+export const TEXT_PAD = 10; // gap between the badge and the text
+export const LINE = [20, 34, 47] as const; // baselines of the three text lines of a chip, from its top
+export const QUERY_LINE = [28, 45, 61] as const; // the same for the query chip
+export const RIBBON_H = 14;
+export const RIBBON_RISE = 7; // the ribbon overhangs the top edge of the chip by this much
+export const RIBBON_INSET = 12; // gap between the ribbon and the right edge of the chip
+export const RIBBON_W = { best: 48, weak: 136 } as const; // "Best" and "Highest identity shown"
+export const EXPAND_HIT = 44; // side of the click target of the expand pill (centred on the chip's right edge)
+export const EXPAND_H = 20; // drawn height of the pill
+export const EXPAND_R = 20; // a step-2 edge starts this far right of the chip edge, clear of the pill
+export const FAN = 8; // spacing of the points where step-1 edges leave the query chip (at most QUERY_H - 16 in all)
+export const LINK_INSET = 16; // a same-column link leaves and enters this far from the chip's vertical centre
+export const QUERY_LINK = 30; // a link back to the query enters this far below its centre, clear of the fan
+export const BOW = 84; // a same-column link bows this far to the right
+export const LABEL_T = 0.7; // identity pill of a step-1 edge sits at this parameter of the curve
+export const LINK_T = 0.5; // label of a step-2 link
+// How much text a chip line holds (characters), at the font sizes of app.css: longer text is cut with an ellipsis and
+// the full text is in the tooltip and in the list.
+export const NAME_MAX = 19;
+export const ID_MAX = 24;
+export const DETAIL_MAX = 26;
+export const QUERY_NAME_MAX = 16;
 
 export interface Point {
   x: number;
@@ -27,40 +57,107 @@ export interface Rect {
   width: number;
   height: number;
 }
+export interface Cubic {
+  from: Point;
+  c1: Point;
+  c2: Point;
+  to: Point;
+}
 export interface NodeSlot {
   id: string;
+  role: Role;
+  column: 0 | 1 | 2;
   centre: Point;
-  label: Point; // text-anchor middle
-  tooltip: Point; // middle of the bottom edge of the hit region
+  rect: Rect; // the chip; it is also the click target
   hit: Rect;
+  badge: Rect; // the database badge, at the left of the chip
+  badgeText: Point; // text-anchor middle
+  lines: [Point, Point, Point]; // baselines of the three text lines, text-anchor start
+  tooltip: Point; // middle of the bottom edge of the chip
+  expand?: { centre: Point; hit: Rect }; // step-1 nodes only: the pill on the chip's right edge
 }
+export type EdgeKind = "query" | "expand" | "link" | "back";
 export interface EdgeSlot {
   source: string;
   target: string;
   step: 1 | 2;
-  from: Point; // cut CLEARANCE from the source centre
-  to: Point; // cut CLEARANCE from the target centre
-  control?: Point; // same-column edges only: a quadratic curve control point (the ends are cut along the line to it)
+  kind: EdgeKind; // query: query to a match; expand: a match to a step-2 node; link: between two matches; back: to the query
+  path: Cubic; // from the source side to the target side
+  label?: Point; // centre of the identity pill (step 1) or of the "match of a match" label (links); none on expand edges
+}
+export interface ColumnHead {
+  column: 0 | 1 | 2;
+  x: number;
+  y: number;
 }
 export interface NetLayout {
   width: number;
   height: number;
+  heads: ColumnHead[];
   nodes: NodeSlot[]; // in the order of network.nodes
   edges: EdgeSlot[]; // in the order of network.edges
 }
 
 // The single position-to-pixel function. column: 0 query, 1 matches, 2 step-2; row: 0 to count - 1 within the
-// column; count: nodes in this column; rows: nodes in the tallest column. Row centre y = PAD + ROW * ((rows - count) / 2 + row) + ROW / 2.
+// column; count: nodes in this column; rows: nodes in the tallest column (at least 1).
+// Row centre y = HEADER + PAD + ROW * ((rows - count) / 2 + row) + ROW / 2.
 export function pixel(column: 0 | 1 | 2, row: number, count: number, rows: number): Point {
-  return { x: MARGIN_X + COL_GAP * column, y: PAD + ROW * ((rows - count) / 2 + row) + ROW / 2 };
+  return { x: MARGIN_X + COL_GAP * column, y: HEADER + PAD + ROW * ((rows - count) / 2 + row) + ROW / 2 };
 }
 
 const COLUMN = { query: 0, match: 1, step2: 2 } as const;
+const widthOf = (role: Role) => (role === "query" ? QUERY_W : CHIP_W);
+const heightOf = (role: Role) => (role === "query" ? QUERY_H : CHIP_H);
 
-// A point `distance` from `a` towards `b`.
-const towards = (a: Point, b: Point, distance: number): Point => {
-  const len = Math.hypot(b.x - a.x, b.y - a.y);
-  return { x: a.x + ((b.x - a.x) / len) * distance, y: a.y + ((b.y - a.y) / len) * distance };
+// Text cut to at most `max` characters (code points), ending in an ellipsis when cut.
+export function ellipsize(text: string, max: number): string {
+  const chars = [...text];
+  return chars.length <= max ? text : `${chars.slice(0, Math.max(1, max - 1)).join("")}…`;
+}
+
+// The Best ribbon: overhangs the top edge of the chip at its right.
+export function ribbonRect(slot: NodeSlot, weak: boolean): Rect {
+  const width = weak ? RIBBON_W.weak : RIBBON_W.best;
+  return { x: slot.rect.x + slot.rect.width - RIBBON_INSET - width, y: slot.rect.y - RIBBON_RISE, width, height: RIBBON_H };
+}
+
+// Chip outline: the database is carried by the shape as well as by colour. CARD: rounded corners of radius CORNER;
+// NCBI: corners cut by CORNER; ResFinder: a pill (ends are half circles). Used for the outline, the badge clip and
+// the legend swatches.
+export const CORNER = 10;
+export type ChipShape = "round" | "cut" | "pill";
+export const DB_SHAPE = { card: "round", ncbi: "cut", resfinder: "pill" } as const;
+export function chipPath({ x, y, width: w, height: h }: Rect, shape: ChipShape): string {
+  const [x2, y2, c] = [x + w, y + h, Math.min(CORNER, h / 2)];
+  if (shape === "pill") {
+    const r = h / 2;
+    return `M${x + r},${y} H${x2 - r} A${r},${r} 0 0 1 ${x2 - r},${y2} H${x + r} A${r},${r} 0 0 1 ${x + r},${y} Z`;
+  }
+  if (shape === "cut") return `M${x + c},${y} H${x2 - c} L${x2},${y + c} V${y2 - c} L${x2 - c},${y2} H${x + c} L${x},${y2 - c} V${y + c} Z`;
+  return `M${x + c},${y} H${x2 - c} Q${x2},${y} ${x2},${y + c} V${y2 - c} Q${x2},${y2} ${x2 - c},${y2} H${x + c} Q${x},${y2} ${x},${y2 - c} V${y + c} Q${x},${y} ${x + c},${y} Z`;
+}
+
+// A pill around a label (identity on an edge, "+3" on the expand control): width grows with the text.
+export const PILL = { pad: 12, char: 6, labelH: 18 } as const;
+export const pillRect = (centre: Point, chars: number, height: number): Rect => {
+  const width = PILL.pad + PILL.char * chars;
+  return { x: centre.x - width / 2, y: centre.y - height / 2, width, height };
+};
+
+// The legend swatches (a small drawing of a chip outline and of an edge), in their own viewBox.
+export const SWATCH = { width: 34, height: 16, chip: { x: 2, y: 1, width: 30, height: 14 }, line: { from: { x: 5, y: 8 }, to: { x: 29, y: 8 } } } as const;
+
+// A point of a cubic at parameter t.
+export function cubicAt(c: Cubic, t: number): Point {
+  const u = 1 - t;
+  const [a, b, d, e] = [u * u * u, 3 * u * u * t, 3 * u * t * t, t * t * t];
+  return { x: a * c.from.x + b * c.c1.x + d * c.c2.x + e * c.to.x, y: a * c.from.y + b * c.c1.y + d * c.c2.y + e * c.to.y };
+}
+
+// A curve that leaves `from` and enters `to` horizontally: both control points are half the horizontal distance out.
+const sCurve = (from: Point, to: Point): Cubic => {
+  const dx = (to.x - from.x) / 2;
+  return { from, c1: { x: from.x + dx, y: from.y }, c2: { x: to.x - dx, y: to.y }, to };
 };
 
 export function layoutNetwork(network: Pick<Network, "nodes" | "edges">): NetLayout {
@@ -71,33 +168,64 @@ export function layoutNetwork(network: Pick<Network, "nodes" | "edges">): NetLay
   const nodes: NodeSlot[] = network.nodes.map((n: NetNode) => {
     const column = COLUMN[n.role];
     const c = pixel(column, seen[column]!++, counts[column]!, rows);
+    const [w, h] = [widthOf(n.role), heightOf(n.role)];
+    const rect = { x: c.x - w / 2, y: c.y - h / 2, width: w, height: h };
+    const base = n.role === "query" ? QUERY_LINE : LINE;
+    const x = rect.x + BADGE_W + TEXT_PAD;
     return {
       id: n.id,
+      role: n.role,
+      column,
       centre: c,
-      label: { x: c.x, y: c.y - LABEL_RISE },
-      tooltip: { x: c.x, y: c.y + HIT / 2 },
-      hit: { x: c.x - HIT / 2, y: c.y - HIT / 2, width: HIT, height: HIT },
+      rect,
+      hit: rect,
+      badge: { x: rect.x, y: rect.y, width: BADGE_W, height: h },
+      badgeText: { x: rect.x + BADGE_W / 2, y: c.y },
+      lines: [{ x, y: rect.y + base[0] }, { x, y: rect.y + base[1] }, { x, y: rect.y + base[2] }],
+      tooltip: { x: c.x, y: rect.y + h },
+      ...(n.role === "match" && {
+        expand: { centre: { x: rect.x + w, y: c.y }, hit: { x: rect.x + w - EXPAND_HIT / 2, y: c.y - EXPAND_HIT / 2, width: EXPAND_HIT, height: EXPAND_HIT } },
+      }),
     };
   });
   const byId = new Map(nodes.map((n) => [n.id, n]));
+  const slot = (id: string) => {
+    const s = byId.get(id);
+    if (!s) throw new Error(`Edge endpoint ${id} is not a node`);
+    return s;
+  };
+  const fanned = network.edges.filter((e) => e.step === 1).length;
+  const pitch = fanned > 1 ? Math.min(FAN, (QUERY_H - 16) / (fanned - 1)) : 0;
+  let k = 0;
   const edges = network.edges.map((e: NetEdge): EdgeSlot => {
-    const a = byId.get(e.source)?.centre;
-    const b = byId.get(e.target)?.centre;
-    if (!a || !b) throw new Error(`Edge ${e.source} -> ${e.target}: endpoint is not a node`);
-    const control = a.x === b.x ? { x: a.x + BOW, y: (a.y + b.y) / 2 } : undefined;
-    const aim = control ?? b;
-    return {
-      source: e.source,
-      target: e.target,
-      step: e.step,
-      from: towards(a, aim, CLEARANCE),
-      to: towards(b, control ?? a, CLEARANCE),
-      ...(control && { control }),
-    };
+    const a = slot(e.source);
+    const b = slot(e.target);
+    const base = { source: e.source, target: e.target, step: e.step };
+    if (e.step === 1) {
+      const from = { x: a.rect.x + a.rect.width, y: a.centre.y + (k++ - (fanned - 1) / 2) * pitch };
+      const path = sCurve(from, { x: b.rect.x, y: b.centre.y });
+      return { ...base, kind: "query", path, label: cubicAt(path, LABEL_T) };
+    }
+    if (b.role === "step2") return { ...base, kind: "expand", path: sCurve({ x: a.rect.x + a.rect.width + EXPAND_R, y: a.centre.y }, { x: b.rect.x, y: b.centre.y }) };
+    if (b.role === "query") {
+      const path = sCurve({ x: a.rect.x, y: a.centre.y + LINK_INSET }, { x: b.rect.x + b.rect.width, y: b.centre.y + QUERY_LINK });
+      return { ...base, kind: "back", path, label: cubicAt(path, LINK_T) };
+    }
+    const dir = Math.sign(b.centre.y - a.centre.y);
+    const xr = a.rect.x + a.rect.width;
+    const from = { x: xr, y: a.centre.y + dir * LINK_INSET };
+    const to = { x: xr, y: b.centre.y - dir * LINK_INSET };
+    const path = { from, c1: { x: xr + BOW, y: from.y }, c2: { x: xr + BOW, y: to.y }, to };
+    return { ...base, kind: "link", path, label: cubicAt(path, LINK_T) };
   });
   const last = counts[2]! > 0 ? 2 : counts[1]! > 0 ? 1 : 0;
-  return { width: pixel(last, 0, 1, 1).x + MARGIN_X, height: 2 * PAD + ROW * rows, nodes, edges };
+  const right = pixel(last, 0, 1, 1).x + (last === 0 ? QUERY_W : CHIP_W) / 2 + SIDE;
+  const heads = ([0, 1, 2] as const).filter((c) => c <= last).map((column) => ({ column, x: pixel(column, 0, 1, 1).x, y: HEAD_Y }));
+  return { width: right, height: HEADER + 2 * PAD + ROW * rows, heads, nodes, edges };
 }
 
-// The rectangle of every node's invisible click target, in node order, for the UI to place over the node.
+// The rectangle of every node's click target (its chip), in node order.
 export const hitRegions = (layout: NetLayout): (Rect & { id: string })[] => layout.nodes.map((n) => ({ id: n.id, ...n.hit }));
+// The click target of every expand pill, for the step-1 nodes only.
+export const expandRegions = (layout: NetLayout): (Rect & { id: string })[] =>
+  layout.nodes.flatMap((n) => (n.expand ? [{ id: n.id, ...n.expand.hit }] : []));
