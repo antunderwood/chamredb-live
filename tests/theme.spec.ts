@@ -47,11 +47,22 @@ for (const scheme of ["light", "dark"] as const) {
     expect(await css(page, '[data-match] [data-chip="match"]', "background-color")).toBe(rgb(t["--chip-match"]));
     expect(await css(page, "strong", "background-color")).toBe(rgb(t["--accent"]));
     expect(await css(page, "strong", "color")).toBe(rgb(t["--accent-fg"]));
-    expect(await css(page, '[data-testid="network"] g[data-node="ncbi:WP_1.1"] rect', "fill")).toBe(rgb(t["--accent"]));
-    expect(await css(page, '[data-testid="network"] g[data-node="ncbi:WP_4.1"] circle', "fill")).toBe(rgb(t["--surface"]));
-    expect(await css(page, '[data-testid="network"] g[data-node="ncbi:WP_4.1"] circle', "stroke")).toBe(rgb(t["--fg"]));
-    expect(await css(page, '[data-testid="network"] [data-edge]', "stroke")).toBe(rgb(t["--fg"]));
-    expect(await css(page, '[data-testid="network"] g[data-node="ncbi:WP_4.1"] text:nth-of-type(2)', "fill")).toBe(rgb(t["--muted"]));
+    const node = (id: string, part: string) => `[data-testid="network"] g[data-node="${id}"] ${part}`;
+    expect(await css(page, node("ncbi:WP_1.1", ".net-badge"), "fill")).toBe(rgb(t["--db-ncbi"]));
+    expect(await css(page, node("ncbi:WP_1.1", ".net-badge-text"), "fill")).toBe(rgb(t["--db-ncbi-fg"]));
+    expect(await css(page, node("resfinder:blaX", ".net-badge"), "fill")).toBe(rgb(t["--db-resfinder"]));
+    expect(await css(page, node("card:ARO:1000", ".net-badge"), "fill")).toBe(rgb(t["--db-card"]));
+    expect(await css(page, node("ncbi:WP_4.1", ".net-shape"), "fill")).toBe(rgb(t["--surface"]));
+    expect(await css(page, node("ncbi:WP_4.1", ".net-shape"), "stroke")).toBe(rgb(t["--db-ncbi"]));
+    expect(await css(page, node("card:ARO:1000", ".net-shape"), "fill")).toBe(rgb(t["--brand"])); // the query chip
+    expect(await css(page, node("card:ARO:1000", ".net-name"), "fill")).toBe(rgb(t["--brand-fg"]));
+    expect(await css(page, node("ncbi:WP_1.1", ".net-ribbon rect"), "fill")).toBe(rgb(t["--best"]));
+    expect(await css(page, node("ncbi:WP_1.1", ".net-ribbon text"), "fill")).toBe(rgb(t["--best-fg"]));
+    expect(await css(page, node("ncbi:WP_4.1", ".net-name"), "fill")).toBe(rgb(t["--fg"]));
+    expect(await css(page, node("ncbi:WP_4.1", ".net-sub"), "fill")).toBe(rgb(t["--muted"]));
+    expect(await css(page, '[data-testid="network"] [data-edge] path', "stroke")).toBe(rgb(t["--muted"]));
+    expect(await css(page, '[data-testid="network"] .net-pill rect', "fill")).toBe(rgb(t["--surface"]));
+    expect(await css(page, "[data-expand]  .net-expand-pill", "stroke")).toBe(rgb(t["--chip-match"]));
 
     // Phenotype blocks and the weak-evidence warning (danger text on a surface).
     await search(page, "card:ARO:2000");
@@ -96,7 +107,7 @@ test("swap test: serving theme.bsb.css as the tokens file restyles the same buil
   expect(await css(page, "body", "background-color")).toBe(rgb(light["--bg"]));
   expect(await css(page, "button[type=submit]", "background-color")).toBe("rgb(226, 100, 58)"); // Orange
   expect(await css(page, "button[type=submit]", "color")).toBe("rgb(22, 16, 38)"); // Midnight
-  expect(await css(page, '[data-testid="network"] g[data-node="ncbi:WP_1.1"] rect', "fill")).toBe("rgb(226, 100, 58)"); // a mark
+  expect(await css(page, '[data-testid="network"] g[data-node="card:ARO:1000"] .net-badge', "fill")).toBe("rgb(226, 100, 58)"); // a mark (CARD badge: Orange)
   expect(await css(page, "h1", "color")).toBe("rgb(22, 16, 38)");
   expect(await css(page, "header", "background-color")).toBe("rgb(135, 51, 139)"); // Purple, the new header token
   expect(await css(page, 'section[aria-label="Matches in ncbi"] h2', "background-color")).toBe(rgb(light["--chip-db"])); // database chip
@@ -113,5 +124,5 @@ test("swap test in dark mode: the BSB dark variant uses Midnight as background w
   expect(await css(page, "body", "background-color")).toBe("rgb(22, 16, 38)");
   expect(await css(page, "h1", "color")).toBe("rgb(240, 240, 247)");
   expect(await css(page, "select", "border-top-color")).toBe("rgb(143, 137, 163)"); // dark --control-border
-  expect(await css(page, '[data-testid="network"] g[data-node="ncbi:WP_1.1"] rect', "fill")).toBe("rgb(226, 100, 58)");
+  expect(await css(page, '[data-testid="network"] g[data-node="card:ARO:1000"] .net-badge', "fill")).toBe("rgb(226, 100, 58)");
 });

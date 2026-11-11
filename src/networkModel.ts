@@ -105,3 +105,21 @@ export function buildNetwork(index: Index, queryId: string, minIdentity: number,
   const dropped = ranked.length - kept.length;
   return dropped > 0 ? { nodes, edges, truncated: { dropped } } : { nodes, edges };
 }
+
+// The edges the picture draws. A step-2 edge from a step-1 node back to the query is the reverse of the
+// query's own edge to that node. When that edge is an RBH, the reverse is expected from reciprocity and is not
+// independent evidence, so it is hidden by default (the RBH edge already has an arrowhead at both ends). Anything
+// else stays: a reverse hit behind a one-way match is a separate hit. `hidden` counts what was left out.
+export function visibleEdges(network: Pick<Network, "nodes" | "edges">): { edges: NetEdge[]; hidden: number } {
+  const query = network.nodes.find((n) => n.role === "query")?.id;
+  const rbh = new Set(network.edges.filter((e) => e.step === 1 && e.type === "RBH").map((e) => e.target));
+  const edges = network.edges.filter((e) => !(e.step === 2 && e.target === query && rbh.has(e.source)));
+  return { edges, hidden: network.edges.length - edges.length };
+}
+
+// How many own matches an expand control promises: the matches of `id` at this minimum identity, not counting the
+// query (its reverse hit is expected and hidden by default). It counts new nodes and links to shown nodes alike;
+// the cap can still keep some of the new nodes off the picture, and the picture says so when it does.
+export function ownMatchCount(index: Index, id: string, minIdentity: number, queryId: string): number {
+  return matchGroups(index, id, minIdentity).reduce((n, g) => n + g.matches.filter((m) => m.entry.id !== queryId).length, 0);
+}

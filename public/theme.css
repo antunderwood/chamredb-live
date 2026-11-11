@@ -30,6 +30,14 @@
   --chip-fg: #ffffff;
   --label: #2b6e52; /* the green label bars */
   --label-fg: #ffffff;
+  --db-card: #b34a0a; /* database badges and chip outlines of the network picture, with text on them (shapes carry the database too) */
+  --db-card-fg: #ffffff;
+  --db-ncbi: #2b57c4;
+  --db-ncbi-fg: #ffffff;
+  --db-resfinder: #a8246f;
+  --db-resfinder-fg: #ffffff;
+  --best: #8a6100; /* the Best ribbon: a deep gold that reaches 3:1 on the panel and the surface */
+  --best-fg: #ffffff;
   --font-body: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
 @media (prefers-color-scheme: dark) {
@@ -56,6 +64,14 @@
     --chip-fg: #120f1d;
     --label: #6fd0a6;
     --label-fg: #0b1e16;
+    --db-card: #f2a257;
+    --db-card-fg: #1b1006;
+    --db-ncbi: #86a6ff;
+    --db-ncbi-fg: #0b1634;
+    --db-resfinder: #f08cc4;
+    --db-resfinder-fg: #3a0d27;
+    --best: #f4c542;
+    --best-fg: #1b1306;
   }
 }
 :root[data-theme="dark"] {
@@ -81,4 +97,12 @@
   --chip-fg: #120f1d;
   --label: #6fd0a6;
   --label-fg: #0b1e16;
+  --db-card: #f2a257;
+  --db-card-fg: #1b1006;
+  --db-ncbi: #86a6ff;
+  --db-ncbi-fg: #0b1634;
+  --db-resfinder: #f08cc4;
+  --db-resfinder-fg: #3a0d27;
+  --best: #f4c542;
+  --best-fg: #1b1306;
 }

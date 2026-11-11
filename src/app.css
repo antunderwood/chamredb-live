@@ -117,3 +117,284 @@ button[type="submit"]:not(:disabled):active {
 .example-button:hover {
   border-color: var(--fg);
 }
+
+/* ---- Network picture (tickets #9 and #10). Colours are tokens only; the database is also carried by shape and text. ---- */
+/* The figure keeps its design width and scrolls sideways inside its own box: a node is 44 units high only at scale 1. */
+.net-wrap {
+  position: relative;
+}
+.net-scroll {
+  overflow-x: auto;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background-color: var(--panel);
+  background-image: radial-gradient(var(--border) 1px, var(--panel) 1px);
+  background-size: 22px 22px;
+  padding: 4px;
+}
+.net-svg {
+  display: block;
+  margin: 0 auto;
+  max-width: none;
+  overflow: visible;
+}
+/* A wide screen lets the section break out of the text column so the expanded picture (three columns) fits without scrolling. */
+@media (min-width: 1100px) {
+  .network-section {
+    width: min(1080px, calc(100vw - 2rem));
+    margin-left: 50%;
+    transform: translateX(-50%);
+  }
+}
+.net-head {
+  fill: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  text-anchor: middle;
+}
+/* edges: RBH solid, OWH dashed; a step-2 edge is lighter and thinner */
+.net-edge path {
+  fill: none;
+  stroke: var(--muted);
+  stroke-width: 1.8;
+}
+.net-edge[data-type="OWH"] path {
+  stroke-dasharray: 7 5;
+}
+.net-edge[data-step="2"] path {
+  stroke: var(--control-border);
+  stroke-width: 1.5;
+}
+.net-edge.is-hl path {
+  stroke: var(--accent);
+  stroke-width: 3;
+}
+.net-dim .net-edge:not(.is-hl) {
+  opacity: 0.35;
+}
+.net-arrowhead-main {
+  fill: var(--muted);
+}
+.net-arrowhead-soft {
+  fill: var(--control-border);
+}
+.net-arrowhead-hl {
+  fill: var(--accent);
+}
+.net-pill rect {
+  fill: var(--surface);
+  stroke: var(--control-border);
+}
+.net-pill text {
+  fill: var(--fg);
+  font-size: 11px;
+  font-weight: 700;
+  text-anchor: middle;
+  dominant-baseline: central;
+}
+.net-edge[data-step="2"] .net-pill text {
+  font-weight: 600;
+  font-size: 10px;
+}
+/* nodes */
+.net-node {
+  cursor: pointer;
+  --net-db: var(--muted);
+  --net-db-fg: var(--surface);
+}
+.net-node[data-db="card"],
+.net-swatch[data-db="card"] {
+  --net-db: var(--db-card);
+  --net-db-fg: var(--db-card-fg);
+}
+.net-node[data-db="ncbi"],
+.net-swatch[data-db="ncbi"] {
+  --net-db: var(--db-ncbi);
+  --net-db-fg: var(--db-ncbi-fg);
+}
+.net-node[data-db="resfinder"],
+.net-swatch[data-db="resfinder"] {
+  --net-db: var(--db-resfinder);
+  --net-db-fg: var(--db-resfinder-fg);
+}
+.net-shape,
+.net-swatch {
+  fill: var(--surface);
+  stroke: var(--net-db);
+  stroke-width: 1.5;
+}
+.net-node[data-role="query"] .net-shape {
+  fill: var(--brand);
+  stroke-width: 3;
+}
+.net-node[data-role="step2"] .net-shape,
+.net-swatch-step2 {
+  fill: var(--panel);
+  stroke-dasharray: 5 4;
+}
+.net-swatch-step2 {
+  stroke: var(--muted);
+}
+.net-node[data-best] .net-shape {
+  stroke-width: 3;
+}
+.net-badge {
+  fill: var(--net-db);
+}
+.net-badge-text {
+  fill: var(--net-db-fg);
+  font-size: 10px;
+  font-weight: 800;
+  text-anchor: middle;
+  dominant-baseline: central;
+}
+.net-name {
+  fill: var(--fg);
+  font-size: 13px;
+  font-weight: 700;
+}
+.net-sub,
+.net-detail {
+  fill: var(--muted);
+  font-size: 11px;
+}
+.net-detail {
+  font-weight: 600;
+}
+.net-node[data-role="query"] .net-name {
+  font-size: 15px;
+}
+.net-node[data-role="query"] .net-name,
+.net-node[data-role="query"] .net-sub,
+.net-node[data-role="query"] .net-detail {
+  fill: var(--brand-fg);
+}
+.net-hit {
+  fill: none;
+  pointer-events: all;
+}
+.net-ribbon rect {
+  fill: var(--best);
+}
+.net-ribbon text {
+  fill: var(--best-fg);
+  font-size: 10px;
+  font-weight: 800;
+  text-anchor: middle;
+  dominant-baseline: central;
+}
+.net-ribbon[data-weak] rect {
+  fill: var(--surface);
+  stroke: var(--muted);
+}
+.net-ribbon[data-weak] text {
+  fill: var(--fg);
+}
+/* hover and keyboard focus: a glow and a thicker outline (the same style for a highlight made from the card) */
+.net-node:hover .net-shape,
+.net-node.is-hl .net-shape {
+  stroke-width: 3;
+  filter: drop-shadow(0 0 6px var(--accent));
+}
+.net-node:focus-visible .net-shape {
+  stroke-width: 3;
+  filter: drop-shadow(0 0 6px var(--accent));
+}
+/* the expand control: a pill with "+n", a minus when open */
+.net-expand {
+  cursor: pointer;
+}
+.net-expand-hit {
+  fill: none;
+  pointer-events: all;
+}
+.net-expand-pill {
+  fill: var(--surface);
+  stroke: var(--chip-match);
+  stroke-width: 2;
+}
+.net-expand text {
+  fill: var(--fg);
+  font-size: 11px;
+  font-weight: 800;
+  text-anchor: middle;
+  dominant-baseline: central;
+}
+.net-expand:hover .net-expand-pill,
+.net-expand.is-open .net-expand-pill {
+  fill: var(--chip-match);
+}
+.net-expand:hover text,
+.net-expand.is-open text {
+  fill: var(--chip-fg);
+}
+.net-expand:focus-visible .net-expand-pill {
+  stroke: var(--accent);
+  stroke-width: 3.5;
+}
+/* the tooltip: its text is the model's lines (src/networkTooltip.ts); pointer-events none so it never hides a node */
+.net-tip {
+  position: absolute;
+  z-index: 20;
+  max-width: 300px;
+  padding: 10px 12px;
+  border: 1px solid var(--control-border);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--fg);
+  box-shadow: var(--shadow-card);
+  font-size: 0.82rem;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+  pointer-events: none;
+}
+.net-tip-hint {
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+.net-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 20px;
+}
+.net-legend li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.net-legend svg {
+  overflow: visible;
+  flex: none;
+}
+/* the card that belongs to a hovered or focused node */
+[data-match][data-hl="true"],
+[data-query][data-hl="true"] {
+  box-shadow: 0 0 0 3px var(--accent);
+}
+/* entrance: only when the visitor has not asked for less motion (a new picture, a new step-2 node) */
+@media (prefers-reduced-motion: no-preference) {
+  .net-node,
+  .net-expand {
+    animation: net-rise 0.35s ease-out backwards;
+  }
+  .net-edge {
+    animation: net-fade 0.45s ease-out backwards;
+  }
+  .net-shape {
+    transition: stroke-width 0.15s;
+  }
+}
+@keyframes net-rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+@keyframes net-fade {
+  from {
+    opacity: 0;
+  }
+}
