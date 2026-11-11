@@ -263,7 +263,22 @@ export function layoutNetwork(network: Pick<Network, "nodes" | "edges">): NetLay
   const last = counts[2]! > 0 ? 2 : counts[1]! > 0 ? 1 : 0;
   const right = pixel(last, 0, 1, 1).x + (last === 0 ? QUERY_W : CHIP_W) / 2 + SIDE;
   const heads = ([0, 1, 2] as const).filter((c) => c <= last).map((column) => ({ column, x: pixel(column, 0, 1, 1).x, y: HEAD_Y }));
-  return { width: right, height: HEADER + 2 * PAD + ROW * rows, heads, nodes, edges };
+  // The picture must hold everything drawn: a link bows right of its column and its label sits on the bow, so the width is
+  // the larger of the last column's edge and the furthest right any edge sample or label pill reaches, plus SIDE (room for
+  // the arrowhead and the box's edge). Likewise the height, plus PAD below. The left and top never need room: every edge
+  // and label lies between the query chip and the last column, below the headings.
+  let [farX, farY] = [0, 0];
+  for (const e of edges) {
+    for (let k = 0; k <= SAMPLES; k++) {
+      const p = cubicAt(e.path, k / SAMPLES);
+      [farX, farY] = [Math.max(farX, p.x), Math.max(farY, p.y)];
+    }
+    if (e.label && (e.kind === "link" || e.kind === "back")) {
+      const r = pillRect(e.label, LINK_LABEL_CHARS, PILL.labelH);
+      [farX, farY] = [Math.max(farX, r.x + r.width), Math.max(farY, r.y + r.height)];
+    }
+  }
+  return { width: Math.max(right, farX + SIDE), height: Math.max(HEADER + 2 * PAD + ROW * rows, farY + PAD), heads, nodes, edges };
 }
 
 // The rectangle of every node's click target (its chip), in node order.

@@ -35,7 +35,7 @@ A shorter column is centred on the tallest one. The query is on the middle row o
 | PILL | pad 12, 6 per character, label height 18 | width of a pill grows with its text |
 | NAME_MAX, ID_MAX, DETAIL_MAX, QUERY_NAME_MAX | 19, 22, 24, 14 | characters per line before an ellipsis (`ellipsize`) |
 
-Size from content: height = HEADER + 2 * PAD + ROW * rows; width = x of the last used column + half its chip + SIDE (query only 256, with matches 644, with step-2 nodes 1020). Zero nodes gives 256 by 128. At the cap (1 query, 6 matches, 18 step-2 nodes) rows = 18 and the height is 1216.
+Size from content: height = max(HEADER + 2 * PAD + ROW * rows, lowest edge sample or label + PAD); width = max(x of the last used column + half its chip + SIDE, furthest right any edge sample (t = k / 32) or "match of a match" pill reaches + SIDE) (query only 256, with matches 644, with step-2 nodes 1020). Zero nodes gives 256 by 128. At the cap (1 query, 6 matches, 18 step-2 nodes) rows = 18 and the height is 1216.
 
 ## Edges
 
@@ -52,7 +52,11 @@ Identity pills sit at t = 0.7 of their edge. A "match of a match" label (a `link
 
 Worked case (fixture D: matches at y 80, 144, 208, a horizontal expand edge at y = 144 from x 648 to 756, the link from (628, 96) to (628, 192) with controls at x = 712). y(t) = 96 + 96 * (3ut^2 + t^3), x(t) = 628 * (u^3 + t^3) + 712 * 3ut. At t = 0.5: (691, 144), pill y 135 to 153, grown 133 to 155: the line y = 144 is inside, so it is charged. At t = 0.4 (u = 0.6): 3ut^2 = 0.288, t^3 = 0.064, y = 96 + 0.352 * 96 = 129.792, x = 628 * 0.28 + 712 * 0.72 = 688.48; pill y 120.792 to 138.792, grown to 140.792: clear. So the label is at (688.48, 129.792). Fixture A (the step-2 edges from the last match cross t = 0.5 and 0.4) has no clear place; t = 0.4 touches least (4 samples), see the tests. Fixture A's back link: t = 0.2 (2 samples) beats t = 0.5. An independent Python re-implementation (not shared with the app) gave the same three results.
 
-Limits: a crowded picture (four links in the same strip, `card:ARO:3002546`) still has some contact (7, 2, 0 and 7 samples, against 7, 10, 24 and 8 at t = 0.5). Chips are not obstacles. When no step-2 column exists the viewBox width (644) does not include the bow of a link or its label, which are drawn past it (visible, since the figure allows overflow).
+Limits: a crowded picture (four links in the same strip, `card:ARO:3002546`) still has some contact (7, 2, 0 and 7 samples, against 7, 10, 24 and 8 at t = 0.5). Chips are not obstacles.
+
+### Size with a link and no step-2 column (fixture E)
+
+A link between two matches bows 63 right of the chip edge (x(0.5) = 628 + 0.75 * 84 = 691 at the chip edge 628) and its label is 108 wide, so a picture with no step-2 column was clipped (owner bug, card:ARO:3000230 at 90%, first expand pill). Fixture E: query, matches m0 and m1 (rows = 2, y 80 and 144), link m0 to m1 from (628, 96) to (628, 128), controls x 712. Label at t = 0.5: (691, 112), pill x 637 to 745. Width = max(644, 745 + 16) = 761; the curve itself reaches 691 only. Height = max(192, 121 + 16) = 192. Without the link the width is the plain 644. Tests: `src/networkLayout.test.ts` (fixture E and an every-sample-inside check) and `tests/network-release.spec.ts` (every drawn edge, pill and chip inside the svg's box at 390, 700 and 1000 px).
 
 ## Click targets
 

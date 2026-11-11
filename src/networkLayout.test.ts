@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { DB_SHAPE, chipPath, ellipsize, expandRegions, hitRegions, layoutNetwork, pillRect, pixel, placeLabel, ribbonRect, type Cubic } from "./networkLayout";
+import { DB_SHAPE, cubicAt, chipPath, ellipsize, expandRegions, hitRegions, layoutNetwork, pillRect, pixel, placeLabel, ribbonRect, type Cubic } from "./networkLayout";
 import { MAX_NODES, type NetEdge, type NetNode, type Network } from "./networkModel";
 
 // Expected pixels worked by hand (docs/network-layout.md). Constants: ROW 64, PAD 16, HEADER 32, SIDE 16, QUERY 224 by
@@ -158,6 +158,40 @@ describe("layoutNetwork: hand-worked pixels", () => {
     const moved = layoutNetwork({ nodes, edges: [...base, edge("m1", "s1", 2), edge("m0", "m2", 2)] }).edges.find((e) => e.kind === "link")!;
     expect(moved.labelT).toBe(0.4); // pill y 120.792 to 138.792, grown by 2 to 140.792: the line y = 144 is clear
     near(moved.label!, 688.48, 129.792);
+  });
+  it("a link between two matches with no step-2 node widens the picture to hold its bow, label and margin (fixture E)", () => {
+    // Fixture E: query, matches m0 and m1 (rows = 2: y = 48 + 32 = 80 and 144), link m0 to m1, no step-2 column.
+    // Last column edge: 504 + 124 + 16 = 644. The link leaves the right edge (628) at y = 80 + 16 = 96 and enters at
+    // 144 - 16 = 128, controls at x = 628 + 84 = 712. Nothing else is near, so the label is at t = 0.5:
+    // x = 0.25 * 628 + 0.75 * 712 = 691, y = 112; the pill is 108 wide, so it reaches 691 + 54 = 745. The curve itself
+    // reaches x = 691 (t = 0.5, sampled). Width = 745 + SIDE 16 = 761. Height: 32 + 2 * 16 + 64 * 2 = 192; the label's
+    // bottom is 112 + 9 = 121, far inside.
+    const nodes = [node("q", "query"), node("m0", "match"), node("m1", "match")];
+    const l = layoutNetwork({ nodes, edges: [edge("q", "m0", 1), edge("q", "m1", 1), edge("m0", "m1", 2)] });
+    const link = l.edges.find((e) => e.kind === "link")!;
+    expect(link.labelT).toBe(0.5);
+    near(link.label!, 691, 112);
+    expect([l.width, l.height]).toEqual([761, 192]);
+    // without the link the picture is the plain 644 wide
+    expect(layoutNetwork({ nodes, edges: [edge("q", "m0", 1), edge("q", "m1", 1)] }).width).toBe(644);
+  });
+  it("every edge sample and every label pill lies inside the picture, for links, back links and expansions", () => {
+    const l = layoutNetwork(A);
+    for (const e of l.edges) {
+      for (let k = 0; k <= 32; k++) {
+        const p = cubicAt(e.path, k / 32);
+        expect(p.x).toBeLessThanOrEqual(l.width - 16);
+        expect(p.y).toBeLessThanOrEqual(l.height);
+      }
+      if (e.kind === "link" || e.kind === "back") {
+        const r = pillRect(e.label!, 16, 18);
+        
+        expect(r.x).toBeGreaterThanOrEqual(0);
+        expect(r.y).toBeGreaterThanOrEqual(0);
+        expect(r.x + r.width).toBeLessThanOrEqual(l.width - 16);
+        expect(r.y + r.height).toBeLessThanOrEqual(l.height);
+      }
+    }
   });
   it("two columns are centred on each other: 2 matches and 3 step-2 nodes", () => {
     const B: Network = { nodes: [node("q", "query"), node("m0", "match"), node("m1", "match"), node("s0", "step2", "m0"), node("s1", "step2", "m0"), node("s2", "step2", "m1")], edges: [] };
