@@ -9,13 +9,17 @@ import type { Entry } from "./types";
 const CHIP_BG = { query: "bg-chip-query", db: "bg-chip-db", name: "bg-chip-name", match: "bg-chip-match" } as const;
 
 export function Chip({ kind, children }: { kind: keyof typeof CHIP_BG; children: ReactNode }) {
-  return <span data-chip={kind} className={`${CHIP_BG[kind]} px-3 py-1 text-base font-semibold text-chip-fg min-w-0 [overflow-wrap:anywhere]`}>{children}</span>;
+  return <span data-chip={kind} className={`${CHIP_BG[kind]} px-3 py-1 text-base font-semibold text-chip-fg min-w-0 [overflow-wrap:anywhere] ${kind === "name" ? "flex-1" : "shrink-0 whitespace-nowrap"}`}>{children}</span>;
 }
+
+// The name and, in brackets, the id the entry is looked up by. Left out when it would only repeat the name
+// (resfinder:blaNDM-1 is named blaNDM-1): the database chip already carries the prefix.
+export const nameWithId = (name: string, shown: string, native: string = shown) => (name === native ? name : `${name} (${shown})`);
 
 // The joined chips of one panel heading (Query or Match, database, name with id).
 // Callers put a space between chips: it is not drawn (flex), but it separates the words for a screen reader.
 export function ChipRow({ children }: { children: ReactNode }) {
-  return <span className="inline-flex max-w-full flex-wrap overflow-hidden rounded-lg shadow-card">{children}</span>;
+  return <span className="flex w-fit max-w-full overflow-hidden rounded-lg shadow-card">{children}</span>;
 }
 
 export function Card({ title, level = 4, children, ...rest }: { title: string; level?: 3 | 4; children: ReactNode } & Record<`data-${string}`, string>) {

@@ -1,6 +1,6 @@
 import type { HTMLAttributes } from "react";
 import { Bar } from "./Bar";
-import { Card, Chip, ChipRow, Field, MetadataCard, PhenotypeCard } from "./Cards";
+import { Card, Chip, ChipRow, Field, MetadataCard, nameWithId, PhenotypeCard } from "./Cards";
 import { scale } from "./bars";
 import { cardDomId, isBelow, matchDetails } from "./cardModel";
 import { showInNetwork } from "./NetworkView";
@@ -18,7 +18,7 @@ export function MatchPanel({ match, native, weak, weakBelow, pair }: { match: Ma
       <div className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-2">
         <h3>
           <ChipRow>
-            <Chip kind="match">Match</Chip> <Chip kind="db">{entry.database}</Chip> <Chip kind="name">{entry.name} ({native})</Chip>
+            <Chip kind="match">Match</Chip> <Chip kind="db">{entry.database}</Chip> <Chip kind="name">{nameWithId(entry.name, native)}</Chip>
           </ChipRow>
         </h3>
         <button
