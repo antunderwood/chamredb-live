@@ -89,3 +89,66 @@ test("phenotype text wraps at phone width (no horizontal scroll)", async ({ page
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
   expect(overflow).toBeLessThanOrEqual(0);
 });
+
+// #24: the side-by-side view. Expected values come from the raw tests/fixtures/graph.json, not from the page. The
+// "not recorded" wording in this view is checked in src/sideBySide.test.ts: in the fixture no entry that has matches in
+// another database lacks a phenotype, so there is no page to open for it.
+test.describe("phenotypes side by side (#24)", () => {
+  const view = async (page: Page, id: string) => {
+    await search(page, id);
+    return page.getByTestId("side-by-side");
+  };
+
+  test("one column per database, the query first, each entry labelled with its database, pieces as stored", async ({ page }) => {
+    const v = await view(page, "card:ARO:1000");
+    await expect(v.getByRole("heading", { level: 2 })).toHaveText("Phenotypes side by side");
+    expect(await v.locator("[data-side-col]").evaluateAll((els) => els.map((e) => e.getAttribute("data-side-col")))).toEqual(["card", "ncbi", "resfinder"]);
+    // [entry, heading words, stored phenotype pieces]
+    const expected: [string, string, string[]][] = [
+      ["card:ARO:1000", "Query card blaX", ["cephalosporin"]],
+      ["ncbi:WP_1.1", "Best match ncbi blaX-1", ["CEPHALOSPORIN"]],
+      ["ncbi:WP_3.1", "Best match ncbi blaX-2", ["CEPHALOSPORIN"]],
+      ["resfinder:blaX", "Best match resfinder blaX", ["Cephalosporins"]],
+    ];
+    for (const [id, heading, pieces] of expected) {
+      expect(node(id).phenotype).toContain(pieces[0]); // the expected pieces are the stored ones
+      const entry = v.locator(`[data-side-entry="${id}"]`);
+      await expect(entry.locator("h3")).toHaveText(heading);
+      await expect(entry.locator("[data-phenotype-item]")).toHaveText(pieces);
+    }
+  });
+
+  test("a tie lists both best matches in the database's column", async ({ page }) => {
+    const v = await view(page, "card:ARO:1000");
+    await expect(v.locator('[data-side-col="ncbi"] [data-side-entry]')).toHaveCount(2);
+  });
+
+  test("the additional phenotype of the query is shown in its column, only where it exists", async ({ page }) => {
+    const v = await view(page, "card:ARO:2000");
+    await expect(v.locator('[data-side-entry="card:ARO:2000"] [data-field="side-additional-phenotype"]')).toContainText("tetracycline");
+    await expect(v.locator('[data-side-entry="ncbi:WP_4.1"] [data-field="side-additional-phenotype"]')).toHaveCount(0);
+  });
+
+  test("a database with no match is a column that says so; with no match anywhere there is no view", async ({ page }) => {
+    const v = await view(page, "card:ARO:2000");
+    await expect(v.locator('[data-side-col="resfinder"] [data-side-none]')).toHaveText("No match at or above 90% identity; 1 below.");
+    await expect(v.locator('[data-side-col="ncbi"]')).toContainText("Best match");
+    await search(page, "resfinder:orphan");
+    await expect(page.getByTestId("side-by-side")).toHaveCount(0);
+  });
+
+  test("a weak group is labelled 'Highest identity shown', never 'Best match'", async ({ page }) => {
+    const v = await view(page, "card:ARO:2000");
+    await page.getByLabel("Minimum identity").fill("80");
+    await expect(v.locator('[data-side-col="resfinder"]')).toContainText("Highest identity shown");
+    await expect(v.locator('[data-side-col="resfinder"]')).not.toContainText("Best match");
+  });
+
+  test("no sideways scroll at 360 px, and no highlighting of shared terms", async ({ page }) => {
+    await page.setViewportSize({ width: 360, height: 800 });
+    const v = await view(page, "card:ARO:1000");
+    await expect(v).toBeVisible();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0);
+    await expect(v.locator("mark")).toHaveCount(0);
+  });
+});
