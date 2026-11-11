@@ -1,40 +1,22 @@
-# Network view (ticket #11)
+# Network view (tickets #9 and #10)
 
-A small SVG picture of the query and the matches the list currently shows (same groups, same minimum identity). The list stays the accessible equivalent; the SVG has `role="img"` with a title and a description naming every match.
+The picture of the query and its matches is the interactive SVG in `src/NetworkView.tsx`. Its geometry, the hand-worked pixels and the limits are in [network-layout.md](network-layout.md); the model it draws is in [data-contract.md](data-contract.md) ("Network model and expansion"). The small picture of ticket #11 and its `src/layout.ts` are retired.
 
-## One position function
+## What the picture shows
 
-`src/layout.ts` `pixel(column, row, orientation)` is the only place a slot becomes a pixel. Node centres, edge endpoints and label anchors all call it. There is no hit test, because the picture is not interactive (deferred).
+- Three columns: the query, its shown matches (the same matches, order, identity, type and Best flags as the list below, at the same minimum identity), and, after an expand, the matches of those matches.
+- A chip per entry: a database badge with the database name as text, then name, native id and identity with type. The outline shape also carries the database (CARD rounded, NCBI cut corners, ResFinder pill). The query is a larger chip.
+- Best is a ribbon reading "Best"; in a group whose top identity is below 90% it reads "Highest identity shown" (the same rule as the list: the model's weak flag, `isWeakGroup`). Step-2 chips carry no ribbon: their flags are relative to the entry they are a match of, not to the query.
+- Edges are directed from the query. RBH: solid, arrowheads at both ends (a reciprocal pair). OWH: dashed, one arrowhead (the reverse direction is not implied). The identity is in a pill on every step-1 edge.
+- Long names and ids are cut with an ellipsis (19 characters for a name, 24 for an id, 16 for the query name); the full text is in the tooltip and the card.
 
-Constants (viewBox units): width 360, row 40, vertical padding 12, query column x 60, neighbour column x 156, edge clearance 13, label gap 14, query label 16 above its centre. Neighbours are listed in the order of the list (database, then identity descending), one row each; the query is centred on the rows at row (n - 1) / 2. Height is 2 * 12 + 40 * n.
+## Interaction
 
-`ltr` puts the query on the left. `rtl` is the mirror: x becomes 360 - x, y is unchanged, label anchors flip to the other side. The app uses `ltr`; `rtl` exists so the flipped case is tested.
-
-## Hand-worked pixels (n = 3)
-
-Row centre y = 12 + 40 * row + 20. Query row 1 gives (60, 72). Neighbour rows 0, 1, 2 give y 32, 72, 112 at x 156.
-
-| Case | Result |
-| --- | --- |
-| First neighbour, ltr | centre (156, 32); label (156 + 14, 32) = (170, 32), start |
-| Last neighbour, ltr | centre (156, 112); label (170, 112) |
-| Last edge, ltr | vector from query (96, 40), length sqrt(9216 + 1600) = 104, unit (12/13, 5/13), clearance 13 gives offset (12, 5); from (72, 77) to (144, 107) |
-| First neighbour, rtl (mirror) | centre (360 - 156, 32) = (204, 32); label (204 - 14, 32) = (190, 32), end; query (300, 72) |
-| Last edge, rtl | from (288, 77) to (216, 107) |
-
-The expected values in `src/layout.test.ts` are these numbers, not computed by the code under test.
-
-## Encodings
-
-- Edges run from the query (arrowhead at the match). RBH: solid line with arrowheads at both ends (a reciprocal pair). OWH: dashed line, one arrowhead (a one-way hit; the reverse is not implied).
-- Best: square node and the text "best" in the label. In a group whose top identity is below 90% (same rule as the list) the text reads "highest" and the square has no accent fill, never "best". Ties are all best, as in the list.
-- Identity is text in the label (one decimal, the same formatting as the list). Edge width does not encode identity (not used, so nothing to map).
-- Colours are `var(--fg)`, `var(--muted)`, `var(--surface)`, `var(--accent)` only. Colour never carries a category.
-- Labels: database and native id, cut to 24 characters with an ellipsis; the full id and name are in the node tooltip (`<title>`) and the list. The longest native id in graph-2026.11.09 is 23 characters and the database prefix takes up to 10, so long ids are cut and two ids sharing a long prefix can look alike (deferred; the list shows them in full); checked visually on the six-match entry card:ARO:3002546 (the maximum out-degree).
-- The query node is filled with the text colour, so the accent fill means best only.
-- Zero matches: nothing is drawn; the list says so.
-
-The interactive network (tickets #9 and #10) has its own geometry in `src/networkLayout.ts`, described in `network-layout.md`; this file's `layout.ts` is retired when the UI tickets wire it in.
+- Every chip is a focusable button (`role="button"`, `tabindex="0"`, an accessible name with entry, database, identity, type and Best). Click or Enter makes it the query: the parent pushes one history entry, so Back and Forward step through the explored entries (the slider and the database filter keep `replaceState`). Focus moves to the new query chip. A database filter that would hide the clicked entry is cleared.
+- Hover or focus shows a tooltip (`role="tooltip"`, `aria-describedby`; lines from `src/networkTooltip.ts`), highlights the node, its edges and its card in the list; hovering or focusing a card highlights its node. Escape dismisses the tooltip. It sits below the node, above it, or beside it, and stays inside the figure. L on a node moves focus to its card; "Show in network" on a card focuses its node.
+- A "+n" pill on a match is a separate button ("Expand matches of X (n)", `aria-expanded`); it adds that entry's own matches in a third column ("Matches of a match"), dashed and lighter, each labelled "match of X" on its chip. The caption says a match of a match is not a match of the query. A step-2 hit that is also a match of the query is not a new node: a lighter link between the two existing nodes is drawn and labelled "match of a match". Step-2 edges carry no identity label. The reverse hit from an RBH match back to the query (expected from reciprocity) is hidden and counted in the caption. Expansion is React state: not in the address, reset when the query changes. The 25 node cap shows one line of text (`network-cap`).
+- The figure keeps its design width inside its own box (`overflow-x: auto`, `tabindex="0"`, labelled) so a node stays at least 44 CSS pixels at any width; the page itself does not scroll sideways. On a wide screen the section widens past the text column so the three column picture fits. A second, portrait layout for narrow screens is a follow-up.
+- `prefers-reduced-motion: reduce`: no entrance animation or transition.
 
 ## Comparison strip bars (#20, ADR 0006)
 

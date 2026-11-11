@@ -1,39 +1,47 @@
 import { describe, expect, it } from "vitest";
-import { HIT, hitRegions, layoutNetwork, pixel } from "./networkLayout";
+import { DB_SHAPE, chipPath, ellipsize, expandRegions, hitRegions, layoutNetwork, pillRect, pixel, ribbonRect } from "./networkLayout";
 import { MAX_NODES, type NetEdge, type NetNode, type Network } from "./networkModel";
 
-// Expected pixels worked by hand (docs/network-layout.md). Constants: ROW 56, PAD 16, MARGIN_X 96 (the first column
-// centre and the margin right of the last), COL_GAP 192, CLEARANCE 20, LABEL_RISE 24, HIT 48, BOW 42.
-// Column x: column 0 = 96, column 1 = 96 + 192 = 288, column 2 = 96 + 2*192 = 480.
-// Row y of a node: 16 + 56 * ((rows - count) / 2 + row) + 56 / 2, where rows is the tallest column and count the
-// nodes in this column.
+// Expected pixels worked by hand (docs/network-layout.md). Constants: ROW 64, PAD 16, HEADER 32, SIDE 16, QUERY 224 by
+// 72, CHIP 248 by 52, MARGIN_X 128 (= SIDE + QUERY_W / 2), COL_GAP 376, BADGE_W 64, TEXT_PAD 10, LINE 20, 34, 47 (the
+// query chip: 28, 45, 61), RIBBON 14 high, 7 above the chip, inset 12, 48 wide (best) or 136 (weak), EXPAND_HIT 44,
+// EXPAND_R 20, FAN 8, LINK_INSET 16, QUERY_LINK 30, BOW 84, LABEL_T 0.7, LINK_T 0.5, PILL pad 12 and 6 per character.
+// Column x: 128, 128 + 376 = 504, 128 + 752 = 880.
+// Row y of a node: 32 + 16 + 64 * ((rows - count) / 2 + row) + 64 / 2, where rows is the tallest column.
 //
-// Fixture A: query, 3 matches (column 1), 3 step-2 nodes (column 2); rows = 3.
-//   Height = 2*16 + 56*3 = 200. Width = 480 + 96 = 576.
-//   Query: count 1, offset (3-1)/2 = 1, y = 16 + 56*1 + 28 = 100, so (96, 100).
-//   Matches: count 3, offset 0: y = 44, 100, 156 at x 288. FIRST (288, 44); LAST (288, 156).
-//   Step-2 column: same rows at x 480: first (480, 44), middle (480, 100), last (480, 156).
-//   Label of the last match: 24 above its centre, so (288, 132), anchor middle.
-//   Hit region of the last match: 48 x 48 centred: x = 288 - 24 = 264, y = 156 - 24 = 132. Tooltip anchor: the
-//   middle of its bottom edge, 24 below the centre: (288, 180).
-//   Edge query to last match: vector (192, 56), length sqrt(36864 + 3136) = sqrt(40000) = 200 (a 7-24-25 triangle
-//   scaled by 8), unit (0.96, 0.28), clearance 20 gives (19.2, 5.6): from (96 + 19.2, 100 + 5.6) = (115.2, 105.6)
-//   to (288 - 19.2, 156 - 5.6) = (268.8, 150.4).
-//   Step-2 edge from the last match (288, 156) to the middle step-2 node (480, 100): vector (192, -56), the same
-//   triangle: from (288 + 19.2, 156 - 5.6) = (307.2, 150.4) to (480 - 19.2, 100 + 5.6) = (460.8, 105.6).
-//   Same-column edge from the first match (288, 44) to the last (288, 156) bows out BOW = 42 to the right: control
-//   = (288 + 42, (44+156)/2) = (330, 100). Each end is cut CLEARANCE along the line to the control point: from the
-//   first, vector (42, 56), length 70 (a 3-4-5 triangle scaled by 14), unit (0.6, 0.8), so from (288 + 12, 44 + 16)
-//   = (300, 60); from the last, vector (42, -56), unit (0.6, -0.8), so to (300, 140).
-// Fixture B (centring): 2 matches and 3 step-2 nodes; rows = 3. Matches: count 2, offset 0.5: y = 16 + 56*0.5 + 28 +
-//   56*row = 72, 128. The query is on the middle row of the tallest column: y = 100.
-// Fixture C: query only: width 2 * 96 = 192, height 2*16 + 56*1 = 88, query (96, 44). Matches but no step 2: width
-//   96 + 192 + 96 = 384.
+// Fixture A: query, 3 matches, 3 step-2 nodes; rows = 3.
+//   Height = 32 + 2*16 + 64*3 = 256. Width = 880 + 124 + 16 = 1020 (half a chip, then SIDE).
+//   Query: count 1, offset (3-1)/2 = 1, y = 48 + 64 + 32 = 144, so (128, 144); rect x = 128 - 112 = 16, y = 144 - 36 = 108, 224 by 72.
+//   Matches: offset 0, y = 48 + 32 = 80, 144, 208 at x 504. FIRST (504, 80); LAST (504, 208).
+//   Last match: rect x = 504 - 124 = 380, y = 208 - 26 = 182, 248 by 52. Badge (380, 182, 64, 52), badge text (412, 208).
+//   Text x = 380 + 64 + 10 = 454; baselines 182 + 20 = 202, 182 + 34 = 216, 182 + 47 = 229. Tooltip anchor (504, 182 + 52 = 234).
+//   Query text x = 16 + 64 + 10 = 90, baselines 108 + 28 = 136, 108 + 45 = 153, 108 + 61 = 169.
+//   Right edge of a match chip: 380 + 248 = 628.
+//   Ribbon, best: x = 628 - 12 - 48 = 568, y = 182 - 7 = 175, 48 by 14. Weak: x = 628 - 12 - 136 = 480.
+//   Expand pill: centre on the right edge (628, 208); hit 44 by 44: (606, 186).
+//   Step-1 edges: 3 leave the query chip (right edge x = 128 + 112 = 240) at y = 144 + (k - 1) * 8 = 136, 144, 152
+//   (the pitch is min(8, (72 - 16) / 2 = 28) = 8) and enter the match chip at its left edge (380) at its centre y.
+//   Query to last match: from (240, 152) to (380, 208); dx = (380 - 240) / 2 = 70; controls (310, 152) and (310, 208).
+//   Identity pill at t = 0.7 (u = 0.3: weights 0.027, 0.189, 0.441, 0.343):
+//     x = 0.027*240 + 0.189*310 + 0.441*310 + 0.343*380 = 6.48 + 58.59 + 136.71 + 130.34 = 332.12
+//     y = 0.216*152 + 0.784*208 = 32.832 + 163.072 = 195.904 (both controls share the end y values).
+//   Query to first match: from (240, 136) to (380, 80); pill y = 0.216*136 + 0.784*80 = 29.376 + 62.72 = 92.096.
+//   Step-2 edge from the last match to the middle step-2 node (880, 144): from (628 + 20, 208) = (648, 208) to
+//   (880 - 124, 144) = (756, 144); no label.
+//   Link between the first and last match (same column): leaves the right edge (628) 16 toward the other at (628, 96)
+//   and enters at (628, 208 - 16 = 192); controls (628 + 84, 96) = (712, 96) and (712, 192). Label at t = 0.5 (weights
+//   0.125, 0.375, 0.375, 0.125): x = 0.25*628 + 0.75*712 = 157 + 534 = 691, y = (96 + 192) / 2 = 144.
+//   Link back to the query from the last match: from its left edge (380, 208 + 16 = 224) to the query's right edge at
+//   30 below its centre (240, 174); dx = (240 - 380) / 2 = -70; controls (310, 224) and (310, 174); label
+//   x = 0.125*380 + 0.75*310 + 0.125*240 = 47.5 + 232.5 + 30 = 310, y = (224 + 174) / 2 = 199.
+// Fixture B (centring): 2 matches and 3 step-2 nodes; rows = 3. Matches: count 2, offset 0.5: y = 48 + 32 + 32 = 112, 176.
+// Fixture C: query only: width 128 + 112 + 16 = 256, height 32 + 32 + 64 = 128, query (128, 80). Matches, no step 2:
+//   width 504 + 124 + 16 = 644.
 const node = (id: string, role: NetNode["role"], via?: string): NetNode => ({ id, database: "card", name: id, role, via, best: false, weak: false });
 const edge = (source: string, target: string, step: 1 | 2): NetEdge => ({ source, target, identity: 1, coverage: 1, type: "RBH", step });
 const A: Network = {
   nodes: [node("q", "query"), node("m0", "match"), node("m1", "match"), node("m2", "match"), node("s0", "step2", "m2"), node("s1", "step2", "m2"), node("s2", "step2", "m2")],
-  edges: [edge("q", "m0", 1), edge("q", "m1", 1), edge("q", "m2", 1), edge("m2", "s0", 2), edge("m2", "s1", 2), edge("m2", "s2", 2), edge("m0", "m2", 2)],
+  edges: [edge("q", "m0", 1), edge("q", "m1", 1), edge("q", "m2", 1), edge("m2", "s0", 2), edge("m2", "s1", 2), edge("m2", "s2", 2), edge("m0", "m2", 2), edge("m2", "q", 2)],
 };
 const near = (p: { x: number; y: number }, x: number, y: number) => {
   expect(p.x).toBeCloseTo(x, 9);
@@ -41,17 +49,17 @@ const near = (p: { x: number; y: number }, x: number, y: number) => {
 };
 
 describe("pixel: the only slot-to-pixel mapping, hand-worked", () => {
-  it("column x is 96, 288, 480", () => {
-    expect(pixel(0, 0, 1, 1).x).toBe(96);
-    expect(pixel(1, 0, 1, 1).x).toBe(288);
-    expect(pixel(2, 0, 1, 1).x).toBe(480);
+  it("column x is 128, 504, 880", () => {
+    expect(pixel(0, 0, 1, 1).x).toBe(128);
+    expect(pixel(1, 0, 1, 1).x).toBe(504);
+    expect(pixel(2, 0, 1, 1).x).toBe(880);
   });
   it("row y: first, last and a centred shorter column", () => {
-    expect(pixel(1, 0, 3, 3)).toEqual({ x: 288, y: 44 }); // 16 + 0 + 28
-    expect(pixel(1, 2, 3, 3)).toEqual({ x: 288, y: 156 }); // 16 + 112 + 28
-    expect(pixel(1, 0, 2, 3)).toEqual({ x: 288, y: 72 }); // 16 + 56*0.5 + 28
-    expect(pixel(1, 1, 2, 3)).toEqual({ x: 288, y: 128 }); // 16 + 56*1.5 + 28
-    expect(pixel(0, 0, 1, 3)).toEqual({ x: 96, y: 100 }); // 16 + 56*1 + 28
+    expect(pixel(1, 0, 3, 3)).toEqual({ x: 504, y: 80 }); // 48 + 0 + 32
+    expect(pixel(1, 2, 3, 3)).toEqual({ x: 504, y: 208 }); // 48 + 128 + 32
+    expect(pixel(1, 0, 2, 3)).toEqual({ x: 504, y: 112 }); // 48 + 64*0.5 + 32
+    expect(pixel(1, 1, 2, 3)).toEqual({ x: 504, y: 176 }); // 48 + 64*1.5 + 32
+    expect(pixel(0, 0, 1, 3)).toEqual({ x: 128, y: 144 }); // 48 + 64*1 + 32
   });
 });
 
@@ -60,60 +68,131 @@ describe("layoutNetwork: hand-worked pixels", () => {
   const at = (id: string) => l.nodes.find((n) => n.id === id)!;
   const line = (s: string, t: string) => l.edges.find((e) => e.source === s && e.target === t)!;
   it("viewBox size is computed from the content", () => {
-    expect([l.width, l.height]).toEqual([576, 200]);
-    expect(layoutNetwork({ nodes: [node("q", "query")], edges: [] })).toMatchObject({ width: 192, height: 88 });
-    expect(layoutNetwork({ nodes: [node("q", "query"), node("m", "match")], edges: [edge("q", "m", 1)] })).toMatchObject({ width: 384, height: 88 });
+    expect([l.width, l.height]).toEqual([1020, 256]);
+    expect(layoutNetwork({ nodes: [node("q", "query")], edges: [] })).toMatchObject({ width: 256, height: 128 });
+    expect(layoutNetwork({ nodes: [node("q", "query"), node("m", "match")], edges: [edge("q", "m", 1)] })).toMatchObject({ width: 644, height: 128 });
+    expect(layoutNetwork({ nodes: [], edges: [] })).toMatchObject({ width: 256, height: 128, nodes: [], edges: [] });
+  });
+  it("column headings: one per used column, centred on the column", () => {
+    expect(l.heads).toEqual([{ column: 0, x: 128, y: 20 }, { column: 1, x: 504, y: 20 }, { column: 2, x: 880, y: 20 }]);
+    expect(layoutNetwork({ nodes: [node("q", "query"), node("m", "match")], edges: [] }).heads.map((h) => h.column)).toEqual([0, 1]);
+    expect(layoutNetwork({ nodes: [node("q", "query")], edges: [] }).heads.map((h) => h.column)).toEqual([0]);
   });
   it("node centres: query, first and last match, step-2 column", () => {
-    expect(at("q").centre).toEqual({ x: 96, y: 100 });
-    expect(at("m0").centre).toEqual({ x: 288, y: 44 });
-    expect(at("m2").centre).toEqual({ x: 288, y: 156 });
-    expect(at("s0").centre).toEqual({ x: 480, y: 44 });
-    expect(at("s1").centre).toEqual({ x: 480, y: 100 });
-    expect(at("s2").centre).toEqual({ x: 480, y: 156 });
+    expect(at("q").centre).toEqual({ x: 128, y: 144 });
+    expect(at("m0").centre).toEqual({ x: 504, y: 80 });
+    expect(at("m2").centre).toEqual({ x: 504, y: 208 });
+    expect(at("s0").centre).toEqual({ x: 880, y: 80 });
+    expect(at("s1").centre).toEqual({ x: 880, y: 144 });
+    expect(at("s2").centre).toEqual({ x: 880, y: 208 });
   });
-  it("label, tooltip anchor and hit region of the last match", () => {
+  it("chip rectangles: the query is larger", () => {
+    expect(at("q").rect).toEqual({ x: 16, y: 108, width: 224, height: 72 });
+    expect(at("m2").rect).toEqual({ x: 380, y: 182, width: 248, height: 52 });
+    expect(at("m2").hit).toEqual(at("m2").rect);
+  });
+  it("badge, text baselines and tooltip anchor of the last match", () => {
     const m = at("m2");
-    expect(m.label).toEqual({ x: 288, y: 132 });
-    expect(m.tooltip).toEqual({ x: 288, y: 180 });
-    expect(m.hit).toEqual({ x: 264, y: 132, width: 48, height: 48 });
+    expect(m.badge).toEqual({ x: 380, y: 182, width: 64, height: 52 });
+    expect(m.badgeText).toEqual({ x: 412, y: 208 });
+    expect(m.lines).toEqual([{ x: 454, y: 202 }, { x: 454, y: 216 }, { x: 454, y: 229 }]);
+    expect(m.tooltip).toEqual({ x: 504, y: 234 });
+    expect(at("q").lines).toEqual([{ x: 90, y: 136 }, { x: 90, y: 153 }, { x: 90, y: 169 }]);
   });
-  it("edge from the query to the last match, cut 20 from each centre", () => {
+  it("Best and weak ribbons overhang the top edge at the right", () => {
+    expect(ribbonRect(at("m2"), false)).toEqual({ x: 568, y: 175, width: 48, height: 14 });
+    expect(ribbonRect(at("m2"), true)).toEqual({ x: 480, y: 175, width: 136, height: 14 });
+  });
+  it("only step-1 nodes have an expand pill, centred on the chip's right edge", () => {
+    expect(at("m2").expand).toEqual({ centre: { x: 628, y: 208 }, hit: { x: 606, y: 186, width: 44, height: 44 } });
+    expect(at("q").expand).toBeUndefined();
+    expect(at("s0").expand).toBeUndefined();
+  });
+  it("step-1 edges fan out of the query chip and enter the match chip's left edge", () => {
+    expect(line("q", "m0").path.from).toEqual({ x: 240, y: 136 });
+    expect(line("q", "m1").path.from).toEqual({ x: 240, y: 144 });
     const e = line("q", "m2");
-    near(e.from, 115.2, 105.6);
-    near(e.to, 268.8, 150.4);
-    expect(e.control).toBeUndefined();
+    expect(e.kind).toBe("query");
+    expect(e.path.from).toEqual({ x: 240, y: 152 });
+    expect(e.path.to).toEqual({ x: 380, y: 208 });
+    expect(e.path.c1).toEqual({ x: 310, y: 152 });
+    expect(e.path.c2).toEqual({ x: 310, y: 208 });
   });
-  it("step-2 edge from the last match to the middle step-2 node", () => {
+  it("identity pills sit at t = 0.7 of the curve", () => {
+    near(line("q", "m2").label!, 332.12, 195.904);
+    near(line("q", "m0").label!, 332.12, 92.096);
+  });
+  it("step-2 edge from the last match to the middle step-2 node starts clear of the pill and has no label", () => {
     const e = line("m2", "s1");
-    near(e.from, 307.2, 150.4);
-    near(e.to, 460.8, 105.6);
+    expect(e.kind).toBe("expand");
     expect(e.step).toBe(2);
+    expect(e.path.from).toEqual({ x: 648, y: 208 });
+    expect(e.path.to).toEqual({ x: 756, y: 144 });
+    expect(e.label).toBeUndefined();
   });
-  it("a same-column edge bows to the right: control (330, 100), ends cut along the line to it", () => {
+  it("a link between two matches bows to the right of the column", () => {
     const e = line("m0", "m2");
-    expect(e.control).toEqual({ x: 330, y: 100 });
-    near(e.from, 300, 60);
-    near(e.to, 300, 140);
+    expect(e.kind).toBe("link");
+    expect(e.path).toEqual({ from: { x: 628, y: 96 }, c1: { x: 712, y: 96 }, c2: { x: 712, y: 192 }, to: { x: 628, y: 192 } });
+    near(e.label!, 691, 144);
   });
-  it("an edge back to the query runs right to left", () => {
-    const l2 = layoutNetwork({ nodes: A.nodes.slice(0, 4), edges: [edge("m2", "q", 2)] });
-    const e = l2.edges[0]!;
-    near(e.from, 288 - 19.2, 156 - 5.6);
-    near(e.to, 96 + 19.2, 100 + 5.6);
+  it("a link back to the query runs right to left and enters below the fan", () => {
+    const e = line("m2", "q");
+    expect(e.kind).toBe("back");
+    expect(e.path).toEqual({ from: { x: 380, y: 224 }, c1: { x: 310, y: 224 }, c2: { x: 310, y: 174 }, to: { x: 240, y: 174 } });
+    near(e.label!, 310, 199);
   });
   it("two columns are centred on each other: 2 matches and 3 step-2 nodes", () => {
     const B: Network = { nodes: [node("q", "query"), node("m0", "match"), node("m1", "match"), node("s0", "step2", "m0"), node("s1", "step2", "m0"), node("s2", "step2", "m1")], edges: [] };
     const lb = layoutNetwork(B);
-    expect(lb.height).toBe(200);
-    expect(lb.nodes.map((n) => n.centre.y)).toEqual([100, 72, 128, 44, 100, 156]);
+    expect(lb.height).toBe(256);
+    expect(lb.nodes.map((n) => n.centre.y)).toEqual([144, 112, 176, 80, 144, 208]);
+  });
+  it("an edge to an unknown node is a programmer error", () => {
+    expect(() => layoutNetwork({ nodes: [node("q", "query")], edges: [edge("q", "nope", 1)] })).toThrow(/not a node/);
   });
 });
 
-describe("hit regions", () => {
-  it("every node has a target of at least 44 by 44 viewBox units centred on the node, from the same pixel()", () => {
-    expect(HIT).toBeGreaterThanOrEqual(44);
-    const l = layoutNetwork(A);
+// Chip outlines for a rect (364, 182, 248, 52): right edge 612, bottom 234, corner 10, pill radius 26.
+describe("chipPath: one shape per database", () => {
+  const r = { x: 364, y: 182, width: 248, height: 52 };
+  it("CARD rounded, NCBI cut corners, ResFinder pill, worked by hand", () => {
+    expect(chipPath(r, "round")).toBe("M374,182 H602 Q612,182 612,192 V224 Q612,234 602,234 H374 Q364,234 364,224 V192 Q364,182 374,182 Z");
+    expect(chipPath(r, "cut")).toBe("M374,182 H602 L612,192 V224 L602,234 H374 L364,224 V192 Z");
+    expect(chipPath(r, "pill")).toBe("M390,182 H586 A26,26 0 0 1 586,234 H390 A26,26 0 0 1 390,182 Z");
+  });
+  it("a short swatch clamps the corner to half its height (14 high: 7)", () => {
+    expect(chipPath({ x: 2, y: 1, width: 30, height: 14 }, "cut")).toBe("M9,1 H25 L32,8 V8 L25,15 H9 L2,8 V8 Z");
+  });
+  it("the three databases map to three different shapes", () => {
+    expect(new Set(Object.values(DB_SHAPE)).size).toBe(3);
+  });
+});
+
+describe("pillRect: width grows with the text", () => {
+  it("the identity pill '98.2%' (5 characters, 18 high) and a '+5' expand pill (2 characters, 20 high)", () => {
+    // width 12 + 6*5 = 42; x = 332.12 - 21 = 311.12; y = 195.904 - 9 = 186.904
+    const p = pillRect({ x: 332.12, y: 195.904 }, 5, 18);
+    expect([p.width, p.height]).toEqual([42, 18]);
+    expect(p.x).toBeCloseTo(311.12, 9);
+    expect(p.y).toBeCloseTo(186.904, 9);
+    // width 12 + 12 = 24 centred on (628, 208): x = 616, y = 198
+    expect(pillRect({ x: 628, y: 208 }, 2, 20)).toEqual({ x: 616, y: 198, width: 24, height: 20 });
+  });
+});
+
+describe("ellipsize", () => {
+  it("keeps short text, cuts long text to max characters with an ellipsis, counting code points", () => {
+    expect(ellipsize("abcdefghij", 10)).toBe("abcdefghij");
+    expect(ellipsize("abcdefghijk", 10)).toBe("abcdefghi…");
+    expect(ellipsize("x".repeat(30), 24)).toBe(`${"x".repeat(23)}…`);
+    expect(ellipsize("ab😀cde", 4)).toBe("ab😀…");
+  });
+});
+
+describe("click targets", () => {
+  const l = layoutNetwork(A);
+  it("every chip is its own target and at least 44 by 44 viewBox units, centred on the node", () => {
     const regions = hitRegions(l);
     expect(regions.map((r) => r.id)).toEqual(A.nodes.map((n) => n.id));
     for (const r of regions) {
@@ -124,38 +203,49 @@ describe("hit regions", () => {
       expect(r.y + r.height / 2).toBe(c.y);
     }
   });
-  it("targets never overlap, at the cap: 1 query, 6 matches, 18 step-2 nodes", () => {
+  it("expand targets are 44 by 44 and exist for the matches only", () => {
+    const regions = expandRegions(l);
+    expect(regions.map((r) => r.id)).toEqual(["m0", "m1", "m2"]);
+    for (const r of regions) expect([r.width, r.height]).toEqual([44, 44]);
+    expect(regions[2]).toEqual({ id: "m2", x: 606, y: 186, width: 44, height: 44 });
+  });
+  it("chips never overlap each other and expand targets never touch another node's chip, at the cap", () => {
     const nodes = [node("q", "query"), ...Array.from({ length: 6 }, (_, i) => node(`m${i}`, "match")), ...Array.from({ length: MAX_NODES - 7 }, (_, i) => node(`s${i}`, "step2", "m0"))];
-    const l = layoutNetwork({ nodes, edges: [] });
-    expect(l.height).toBe(2 * 16 + 56 * 18);
-    const rs = hitRegions(l);
+    const c = layoutNetwork({ nodes, edges: [] });
+    expect(c.height).toBe(32 + 2 * 16 + 64 * 18);
+    const apart = (a: { x: number; y: number; width: number; height: number }, b: typeof a) =>
+      a.x + a.width <= b.x || b.x + b.width <= a.x || a.y + a.height <= b.y || b.y + b.height <= a.y;
+    const rs = hitRegions(c);
     for (const a of rs) {
       expect(a.x).toBeGreaterThanOrEqual(0);
       expect(a.y).toBeGreaterThanOrEqual(0);
-      expect(a.x + a.width).toBeLessThanOrEqual(l.width);
-      expect(a.y + a.height).toBeLessThanOrEqual(l.height);
-      for (const b of rs) {
-        if (a === b) continue;
-        const apart = a.x + a.width <= b.x || b.x + b.width <= a.x || a.y + a.height <= b.y || b.y + b.height <= a.y;
-        expect(apart, `${a.id} and ${b.id}`).toBe(true);
-      }
+      expect(a.x + a.width).toBeLessThanOrEqual(c.width);
+      expect(a.y + a.height).toBeLessThanOrEqual(c.height);
+      for (const b of rs) if (a !== b) expect(apart(a, b), `${a.id} and ${b.id}`).toBe(true);
+    }
+    const xs = expandRegions(c);
+    for (const x of xs) {
+      expect(x.x + x.width).toBeLessThanOrEqual(c.width);
+      for (const b of rs) if (b.id !== x.id) expect(apart(x, b), `expand ${x.id} and ${b.id}`).toBe(true);
+      for (const y of xs) if (x !== y) expect(apart(x, y)).toBe(true);
     }
   });
 });
 
 describe("layoutNetwork works for 0 to 25 nodes", () => {
-  it("handles every size, with finite coordinates and a drawable box", () => {
-    expect(layoutNetwork({ nodes: [], edges: [] })).toMatchObject({ width: 192, height: 88, nodes: [], edges: [] });
+  it("handles every size, with finite coordinates and everything inside the viewBox", () => {
     for (let n = 1; n <= MAX_NODES; n++) {
       const matches = Math.min(6, n - 1);
       const nodes = [node("q", "query"), ...Array.from({ length: matches }, (_, i) => node(`m${i}`, "match")), ...Array.from({ length: n - 1 - matches }, (_, i) => node(`s${i}`, "step2", "m0"))];
       const l = layoutNetwork({ nodes, edges: nodes.slice(1, 1 + matches).map((m) => edge("q", m.id, 1)) });
       expect(l.nodes).toHaveLength(n);
       for (const s of l.nodes) {
-        expect(Number.isFinite(s.centre.x + s.centre.y)).toBe(true);
-        expect(s.centre.y).toBeGreaterThan(0);
-        expect(s.centre.y).toBeLessThan(l.height);
+        expect(s.rect.x).toBeGreaterThanOrEqual(0);
+        expect(s.rect.x + s.rect.width).toBeLessThanOrEqual(l.width);
+        expect(s.rect.y).toBeGreaterThanOrEqual(32); // below the column headings
+        expect(s.rect.y + s.rect.height).toBeLessThanOrEqual(l.height);
       }
+      for (const e of l.edges) expect(Number.isFinite(e.path.from.x + e.path.to.y + e.label!.x)).toBe(true);
     }
   });
 });

@@ -207,3 +207,14 @@ real phone, other engines, and network throttling (not repeated). Rust/WASM is n
 - Re-measure when a release has noticeably more entries (parse and the lookup build are expected, not measured, to scale
   roughly linearly with entries), when `parse.ts` or `query.ts` change shape, when the shipped index gains fields,
   or when the Chromium or React major version changes.
+
+## Interactive network picture (tickets #9 and #10)
+
+Measured with `npm run build` then `node scripts/measure-startup.mjs --runs 5 --profiles default-gzip,cpu6-gzip` on the same M2 laptop (Chromium 158, 5 runs after a warm-up):
+
+| Profile | Ready (min/median/max, ms) | Longest task (min/median/max, ms) | After-ready max (ms) | Verdicts |
+| --- | --- | --- | --- | --- |
+| default-gzip | 98 / 101 / 104 | 0 / 0 / 0 | 0 | ready PASS, block PASS |
+| cpu6-gzip | 603 / 623 / 655 | 172 / 183 / 192 | 131 | ready PASS, block PASS |
+
+The budget holds (ready under 2 s, no task over 200 ms). The longest 6x task is still the startup JSON parse; the picture is built after a search and the search-to-paint time at 6x was 61 ms. Honest caveats: the 6x longest task (192 ms at the maximum) sits 8 ms under the 200 ms line, as before; the picture's own cost (a model build, a layout and up to 25 chips) was not profiled separately, and the bundle grew (JS 264.8 kB, 83.5 kB gzip, CSS 22.5 kB). Earlier figures in this file were taken on a different day and load, so a small difference from them is not attributed to this change.

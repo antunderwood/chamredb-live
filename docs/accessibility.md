@@ -1,6 +1,6 @@
 # Accessibility and theming
 
-Target: WCAG 2.2 AA for what this app uses (text contrast 1.4.3, non-text contrast 1.4.11, keyboard 2.1.1, focus visible 2.4.7, labels 3.3.2, status messages 4.1.3, use of colour 1.4.1). This is a target checked by the tests below, not a conformance claim or a certified audit. Not checked: a skip link (WCAG 2.4.1; the header adds four Tab stops before the form), reflow at 400% zoom (1.4.10), text spacing (1.4.12), target size (2.5.8; the smallest controls, the candidate buttons, are about 30 px high), forced-colours mode, and any screen reader. The picture is an `img` with a title and description, and the list below it carries the same data in text. Placeholder text uses `--muted` (`::placeholder` in `src/app.css`), so it is covered by the muted on surface rows. The weak-evidence warning uses `--danger` for visibility; its meaning is in the words, and a weak match is a caution, not an error.
+Target: WCAG 2.2 AA for what this app uses (text contrast 1.4.3, non-text contrast 1.4.11, keyboard 2.1.1, focus visible 2.4.7, labels 3.3.2, status messages 4.1.3, use of colour 1.4.1). This is a target checked by the tests below, not a conformance claim or a certified audit. Not checked: a skip link (WCAG 2.4.1; the header adds four Tab stops before the form), reflow at 400% zoom (1.4.10), text spacing (1.4.12), target size (2.5.8; the smallest controls, the candidate buttons, are about 30 px high), forced-colours mode, and any screen reader. The picture is a labelled group of focusable buttons (every chip, and the expand pills), and the list below it carries the same data in text; see "Network picture" below. Placeholder text uses `--muted` (`::placeholder` in `src/app.css`), so it is covered by the muted on surface rows. The weak-evidence warning uses `--danger` for visibility; its meaning is in the words, and a weak match is a caution, not an error.
 
 ## How to restyle
 
@@ -20,6 +20,8 @@ Edit `public/theme.css` only. It is the one tokens file, linked from `index.html
 | `--nav-active-bg`, `--nav-active-fg` | the pill on the current nav item (Query) |
 | `--chip-query`, `--chip-db`, `--chip-name`, `--chip-match`, `--chip-fg` | colour chips (blue Query, orange database, red name, purple Match) with `--chip-fg` as their text; every chip also carries its label as text. The red name chip must never be used to signal an error or weakness (that is `--danger` text with words). Used by the result panels (#8): Query, database and name chips on the query panel, Match, database and name chips on each match panel, and the database chip as each group heading. Chips sit on `--panel` as well as `--surface` (both pairs are tested) |
 | `--label`, `--label-fg` | the green label bars ("Minimum identity", the card fields and the phenotype headings); `--label` also colours the list bullets |
+| `--db-card`, `--db-ncbi`, `--db-resfinder` and their `-fg` | the network picture: database badge fill and chip outline, with the text on the badge (the database is also carried by the badge text and the outline shape) |
+| `--best`, `--best-fg` | the Best ribbon of the picture (a deep gold in light; the weak ribbon is outlined in `--muted`) |
 | `--font-body` | font stack |
 
 Dark is the same tokens written twice with identical values: inside `@media (prefers-color-scheme: dark)` as `:root:not([data-theme="light"])` (the system setting, unless the toggle chose light) and as `:root[data-theme="dark"]` (the toggle chose dark). A dark block must define every colour token, or the light value leaks into dark (the contrast test requires all of them), and `src/contrast.test.ts` fails if the two dark blocks differ.
@@ -74,6 +76,19 @@ Earlier change to reach the thresholds: the default `--border` (`#d0d0d0` light,
 | theme.css | light | --chip-db on --panel | 4.94 | 3:1 | pass |
 | theme.css | light | --chip-name on --panel | 5.42 | 3:1 | pass |
 | theme.css | light | --chip-match on --panel | 6.20 | 3:1 | pass |
+| theme.css | light | --db-card-fg on --db-card | 5.38 | 4.5:1 | pass |
+| theme.css | light | --db-ncbi-fg on --db-ncbi | 6.44 | 4.5:1 | pass |
+| theme.css | light | --db-resfinder-fg on --db-resfinder | 6.67 | 4.5:1 | pass |
+| theme.css | light | --db-card on --surface | 5.38 | 3:1 | pass |
+| theme.css | light | --db-ncbi on --surface | 6.44 | 3:1 | pass |
+| theme.css | light | --db-resfinder on --surface | 6.67 | 3:1 | pass |
+| theme.css | light | --db-card on --panel | 4.31 | 3:1 | pass |
+| theme.css | light | --db-ncbi on --panel | 5.16 | 3:1 | pass |
+| theme.css | light | --db-resfinder on --panel | 5.35 | 3:1 | pass |
+| theme.css | light | --best-fg on --best | 5.54 | 4.5:1 | pass |
+| theme.css | light | --best on --surface | 5.54 | 3:1 | pass |
+| theme.css | light | --best on --panel | 4.44 | 3:1 | pass |
+| theme.css | light | --control-border on --panel | 3.79 | 3:1 | pass |
 | theme.css | light | --label on --panel | 4.87 | 3:1 | pass |
 | theme.css | dark | --fg on --bg | 15.16 | 4.5:1 | pass |
 | theme.css | dark | --fg on --surface | 11.50 | 4.5:1 | pass |
@@ -107,6 +122,19 @@ Earlier change to reach the thresholds: the default `--border` (`#d0d0d0` light,
 | theme.css | dark | --chip-db on --panel | 8.31 | 3:1 | pass |
 | theme.css | dark | --chip-name on --panel | 7.72 | 3:1 | pass |
 | theme.css | dark | --chip-match on --panel | 8.39 | 3:1 | pass |
+| theme.css | dark | --db-card-fg on --db-card | 8.97 | 4.5:1 | pass |
+| theme.css | dark | --db-ncbi-fg on --db-ncbi | 7.56 | 4.5:1 | pass |
+| theme.css | dark | --db-resfinder-fg on --db-resfinder | 7.30 | 4.5:1 | pass |
+| theme.css | dark | --db-card on --surface | 6.60 | 3:1 | pass |
+| theme.css | dark | --db-ncbi on --surface | 5.84 | 3:1 | pass |
+| theme.css | dark | --db-resfinder on --surface | 6.06 | 3:1 | pass |
+| theme.css | dark | --db-card on --panel | 7.85 | 3:1 | pass |
+| theme.css | dark | --db-ncbi on --panel | 6.94 | 3:1 | pass |
+| theme.css | dark | --db-resfinder on --panel | 7.21 | 3:1 | pass |
+| theme.css | dark | --best-fg on --best | 11.30 | 4.5:1 | pass |
+| theme.css | dark | --best on --surface | 8.46 | 3:1 | pass |
+| theme.css | dark | --best on --panel | 10.06 | 3:1 | pass |
+| theme.css | dark | --control-border on --panel | 4.76 | 3:1 | pass |
 | theme.css | dark | --label on --panel | 8.76 | 3:1 | pass |
 | theme.bsb.css | light | --fg on --bg | 16.29 | 4.5:1 | pass |
 | theme.bsb.css | light | --fg on --surface | 18.48 | 4.5:1 | pass |
@@ -140,6 +168,19 @@ Earlier change to reach the thresholds: the default `--border` (`#d0d0d0` light,
 | theme.bsb.css | light | --chip-db on --panel | 5.44 | 3:1 | pass |
 | theme.bsb.css | light | --chip-name on --panel | 4.98 | 3:1 | pass |
 | theme.bsb.css | light | --chip-match on --panel | 5.07 | 3:1 | pass |
+| theme.bsb.css | light | --db-card-fg on --db-card | 5.38 | 4.5:1 | pass |
+| theme.bsb.css | light | --db-ncbi-fg on --db-ncbi | 7.30 | 4.5:1 | pass |
+| theme.bsb.css | light | --db-resfinder-fg on --db-resfinder | 5.65 | 4.5:1 | pass |
+| theme.bsb.css | light | --db-card on --surface | 3.43 | 3:1 | pass |
+| theme.bsb.css | light | --db-ncbi on --surface | 7.30 | 3:1 | pass |
+| theme.bsb.css | light | --db-resfinder on --surface | 5.65 | 3:1 | pass |
+| theme.bsb.css | light | --db-card on --panel | 3.03 | 3:1 | pass |
+| theme.bsb.css | light | --db-ncbi on --panel | 6.44 | 3:1 | pass |
+| theme.bsb.css | light | --db-resfinder on --panel | 4.98 | 3:1 | pass |
+| theme.bsb.css | light | --best-fg on --best | 5.54 | 4.5:1 | pass |
+| theme.bsb.css | light | --best on --surface | 5.54 | 3:1 | pass |
+| theme.bsb.css | light | --best on --panel | 4.88 | 3:1 | pass |
+| theme.bsb.css | light | --control-border on --panel | 5.07 | 3:1 | pass |
 | theme.bsb.css | light | --label on --panel | 5.07 | 3:1 | pass |
 | theme.bsb.css | dark | --fg on --bg | 16.29 | 4.5:1 | pass |
 | theme.bsb.css | dark | --fg on --surface | 14.36 | 4.5:1 | pass |
@@ -173,6 +214,19 @@ Earlier change to reach the thresholds: the default `--border` (`#d0d0d0` light,
 | theme.bsb.css | dark | --chip-db on --panel | 5.10 | 3:1 | pass |
 | theme.bsb.css | dark | --chip-name on --panel | 7.43 | 3:1 | pass |
 | theme.bsb.css | dark | --chip-match on --panel | 10.95 | 3:1 | pass |
+| theme.bsb.css | dark | --db-card-fg on --db-card | 5.38 | 4.5:1 | pass |
+| theme.bsb.css | dark | --db-ncbi-fg on --db-ncbi | 8.57 | 4.5:1 | pass |
+| theme.bsb.css | dark | --db-resfinder-fg on --db-resfinder | 7.84 | 4.5:1 | pass |
+| theme.bsb.css | dark | --db-card on --surface | 4.74 | 3:1 | pass |
+| theme.bsb.css | dark | --db-ncbi on --surface | 7.55 | 3:1 | pass |
+| theme.bsb.css | dark | --db-resfinder on --surface | 6.91 | 3:1 | pass |
+| theme.bsb.css | dark | --db-card on --panel | 5.10 | 3:1 | pass |
+| theme.bsb.css | dark | --db-ncbi on --panel | 8.12 | 3:1 | pass |
+| theme.bsb.css | dark | --db-resfinder on --panel | 7.43 | 3:1 | pass |
+| theme.bsb.css | dark | --best-fg on --best | 11.30 | 4.5:1 | pass |
+| theme.bsb.css | dark | --best on --surface | 10.01 | 3:1 | pass |
+| theme.bsb.css | dark | --best on --panel | 10.77 | 3:1 | pass |
+| theme.bsb.css | dark | --control-border on --panel | 5.23 | 3:1 | pass |
 | theme.bsb.css | dark | --label on --panel | 10.95 | 3:1 | pass |
 
 Limits: the pairs are the ones the components use today, plus the reserved chip and label tokens; a new component that pairs tokens differently needs a new row in `PAIRS` (`src/contrast.ts`). Text drawn at the page default size is assumed (no large-text relaxation is used). The BSB light accent on Pearl is 3.03:1, a thin margin over 3:1.
@@ -192,7 +246,7 @@ Every `input` and `select` has a visible label (checked through `labels`). A 2 p
 
 ## Not colour alone
 
-Best match: the word "Best" (or "Highest identity shown" under 90%), a square mark instead of a circle, and "best" in the picture label. RBH versus OWH: solid versus dashed line, arrowheads at both ends versus one, and the type written in each label and list row. Weak evidence: a sentence. Links in the page are underlined; the header Code link is a nav pill, underlined on hover only. Tests assert text, shapes and computed styles, not colours.
+Best match: the word "Best" (or "Highest identity shown" under 90%) in the list and on a ribbon on the chip. Database: the badge text and the outline shape (rounded, cut corners, pill) as well as colour. A match of a match: a dashed outline, the text "match of X" on the chip, and a column heading. RBH versus OWH: solid versus dashed line, arrowheads at both ends versus one, and the type written in each label and list row. Weak evidence: a sentence. Links in the page are underlined; the header Code link is a nav pill, underlined on hover only. Tests assert text, shapes and computed styles, not colours.
 
 ## Messages
 
@@ -203,6 +257,16 @@ Not found and data-load failures are single paragraphs with `role="alert"`, so t
 The old site's About text is kept as a collapsible "About chAMReDB" section at the end of the page (no router: the URL hash holds the search). The wording is lightly edited: spelling corrected (dilemma, hAMRonization, aggregate, descriptive), the last list item split into clauses, "Resfinder" written "ResFinder", the emoji dropped from the project link text, and the project link moved from the old GitLab address to https://github.com/antunderwood/chamredb (the repository exists). The three database URLs are unchanged (CARD, NCBI AMRFinderPlus, ResFinder), and all three resolved when checked on 2026-11-10 (the NCBI page answers 405 to a HEAD request and 200 to GET). They are plain links the reader clicks; the page makes no request to those sites when it loads.
 
 Example buttons (ticket #7) use a 10% mix of `--accent` into `--surface` as their fill (no new token): `--muted` on that fill is 6.49:1 in light and 5.57:1 in dark and `--fg` 14.84:1 and 9.61:1, computed with the same formula as the contrast test. The "How to read this" section is a native `details` placed after the results and before About, so the keyboard order of the form, slider and candidate buttons is unchanged; it adds one Tab stop before the About summary. On the real-release build the four example buttons are also Tab stops, between the search form and the results; the fixture build offers none. The example buttons carry the accessible name "Example: <query>" (their visible text starts with the query, so the visible label is contained in the name) and the one-line note as their description.
+
+## Network picture (tickets #9 and #10)
+
+- Keyboard: every chip is a `role="button"` group with `tabindex="0"` and an accessible name (name, database, id, identity, type, Best); Enter or Space makes it the query (the query chip is `aria-disabled`). Each "+n" pill is a separate button with `aria-expanded` and a name such as "Expand matches of X (n)". Tab order: query, then each match followed by its pill, then the step-2 nodes. L on a node moves focus to its card; "Show in network" on a card focuses its node. After Enter, focus goes to the new query chip.
+- Tooltip: `role="tooltip"`, referenced by `aria-describedby` on the node while shown; opens on hover and on focus, Escape dismisses it (1.4.13 dismissible), and it stays inside the figure. It is not hoverable (the pointer cannot move onto it) and has no interactive content; the same text is in the card.
+- Focus is visible: the global 2 px accent outline (tested on every stop by `tests/a11y.spec.ts`) plus a glow.
+- Target size (2.5.8): a chip is 248 by 52 and a pill target 44 by 44 viewBox units. The figure is never scaled down (it scrolls sideways inside a keyboard-scrollable, labelled box), so these are CSS pixels. The text on a chip is 10 to 15 px; the 10 px ribbon and badge text is small and is repeated in the tooltip and the card.
+- `prefers-reduced-motion: reduce` removes the entrance animation and the outline transition (`tests/network.spec.ts`).
+- Contrast: `tests/network.spec.ts` computes, in light and dark, the contrast of every chip text on its fill (4.5:1) and of chip outlines, edges, pills and the expand pill on the panel (3:1), from the browser's computed colours. The token pairs are in the table above.
+- Not checked: a screen reader on the SVG buttons, forced-colours mode, a portrait layout for narrow screens (follow-up).
 
 ## Comparison strip (#20)
 

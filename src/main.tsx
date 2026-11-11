@@ -52,8 +52,13 @@ function App() {
       setMinPct(s.min);
       setLinkRel(s.rel);
     };
+    // Back and Forward (history entries made by clicking a node) restore the search the address records.
     window.addEventListener("hashchange", apply);
-    return () => window.removeEventListener("hashchange", apply);
+    window.addEventListener("popstate", apply);
+    return () => {
+      window.removeEventListener("hashchange", apply);
+      window.removeEventListener("popstate", apply);
+    };
   }, []);
 
   useEffect(() => {
@@ -98,6 +103,23 @@ function App() {
     setLinkRel(undefined); // a new search belongs to the release in use
   };
   const choose = (id: string) => {
+    setText(id);
+    setSearched(id);
+    setLinkRel(undefined);
+  };
+
+  // A click or Enter on a node of the picture makes that entry the query. Unlike the slider and the filter (replaceState),
+  // this pushes one history entry per node, so Back and Forward step through the explored entries. The entry is searched
+  // by its id; a database filter that would hide it is cleared, as for the example buttons.
+  const navigate = (id: string) => {
+    const nextDb = index?.entries[id]?.database === db ? db : undefined;
+    const next = window.location.pathname + window.location.search + formatHash({ q: id, db: nextDb, min: minPct, rel: index?.release });
+    try {
+      window.history.pushState(null, "", next);
+    } catch {
+      // throttled by the browser: the picture still moves on, only Back would skip this step
+    }
+    setDb(nextDb);
     setText(id);
     setSearched(id);
     setLinkRel(undefined);
@@ -248,7 +270,7 @@ function App() {
         </p>
       )}
       {index && found.length === 1 && index.entries[found[0].id] && (
-        <ResultPanels query={index.entries[found[0].id]!} groups={groups} allGroups={allGroups} minIdentity={minIdentity} weakBelow={WEAK_PCT / 100} />
+        <ResultPanels index={index} query={index.entries[found[0].id]!} groups={groups} allGroups={allGroups} weakBelow={WEAK_PCT / 100} minIdentity={minIdentity} onNavigate={navigate} />
       )}
       <HowToRead weakPct={WEAK_PCT} />
       <About />

@@ -1,33 +1,47 @@
+import { useState } from "react";
 import { isWeakGroup } from "./cardModel";
 import { ComparisonStrip } from "./ComparisonStrip";
 import { MatchPanel } from "./MatchPanel";
 import { NetworkView } from "./NetworkView";
 import { QueryPanel } from "./QueryPanel";
-import type { Entry, MatchGroup } from "./types";
+import type { Entry, Index, MatchGroup } from "./types";
 
 // The results area under the slider: the at-a-glance comparison strip (ADR 0006), the query panel, the network picture in its own section, then one panel per
-// match grouped by database. The picture and the panels are built from the same groups, so they list the same matches.
+// match grouped by database. The picture and the panels are built from the same matches (matchGroups), so they list
+// the same ones. `highlight` pairs a node with its card: hovering or focusing either lights up the other.
 export function ResultPanels({
+  index,
   query,
   groups,
   allGroups,
-  minIdentity,
   weakBelow,
+  minIdentity,
+  onNavigate,
 }: {
+  index: Index;
   query: Entry;
   groups: MatchGroup[];
   allGroups: MatchGroup[]; // the same entry at minimum identity 0, for the strip's hidden-below counts
-  minIdentity: number;
   weakBelow: number;
+  minIdentity: number;
+  onNavigate: (id: string) => void;
 }) {
+  const [highlight, setHighlight] = useState<string | null>(null);
+  const pair = (id: string) => ({
+    "data-hl": highlight === id ? "true" : undefined,
+    onMouseEnter: () => setHighlight(id),
+    onMouseLeave: () => setHighlight(null),
+    onFocus: () => setHighlight(id),
+    onBlur: () => setHighlight(null),
+  });
   return (
     <>
       <ComparisonStrip queryDatabase={query.database} groups={groups} allGroups={allGroups} minIdentity={minIdentity} weakBelow={weakBelow} />
-      <QueryPanel entry={query} />
+      <QueryPanel entry={query} pair={pair(query.id)} />
       {groups.length > 0 && (
-        <details open className="mt-6 rounded-2xl bg-panel px-3 pb-3 pt-2 sm:px-4" data-testid="network-section">
+        <details open className="network-section mt-6 rounded-2xl bg-panel px-3 pb-3 pt-2 sm:px-4" data-testid="network-section">
           <summary className="cursor-pointer py-1 text-lg font-semibold">Network</summary>
-          <NetworkView query={query} groups={groups} weakBelow={weakBelow} />
+          <NetworkView index={index} query={query} minIdentity={minIdentity} onNavigate={onNavigate} highlight={highlight} onHighlight={setHighlight} />
         </details>
       )}
       {groups.map((g) => {
@@ -44,7 +58,7 @@ export function ResultPanels({
             )}
             <ul className="mt-3 space-y-4">
               {g.matches.map((m) => (
-                <MatchPanel key={m.entry.id} match={m} native={m.entry.id.slice(g.database.length + 1)} weak={weak} weakBelow={weakBelow} />
+                <MatchPanel key={m.entry.id} match={m} native={m.entry.id.slice(g.database.length + 1)} weak={weak} weakBelow={weakBelow} pair={pair(m.entry.id)} />
               ))}
             </ul>
           </section>

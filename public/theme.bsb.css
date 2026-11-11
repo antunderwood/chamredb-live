@@ -28,6 +28,14 @@
   --chip-fg: #ffffff;
   --label: #68637a; /* Steel */
   --label-fg: #ffffff;
+  --db-card: #e2643a; /* Orange: the mark colour of this palette, with Midnight text on it */
+  --db-card-fg: #161026;
+  --db-ncbi: #87338b; /* Purple */
+  --db-ncbi-fg: #ffffff;
+  --db-resfinder: #ba335c; /* Magenta */
+  --db-resfinder-fg: #ffffff;
+  --best: #8a6100; /* a deep gold: the brand palette has no gold */
+  --best-fg: #ffffff;
   --font-body: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
 @media (prefers-color-scheme: dark) {
@@ -54,6 +62,14 @@
     --chip-fg: #161026; /* Midnight */
     --label: #cdcbd8; /* Fog */
     --label-fg: #161026; /* Midnight */
+    --db-card: #e2643a; /* Orange */
+    --db-card-fg: #161026;
+    --db-ncbi: #d79ddb; /* a lighter Purple */
+    --db-ncbi-fg: #161026;
+    --db-resfinder: #f08aa8; /* a lighter Magenta */
+    --db-resfinder-fg: #161026;
+    --best: #f4c542;
+    --best-fg: #1b1306;
   }
 }
 :root[data-theme="dark"] {
@@ -79,4 +95,12 @@
   --chip-fg: #161026; /* Midnight */
   --label: #cdcbd8; /* Fog */
   --label-fg: #161026; /* Midnight */
+  --db-card: #e2643a; /* Orange */
+  --db-card-fg: #161026;
+  --db-ncbi: #d79ddb; /* a lighter Purple */
+  --db-ncbi-fg: #161026;
+  --db-resfinder: #f08aa8; /* a lighter Magenta */
+  --db-resfinder-fg: #161026;
+  --best: #f4c542;
+  --best-fg: #1b1306;
 }
