@@ -1,3 +1,4 @@
+import { ProvenanceText } from "./AboutPanel";
 import type { Provenance } from "./provenance";
 
 const CODE_URL = "https://github.com/antunderwood/chamredb-live";
@@ -31,6 +32,12 @@ export function Footer({
         <span aria-hidden="true">·</span>
         <a className="underline underline-offset-2" href={CODE_URL}>Code</a>
       </p>
+      {/* Printed or saved pages keep the full record of where the results come from (the panel does not print). */}
+      {provenance && (
+        <div className="mt-2 hidden print:block">
+          <ProvenanceText p={provenance} copy={false} />
+        </div>
+      )}
     </footer>
   );
 }

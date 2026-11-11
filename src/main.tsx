@@ -284,7 +284,7 @@ function App() {
       </div>
     </main>
     <Footer release={index?.release} provenance={provenance} error={provenanceError} onOpen={openPanel} />
-    <AboutPanel ref={panel} provenance={provenance} release={index?.release} />
+    <AboutPanel ref={panel} provenance={provenance} error={provenanceError} release={index?.release} />
     </>
   );
 }

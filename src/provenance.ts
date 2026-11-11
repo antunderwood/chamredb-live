@@ -25,6 +25,11 @@ export function useProvenance(release: string | undefined): { provenance: Proven
         return r.json() as Promise<Provenance>;
       })
       .then((j) => {
+        // A malformed file becomes the visible footer alert, not a crash or "undefined" in the panel.
+        const strings = ["release", "date", "source", "tool", "graphSha256", "manifestSha256"] as const;
+        const bad = strings.filter((k) => typeof j?.[k] !== "string");
+        if (bad.length || !Array.isArray(j.databases) || j.databases.some((d) => typeof d?.database !== "string" || typeof d.release !== "string" || typeof d.retrieved !== "string"))
+          throw new Error(`provenance.json is malformed${bad.length ? ` (missing ${bad.join(", ")})` : " (databases)"}`);
         if (j.release !== release) throw new Error(`provenance.json is for ${j.release}, the data is ${release}`);
         setProvenance(j);
       })

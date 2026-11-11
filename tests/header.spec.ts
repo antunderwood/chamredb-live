@@ -50,7 +50,7 @@ test("nav: Query focuses the search box, About opens the About and data panel, C
   await nav.getByRole("button", { name: "About" }).click(); // #21: the panel, not a section at the page end
   await expect(page.getByRole("dialog", { name: "About and data" })).toBeVisible();
   await expect(page.getByText("Welcome to the chAMReDB website.")).toBeVisible();
-  await page.keyboard.press("Escape");
+  await page.keyboard.press("Escape"); // the panel is modal: close it before using the page again
   await nav.getByRole("button", { name: "Query" }).click();
   await expect(page.getByLabel("Entry id")).toBeFocused();
   expect(new URL(page.url()).hash).toBe(""); // the nav does not touch the hash that holds the search

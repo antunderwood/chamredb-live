@@ -216,6 +216,16 @@ test("About and data panel: Close and a click on the backdrop close it; the page
     // The page behind is inert: Tab moves through the panel and out to the browser, never onto a page control.
     expect(await page.evaluate(() => { const a = document.activeElement; return !a || a === document.body || !!a.closest("dialog"); }), "no page control behind the panel takes focus").toBe(true);
   }
+  // A click on empty space inside the sheet, or a text selection dragged out onto the backdrop, keeps it open.
+  const box = (await panel.boundingBox())!;
+  await page.mouse.click(box.x + box.width / 2, box.y + box.height - 5);
+  await expect(panel).toBeVisible();
+  const text = (await panel.getByText("Welcome to the chAMReDB website.").boundingBox())!;
+  await page.mouse.move(text.x + 5, text.y + text.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(10, 300, { steps: 5 });
+  await page.mouse.up();
+  await expect(panel).toBeVisible();
   await panel.getByRole("button", { name: "Close" }).click();
   await expect(panel).toBeHidden();
   await expect(about).toBeFocused();

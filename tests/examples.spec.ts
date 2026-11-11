@@ -95,4 +95,9 @@ test("no horizontal page scroll at 360 px on a real result, footer included (#25
   await expect(page.getByTestId("comparison")).toBeVisible();
   await expect(page.getByTestId("footer-release")).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(360);
+  // The long commit now lives in the panel: it must wrap there too.
+  await page.getByRole("contentinfo").getByRole("button", { name: "Sources and checksums" }).click();
+  const panel = page.getByRole("dialog", { name: "About and data" });
+  await expect(panel).toContainText("git commit");
+  expect(await panel.evaluate((e) => e.scrollWidth - e.clientWidth)).toBeLessThanOrEqual(0);
 });
