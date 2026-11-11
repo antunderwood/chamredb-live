@@ -281,6 +281,9 @@ for (const how of ["hover", "focus"] as const) {
   test(`${how}: the tooltip shows the model's lines, is described by role, flips inside the figure and Escape dismisses it`, async ({ page }) => {
     await page.goto("./");
     await search(page, "card:ARO:1000");
+    // The click on Search leaves the pointer where the button was; after the layout change in #26 a node can end up under it
+    // (it did in CI, whose fonts differ), and a hovered node's tooltip wins over a focused one. Park the pointer first.
+    await page.mouse.move(0, 0);
     for (const id of ["ncbi:WP_4.1", "ncbi:WP_1.1", "card:ARO:1000", "resfinder:blaX"]) {
       if (how === "hover") await node(page, id).hover();
       else await keyFocus(page, node(page, id));
