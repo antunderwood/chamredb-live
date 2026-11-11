@@ -51,8 +51,8 @@ export interface Network {
 // edge between the existing nodes (step 2) and no node. When a new step-2 node is reachable from several
 // expanded entries it appears once, with the first-ranking hit as `via` and flags.
 export function buildNetwork(index: Index, queryId: string, minIdentity: number, expandedIds: Iterable<string> = []): Network {
-  const query = index.entries[queryId];
-  if (!query) throw new Error(`Unknown entry: ${queryId}`);
+  const query = index.entries[queryId]!;
+  if (!Object.hasOwn(index.entries, queryId)) throw new Error(`Unknown entry: ${queryId}`);
   const nodes: NetNode[] = [{ id: query.id, database: query.database, name: query.name, role: "query", best: false, weak: false }];
   const edges: NetEdge[] = [];
   for (const g of matchGroups(index, queryId, minIdentity)) {
@@ -84,7 +84,7 @@ export function buildNetwork(index: Index, queryId: string, minIdentity: number,
         const node: NetNode = { id, database, name, role: "step2", via: via.id, best: m.best, weak, hit };
         const seen = candidates.get(id);
         const ranksFirst = !seen || q(hit.identity) > q(seen.node.hit!.identity) || (q(hit.identity) === q(seen.node.hit!.identity) && byCodeUnit(via.id, seen.node.via!) < 0);
-        if (ranksFirst) candidates.set(id, { node, seq: seen ? seen.seq : seq });
+        if (ranksFirst) candidates.set(id, { node, seq });
         seq++;
       }
     }
