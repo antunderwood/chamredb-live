@@ -33,3 +33,5 @@ The expected values in `src/layout.test.ts` are these numbers, not computed by t
 - Labels: database and native id, cut to 24 characters with an ellipsis; the full id and name are in the node tooltip (`<title>`) and the list. The longest native id in graph-2026.11.09 is 23 characters and the database prefix takes up to 10, so long ids are cut and two ids sharing a long prefix can look alike (deferred; the list shows them in full); checked visually on the six-match entry card:ARO:3002546 (the maximum out-degree).
 - The query node is filled with the text colour, so the accent fill means best only.
 - Zero matches: nothing is drawn; the list says so.
+
+The interactive network (tickets #9 and #10) has its own geometry in `src/networkLayout.ts`, described in `network-layout.md`; this file's `layout.ts` is retired when the UI tickets wire it in.

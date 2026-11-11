@@ -34,6 +34,7 @@ jobs:
       - run: |
           python tests/oracle/lookup.py data/graph.json | diff - tests/oracle/lookup_expected.json
           python tests/oracle/matches.py data/graph.json | diff - tests/oracle/matches_expected.json
+          python tests/oracle/expand.py data/graph.json | diff - tests/oracle/expand_expected.json
   deploy:
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     needs: [build, oracle]
