@@ -13,6 +13,8 @@ import {
   layoutNetwork,
   pillRect,
   ribbonRect,
+  RIBBON_H,
+  RIBBON_W,
   EXPAND_H,
   type Cubic,
   type NodeSlot,
@@ -346,17 +348,37 @@ export function NetworkView({
             </svg>
             Match of a match (dashed)
           </li>
+          <li>
+            <RibbonSwatch weak={false} />
+            highest identity in its database
+          </li>
+          <li>
+            <RibbonSwatch weak />
+            the same, in a group below 90%
+          </li>
         </ul>
+        {/* One sentence (#22); the full wording, unchanged, is under How to read this, "Network picture". */}
         <p className="mt-2" data-testid="network-note">
-          The same matches as the list of cards. Solid-line arrows run from the query and the percentage on them is the identity; after an expand, the lighter arrows run from the match that was expanded. Best is the highest identity in
-          its database (ties all best), by identity only; in a group below 90% the label is Highest identity shown. Click a node or press Enter to make it the
-          query; hover or focus shows its details. The + button on a match adds that entry&apos;s own matches.
+          The same matches as the cards, with identity on each arrow; click a node or press Enter to make it the query (more under How to read this).
         </p>
         <p className="sr-only" role="status" data-testid="network-status">
           {step2 > 0 ? `${step2} ${step2 === 1 ? "match" : "matches"} of matches shown, not matches of the query.` : ""}
         </p>
       </figcaption>
     </figure>
+  );
+}
+
+// The Best ribbon as drawn on a chip, at its real size and with the same classes, so the key cannot drift from the marks.
+function RibbonSwatch({ weak }: { weak: boolean }) {
+  const w = weak ? RIBBON_W.weak : RIBBON_W.best;
+  return (
+    <svg width={w + 2} height={RIBBON_H + 2} viewBox={`-1 -1 ${w + 2} ${RIBBON_H + 2}`} aria-hidden="true" data-swatch={weak ? "highest" : "best"}>
+      <g className="net-ribbon" data-weak={weak || undefined}>
+        <rect x={0} y={0} width={w} height={RIBBON_H} rx={RIBBON_H / 2} />
+        <text x={w / 2} y={RIBBON_H / 2}>{weak ? "Highest identity shown" : "Best"}</text>
+      </g>
+    </svg>
   );
 }
 

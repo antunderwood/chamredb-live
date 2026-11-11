@@ -19,6 +19,15 @@ export function HowToRead({ weakPct }: { weakPct: number }) {
           <p className="mt-1">RBH: reciprocal best hit; OWH: one-way hit (the reverse direction is not implied).</p>
         </div>
         <div>
+          {/* Moved here unchanged from the network picture's caption (#22), which now has a drawn key and one sentence. */}
+          <h2 className="font-semibold">Network picture</h2>
+          <p className="mt-1" data-testid="howto-network">
+            The same matches as the list of cards. Solid-line arrows run from the query and the percentage on them is the identity; after an expand, the lighter arrows run from the match that was expanded. Best is the highest identity in
+            its database (ties all best), by identity only; in a group below 90% the label is Highest identity shown. Click a node or press Enter to make it the
+            query; hover or focus shows its details. The + button on a match adds that entry&apos;s own matches.
+          </p>
+        </div>
+        <div>
           <h2 className="font-semibold">Weak evidence</h2>
           <p className="mt-1">
             When every match shown in a database is below {weakPct}% identity, that group is marked as weak evidence

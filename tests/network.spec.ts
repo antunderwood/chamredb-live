@@ -457,3 +457,47 @@ test("a click does not pin the tooltip: it goes when the pointer leaves, and it 
   await expect(page.getByRole("tooltip")).toHaveCount(0);
   await expect(page.locator('[data-hl="true"]')).toHaveCount(0);
 });
+
+test("the drawn key: each glyph has the same computed style as the mark it names in the picture (#22)", async ({ page }) => {
+  const legend = page.getByRole("list", { name: "Legend" });
+  const style = (l: Locator) => l.first().evaluate((el) => {
+    const c = getComputedStyle(el);
+    return { fill: c.fill, stroke: c.stroke, dash: c.strokeDasharray, width: c.strokeWidth };
+  });
+  await page.goto("./");
+  await search(page, "card:ARO:1000");
+  for (const type of ["RBH", "OWH"] as const) {
+    expect(await style(legend.locator(`.net-edge[data-type="${type}"] path`)), type).toEqual(await style(net(page).locator(`[data-edge][data-type="${type}"] path`)));
+  }
+  for (const db of ["card", "ncbi", "resfinder"] as const) {
+    expect((await style(legend.locator(`.net-swatch[data-db="${db}"]`))).stroke, db).toBe((await style(net(page).locator(`g[data-node][data-db="${db}"] .net-shape`))).stroke);
+  }
+  const ribbon = (l: Locator) => Promise.all([style(l.locator("rect")), style(l.locator("text"))]);
+  expect(await ribbon(legend.locator('[data-swatch="best"] .net-ribbon')), "Best ribbon").toEqual(await ribbon(net(page).locator(".net-ribbon:not([data-weak])").first()));
+  await page.getByLabel("Minimum identity").fill("80");
+  await search(page, "card:ARO:2000");
+  await page.getByLabel("Minimum identity").fill("80");
+  expect(await ribbon(legend.locator('[data-swatch="highest"] .net-ribbon')), "weak ribbon").toEqual(await ribbon(net(page).locator(".net-ribbon[data-weak]").first()));
+  await search(page, "card:ARO:1000");
+  await page.getByRole("button", { name: "Expand matches of tetM-like (1)" }).click();
+  const s2 = await style(net(page).locator('g[data-role="step2"] .net-shape'));
+  const sw = await style(legend.locator(".net-swatch-step2"));
+  expect(sw.dash, "match of a match: same dash").toBe(s2.dash);
+  expect(sw.fill, "match of a match: same fill").toBe(s2.fill);
+});
+
+test("the key names every encoding, the caption is one sentence, and no caption wording is lost (#22)", async ({ page }) => {
+  await page.goto("./");
+  await search(page, "card:ARO:1000");
+  const legend = page.getByRole("list", { name: "Legend" });
+  for (const t of ["CARD (rounded)", "NCBI (cut corners)", "ResFinder (pill)", "RBH, reciprocal best hit", "OWH, one-way hit", "Match of a match (dashed)", "Best", "Highest identity shown", "below 90%"]) {
+    await expect(legend, t).toContainText(t);
+  }
+  const note = (await page.getByTestId("network-note").innerText()).trim();
+  expect(note.match(/[.!?](\s|$)/g)?.length ?? 0, note).toBeLessThanOrEqual(1);
+  // The caption as it was before #22, word for word, is now in How to read this.
+  const old =
+    "The same matches as the list of cards. Solid-line arrows run from the query and the percentage on them is the identity; after an expand, the lighter arrows run from the match that was expanded. Best is the highest identity in its database (ties all best), by identity only; in a group below 90% the label is Highest identity shown. Click a node or press Enter to make it the query; hover or focus shows its details. The + button on a match adds that entry's own matches.";
+  await page.getByTestId("how-to-read").locator("summary").click();
+  expect((await page.getByTestId("howto-network").innerText()).replace(/\s+/g, " ").trim()).toBe(old);
+});
