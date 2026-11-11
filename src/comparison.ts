@@ -9,6 +9,9 @@ export type ComparisonRow =
   | { database: Database; kind: "match"; label: "best" | "highest"; top: Match[]; count: number }
   | { database: Database; kind: "none"; below: number };
 
+// The weak-evidence sentence of a weak group (no full stop), one source for the strip and the side-by-side view.
+export const weakGroupNote = (weakBelow: number): string => `Weak evidence: every match here is below ${Math.round(weakBelow * 100)}% identity`;
+
 // `groups`: the matches at the current minimum identity; `allGroups`: the same entry's matches at minimum identity 0.
 export function comparisonRows(queryDatabase: Database, groups: MatchGroup[], allGroups: MatchGroup[], weakBelow: number): ComparisonRow[] {
   return DATABASES.filter((d) => d !== queryDatabase).map((database): ComparisonRow => {

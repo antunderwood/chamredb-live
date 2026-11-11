@@ -142,6 +142,8 @@ export const AboutPanel = forwardRef<AboutPanelHandle, { provenance: Provenance 
                   union of the metadata, and report this to the user so that they can make intelligent, informed choices.
                 </li>
               </ul>
+              {/* Added after the 2021 text above, which is unchanged: this site lists matches, it does not decide equivalence. */}
+              <p className="mt-2" data-about-note>This site lists matches by sequence identity; it does not decide that two entries are equivalent.</p>
             </div>
             <div>
               <h4 className="font-semibold">Databases used</h4>
