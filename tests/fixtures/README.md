@@ -50,3 +50,14 @@ Sign-off: signed off by the repo owner on 2026-11-10 after reviewing the edge li
 | resfinder:orphan | not recorded | none |
 | resfinder:blaXlow (as a match) | not recorded | none |
 | every other entry | its `phenotype` string in `graph.json` | none |
+
+### Other metadata (ticket #8; shown only when present, verbatim)
+
+| Entry | PMID (links to `https://pubmed.ncbi.nlm.nih.gov/<id>/`) | is_a | product |
+| --- | --- | --- | --- |
+| card:ARO:2000 (every field) | 10000002, 10000003 linked; `DOI:10.0000/hand-written` shown as text, not linked (it is not a PubMed id; the real graph has one such value, `card:ARO:3001313`) | ARO:0000002:ribosomal protection protein | hand-written product of tet(M) |
+| card:ARO:1000 | 10000001 | ARO:0000001:beta-lactamase | none |
+| ncbi:WP_1.1 | none | none | class A beta-lactamase BlaX-1 |
+| resfinder:orphan (no field at all) | none | none | none |
+
+The invented `is_a`, `product` and PMIDs on card:ARO:2000 exist to cover an entry with every field; a real CARD entry never has a product.

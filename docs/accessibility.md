@@ -18,8 +18,8 @@ Edit `public/theme.css` only. It is the one tokens file, linked from `index.html
 | `--danger` | error and weak-evidence text (4.5:1) |
 | `--brand`, `--brand-fg` | header bar and its text, its toggle outline and its focus ring (the 2021 purple, `#633f8d`) |
 | `--nav-active-bg`, `--nav-active-fg` | the pill on the current nav item (Query) |
-| `--chip-query`, `--chip-db`, `--chip-name`, `--chip-match`, `--chip-fg` | colour chips (blue Query, orange database, red name, purple Match) with `--chip-fg` as their text; every chip also carries its label as text. The red name chip must never be used to signal an error or weakness (that is `--danger` text with words). Only the database chip is on the page today, as the heading of each match group; the others are reserved for the result cards (#8) and are already contrast-tested |
-| `--label`, `--label-fg` | the green label bars ("Minimum identity" today) |
+| `--chip-query`, `--chip-db`, `--chip-name`, `--chip-match`, `--chip-fg` | colour chips (blue Query, orange database, red name, purple Match) with `--chip-fg` as their text; every chip also carries its label as text. The red name chip must never be used to signal an error or weakness (that is `--danger` text with words). Used by the result panels (#8): Query, database and name chips on the query panel, Match, database and name chips on each match panel, and the database chip as each group heading. Chips sit on `--panel` as well as `--surface` (both pairs are tested) |
+| `--label`, `--label-fg` | the green label bars ("Minimum identity", the card fields and the phenotype headings); `--label` also colours the list bullets |
 | `--font-body` | font stack |
 
 Dark is the same tokens written twice with identical values: inside `@media (prefers-color-scheme: dark)` as `:root:not([data-theme="light"])` (the system setting, unless the toggle chose light) and as `:root[data-theme="dark"]` (the toggle chose dark). A dark block must define every colour token, or the light value leaks into dark (the contrast test requires all of them), and `src/contrast.test.ts` fails if the two dark blocks differ.
@@ -70,6 +70,10 @@ Earlier change to reach the thresholds: the default `--border` (`#d0d0d0` light,
 | theme.css | light | --chip-match on --surface | 7.74 | 3:1 | pass |
 | theme.css | light | --label-fg on --label | 6.08 | 4.5:1 | pass |
 | theme.css | light | --label on --surface | 6.08 | 3:1 | pass |
+| theme.css | light | --chip-query on --panel | 5.43 | 3:1 | pass |
+| theme.css | light | --chip-db on --panel | 4.94 | 3:1 | pass |
+| theme.css | light | --chip-name on --panel | 5.42 | 3:1 | pass |
+| theme.css | light | --chip-match on --panel | 6.20 | 3:1 | pass |
 | theme.css | dark | --fg on --bg | 15.16 | 4.5:1 | pass |
 | theme.css | dark | --fg on --surface | 11.50 | 4.5:1 | pass |
 | theme.css | dark | --muted on --bg | 8.79 | 4.5:1 | pass |
@@ -98,6 +102,10 @@ Earlier change to reach the thresholds: the default `--border` (`#d0d0d0` light,
 | theme.css | dark | --chip-match on --surface | 7.05 | 3:1 | pass |
 | theme.css | dark | --label-fg on --label | 9.28 | 4.5:1 | pass |
 | theme.css | dark | --label on --surface | 7.37 | 3:1 | pass |
+| theme.css | dark | --chip-query on --panel | 7.47 | 3:1 | pass |
+| theme.css | dark | --chip-db on --panel | 8.31 | 3:1 | pass |
+| theme.css | dark | --chip-name on --panel | 7.72 | 3:1 | pass |
+| theme.css | dark | --chip-match on --panel | 8.39 | 3:1 | pass |
 | theme.bsb.css | light | --fg on --bg | 16.29 | 4.5:1 | pass |
 | theme.bsb.css | light | --fg on --surface | 18.48 | 4.5:1 | pass |
 | theme.bsb.css | light | --muted on --bg | 5.07 | 4.5:1 | pass |
@@ -126,6 +134,10 @@ Earlier change to reach the thresholds: the default `--border` (`#d0d0d0` light,
 | theme.bsb.css | light | --chip-match on --surface | 5.75 | 3:1 | pass |
 | theme.bsb.css | light | --label-fg on --label | 5.75 | 4.5:1 | pass |
 | theme.bsb.css | light | --label on --surface | 5.75 | 3:1 | pass |
+| theme.bsb.css | light | --chip-query on --panel | 6.44 | 3:1 | pass |
+| theme.bsb.css | light | --chip-db on --panel | 5.44 | 3:1 | pass |
+| theme.bsb.css | light | --chip-name on --panel | 4.98 | 3:1 | pass |
+| theme.bsb.css | light | --chip-match on --panel | 5.07 | 3:1 | pass |
 | theme.bsb.css | dark | --fg on --bg | 16.29 | 4.5:1 | pass |
 | theme.bsb.css | dark | --fg on --surface | 14.36 | 4.5:1 | pass |
 | theme.bsb.css | dark | --muted on --bg | 11.56 | 4.5:1 | pass |
@@ -154,6 +166,10 @@ Earlier change to reach the thresholds: the default `--border` (`#d0d0d0` light,
 | theme.bsb.css | dark | --chip-match on --surface | 10.18 | 3:1 | pass |
 | theme.bsb.css | dark | --label-fg on --label | 11.56 | 4.5:1 | pass |
 | theme.bsb.css | dark | --label on --surface | 10.18 | 3:1 | pass |
+| theme.bsb.css | dark | --chip-query on --panel | 8.12 | 3:1 | pass |
+| theme.bsb.css | dark | --chip-db on --panel | 5.10 | 3:1 | pass |
+| theme.bsb.css | dark | --chip-name on --panel | 7.43 | 3:1 | pass |
+| theme.bsb.css | dark | --chip-match on --panel | 10.95 | 3:1 | pass |
 
 Limits: the pairs are the ones the components use today, plus the reserved chip and label tokens; a new component that pairs tokens differently needs a new row in `PAIRS` (`src/contrast.ts`). Text drawn at the page default size is assumed (no large-text relaxation is used). The BSB light accent on Pearl is 3.03:1, a thin margin over 3:1.
 

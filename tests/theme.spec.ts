@@ -37,8 +37,14 @@ for (const scheme of ["light", "dark"] as const) {
     expect(await css(page, "button[type=submit]", "color")).toBe(rgb(t["--accent-fg"]));
     // Notice (role=note: demo data), result section, best badge, picture marks.
     expect(await css(page, '[role="note"]', "background-color")).toBe(rgb(t["--surface"]));
-    expect(await css(page, 'section[aria-label="Matches in ncbi"]', "background-color")).toBe(rgb(t["--surface"]));
-    expect(await css(page, 'section[aria-label="Query entry"] p:nth-of-type(1)', "color")).toBe(rgb(t["--muted"]));
+    expect(await css(page, 'section[aria-label="Matches in ncbi"] [data-match]', "background-color")).toBe(rgb(t["--panel"]));
+    expect(await css(page, 'section[aria-label="Matches in ncbi"] [data-field="match-details"]', "background-color")).toBe(rgb(t["--surface"]));
+    // Chips of the query panel and of a match panel.
+    for (const [chip, token] of [["query", "--chip-query"], ["db", "--chip-db"], ["name", "--chip-name"]] as const) {
+      expect(await css(page, `section[aria-label="Query entry"] [data-chip="${chip}"]`, "background-color"), chip).toBe(rgb(t[token]));
+      expect(await css(page, `section[aria-label="Query entry"] [data-chip="${chip}"]`, "color"), chip).toBe(rgb(t["--chip-fg"]));
+    }
+    expect(await css(page, '[data-match] [data-chip="match"]', "background-color")).toBe(rgb(t["--chip-match"]));
     expect(await css(page, "strong", "background-color")).toBe(rgb(t["--accent"]));
     expect(await css(page, "strong", "color")).toBe(rgb(t["--accent-fg"]));
     expect(await css(page, '[data-testid="network"] g[data-node="ncbi:WP_1.1"] rect', "fill")).toBe(rgb(t["--accent"]));
@@ -52,7 +58,10 @@ for (const scheme of ["light", "dark"] as const) {
     await expect(page.getByRole("region", { name: "Query entry" })).toContainText("card:ARO:2000");
     await page.getByLabel("Minimum identity").fill("80");
     await expect(page.locator("section p.text-danger")).toBeVisible();
-    expect(await css(page, '[data-field="match-phenotype"]', "color")).toBe(rgb(t["--muted"]));
+    // The green label bars of the cards.
+    expect(await css(page, '[data-field="match-phenotype"] [data-phenotype-list] p', "background-color")).toBe(rgb(t["--label"]));
+    expect(await css(page, '[data-field="match-phenotype"] [data-phenotype-list] p', "color")).toBe(rgb(t["--label-fg"]));
+    expect(await css(page, '[data-field="match-details"] dt', "background-color")).toBe(rgb(t["--label"]));
     expect(await css(page, "section p.text-danger", "color")).toBe(rgb(t["--danger"]));
     // Not found: danger text on the page background.
     await search(page, "nope");
