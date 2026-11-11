@@ -1,6 +1,6 @@
 # 0005. Redesign: the old look modernised, richer result cards, and an interactive network picture
 
-- Status: proposed
+- Status: accepted
 - Date: 2026-11-10
 - Deciders: repo owner
 - Kind: engineering
