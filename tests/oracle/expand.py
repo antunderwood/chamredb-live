@@ -84,7 +84,7 @@ def network(graph, query, threshold, expand):
     budget = max(0, CAP - len(nodes))
     keep = sorted(first, key=lambda t: (first[t][0][0], t))[:budget]
     for target in keep:
-        (neg, via), best, weak = first[target][0], first[target][1], first[target][2]
+        (_, via), best, weak = first[target]
         nodes[target] = ["step2", via, best, weak]
     edges += [e for e in extra if e[1] in nodes]
     dropped = len(first) - len(keep)
@@ -102,7 +102,7 @@ def canonical(nodes, edges, dropped):
     }
 
 
-def check_case(graph, query, threshold, expand, shows, result):
+def check_case(graph, query, shows, result):
     nodes, edges = result["nodes"], result["edges"]
     roles = {n[0]: n[1] for n in nodes}
     step2 = [e for e in edges if e[5] == 2]
@@ -129,12 +129,13 @@ def check_case(graph, query, threshold, expand, shows, result):
 
 
 def main(path):
-    raw = json.load(open(path))
+    with open(path) as f:
+        raw = json.load(f)
     graph = nx.DiGraph()
     for n in raw["nodes"]:
         graph.add_node(n["id"], database=n["database"])
-    for l in raw["links"]:
-        graph.add_edge(l["source"], l["target"], identity=l["identity"], coverage=l["coverage"], type=l["type"])
+    for link in raw["links"]:
+        graph.add_edge(link["source"], link["target"], identity=link["identity"], coverage=link["coverage"], type=link["type"])
     cases = []
     for query, expand, shows, shows_at in CASES:
         if expand not in ("all", "none"):
@@ -142,18 +143,20 @@ def main(path):
         for threshold in THRESHOLDS:
             cn = canonical(*network(graph, query, threshold, expand))
             if threshold == shows_at:
-                check_case(graph, query, threshold, expand, shows, cn)
+                check_case(graph, query, shows, cn)
             cases.append({"entry": query, "minIdentity": threshold, "expanded": expand, **cn})
     lines = []
     for query in sorted(graph.nodes):
         nodes, edges, dropped = network(graph, query, 0.9, "all")
         roles = {i: v[0] for i, v in nodes.items()}
-        assert len(nodes) <= CAP or all(r != "step2" for r in roles.values()), f"{query}: over the cap"
+        n_step1 = sum(1 for r in roles.values() if r == "match")
+        assert len(nodes) <= max(CAP, 1 + n_step1), f"{query}: over the cap"
         assert all(s in nodes and t in nodes for s, t, _, _ in edges), f"{query}: edge without a node"
         assert all(v[1] in nodes and roles[v[1]] == "match" for v in nodes.values() if v[0] == "step2"), f"{query}: bad via"
         lines.append(json.dumps([query, canonical(nodes, edges, dropped)], ensure_ascii=False, separators=(",", ":")))
     sweep = {"count": len(lines), "sha256": hashlib.sha256("\n".join(lines).encode("utf-8")).hexdigest()}
-    graph_sha = hashlib.sha256(open(path, "rb").read()).hexdigest()
+    with open(path, "rb") as f:
+        graph_sha = hashlib.sha256(f.read()).hexdigest()
     json.dump({"graph_sha256": graph_sha, "cases": cases, "sweep": sweep}, sys.stdout, indent=1)
     print()
 

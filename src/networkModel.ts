@@ -1,5 +1,5 @@
 import { matchGroups } from "./query";
-import type { Database, Index, MatchType } from "./types";
+import type { Database, Index, Match, MatchType } from "./types";
 
 // Pure data model of the interactive network (tickets #9 and #10): which nodes and edges to draw, with no
 // geometry (networkLayout.ts) and no rendering. Step 1 is exactly matchGroups(query). Expanding a step-1 entry
@@ -50,16 +50,20 @@ export interface Network {
 // them all, so only step-2 nodes count against MAX_NODES. A step-2 hit on the query or on a step-1 node adds an
 // edge between the existing nodes (step 2) and no node. When a new step-2 node is reachable from several
 // expanded entries it appears once, with the first-ranking hit as `via` and flags.
+// An unknown queryId throws (a programmer error): the caller must have resolved the id (findEntries) and must
+// handle a stale hash itself before calling.
+const groupWeak = (matches: Match[]) => q(Math.max(...matches.map((m) => m.identity))) < q(WEAK_BELOW);
+const hitOf = (m: Match): Hit => ({ identity: m.identity, coverage: m.coverage, type: m.type });
 export function buildNetwork(index: Index, queryId: string, minIdentity: number, expandedIds: Iterable<string> = []): Network {
-  const query = index.entries[queryId]!;
   if (!Object.hasOwn(index.entries, queryId)) throw new Error(`Unknown entry: ${queryId}`);
+  const query = index.entries[queryId]!;
   const nodes: NetNode[] = [{ id: query.id, database: query.database, name: query.name, role: "query", best: false, weak: false }];
   const edges: NetEdge[] = [];
   for (const g of matchGroups(index, queryId, minIdentity)) {
-    const weak = q(Math.max(...g.matches.map((m) => m.identity))) < q(WEAK_BELOW);
+    const weak = groupWeak(g.matches);
     for (const m of g.matches) {
       const { id, database, name } = m.entry;
-      nodes.push({ id, database, name, role: "match", best: m.best, weak, hit: { identity: m.identity, coverage: m.coverage, type: m.type } });
+      nodes.push({ id, database, name, role: "match", best: m.best, weak, hit: hitOf(m) });
       edges.push({ source: queryId, target: id, identity: m.identity, coverage: m.coverage, type: m.type, step: 1 });
     }
   }
@@ -75,12 +79,12 @@ export function buildNetwork(index: Index, queryId: string, minIdentity: number,
   let seq = 0;
   for (const via of expanded) {
     for (const g of matchGroups(index, via.id, minIdentity)) {
-      const weak = q(Math.max(...g.matches.map((m) => m.identity))) < q(WEAK_BELOW);
+      const weak = groupWeak(g.matches);
       for (const m of g.matches) {
         const { id, database, name } = m.entry;
         step2.push({ source: via.id, target: id, identity: m.identity, coverage: m.coverage, type: m.type, step: 2 });
         if (known.has(id)) continue; // the query or a step-1 node: an extra edge only
-        const hit = { identity: m.identity, coverage: m.coverage, type: m.type };
+        const hit = hitOf(m);
         const node: NetNode = { id, database, name, role: "step2", via: via.id, best: m.best, weak, hit };
         const seen = candidates.get(id);
         const ranksFirst = !seen || q(hit.identity) > q(seen.node.hit!.identity) || (q(hit.identity) === q(seen.node.hit!.identity) && byCodeUnit(via.id, seen.node.via!) < 0);

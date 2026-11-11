@@ -54,3 +54,4 @@ Pure model in `src/networkModel.ts` (`buildNetwork`), geometry in `src/networkLa
 - Oracle: `tests/oracle/expand.py` (10 fixed entries at 0.9 and 0.5, and every entry at 0.9 with all step-1 nodes expanded, 15859 by hash) plus hand-worked fixture cases.
 - Known difference: the list and the old picture decide weak with an unrounded comparison (`identity < 0.9`); the model rounds to 3 decimals like `matchGroups`. They agree on every identity in this release (3 decimals).
 - Expansion state is not in the shareable link (conservative default for ticket #10: the link records the search, and a link that opens expanded would hide the one-step picture; owner may reverse).
+- An unknown query id throws (a programmer error): callers must check the id exists, and a stale hash must be handled by the caller before calling `buildNetwork`.

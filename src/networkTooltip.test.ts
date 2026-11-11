@@ -78,7 +78,7 @@ describe("tooltip text", () => {
 describe("tooltip truncation is for display only", () => {
   const long = "confers resistance to " + "aminoglycoside ".repeat(20).trim();
   const withLong = { ...index.entries["card:ARO:2000"]!, phenotype: long, additionalPhenotype: "short" };
-  const n = { ...net.nodes[0]! };
+  const n = net.nodes.find((x) => x.id === "card:ARO:2000")!;
   it("cuts a long phenotype to the limit with an ellipsis and says so", () => {
     const t = tooltip(n, withLong);
     const line = t.lines.find((l) => l.startsWith("Phenotype: "))!;
@@ -97,6 +97,10 @@ describe("tooltip truncation is for display only", () => {
     expect(t.truncated).toBe(false);
     expect(t.lines).toContain(`Phenotype: ${"x".repeat(PHENOTYPE_MAX)}`);
     expect(tooltip(n, { ...exact, phenotype: "x".repeat(PHENOTYPE_MAX + 1) }).truncated).toBe(true);
+  });
+  it("a limit below 1 still shows one character and an ellipsis, and a mismatched node and entry throws", () => {
+    expect(tooltip(n, { ...withLong, phenotype: "abc" }, 0).lines).toContain("Phenotype: …");
+    expect(() => tooltip(n, index.entries["card:ARO:1000"]!)).toThrow(/does not match/);
   });
   it("the limit is a parameter", () => {
     expect(tooltip(n, { ...withLong, phenotype: "abcdefghij" }, 5).lines).toContain("Phenotype: abcd…");

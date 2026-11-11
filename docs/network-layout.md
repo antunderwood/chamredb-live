@@ -13,7 +13,7 @@ y = PAD + ROW * ((rows - count) / 2 + row) + ROW / 2
 
 A shorter column is centred on the tallest one. The query is on the middle row of the tallest column. Nodes within a column keep the model order (step-1 in list order, step-2 by via).
 
-## Constants (viewBox units)
+## Constants (viewBox units, not CSS pixels)
 
 | Constant | Value | Meaning |
 | --- | --- | --- |
@@ -52,3 +52,7 @@ Fixture A: query, 3 matches, 3 step-2 nodes (rows = 3). Height 2 * 16 + 56 * 3 =
 | Query only | width 2 * 96, height 2 * 16 + 56 | 192 by 88 |
 
 The expected values in `src/networkLayout.test.ts` are these numbers, not computed by the code under test. There is no mirrored (right to left) orientation here: the old `layout.ts` keeps its own tests.
+
+## Units and limits
+
+All numbers here (pixel, width, height, hit size) are viewBox units, not CSS pixels. A unit equals one CSS pixel only at scale 1, so the 48 unit hit target (minimum 44) is 44 CSS pixels or more only when the figure is not scaled below 92%. The UI must not scale it down below that: scroll sideways on a narrow screen, or enlarge HIT. Cross-column edges are straight lines and can pass near nodes in between. `hitRegions` is for ticket #9.
