@@ -25,7 +25,8 @@ function declarations(block: string): Tokens {
   return out;
 }
 
-// Light tokens: the :root block outside any @media. Dark tokens: the :root block inside @media (prefers-color-scheme: dark).
+// Light tokens: the :root block outside any @media. Dark tokens: the :root block inside @media (prefers-color-scheme: dark),
+// which may be written :root:not([data-theme="light"]) so an explicit light choice beats the system setting.
 export function readThemes(css: string): { light: Tokens; dark: Tokens } {
   const stripped = css.replace(/\/\*[\s\S]*?\*\//g, "");
   const open = /@media\s*\(prefers-color-scheme:\s*dark\)\s*\{/.exec(stripped);
@@ -36,8 +37,14 @@ export function readThemes(css: string): { light: Tokens; dark: Tokens } {
   if (depth > 0) throw new Error("unbalanced braces in the dark @media block");
   const darkCss = stripped.slice(open.index + open[0].length, end - 1);
   const lightCss = stripped.slice(0, open.index) + stripped.slice(end); // anything outside the dark block
-  const root = (s: string) => /:root\s*\{([^}]*)\}/.exec(s)?.[1] ?? "";
+  const root = (s: string) => /:root(?::not\(\[data-theme="light"\]\))?\s*\{([^}]*)\}/.exec(s)?.[1] ?? "";
   return { light: declarations(root(lightCss)), dark: declarations(root(darkCss)) };
+}
+
+// Dark tokens chosen by the toggle: the :root[data-theme="dark"] block. It must equal the media block (same values twice).
+export function readDarkAttribute(css: string): Tokens {
+  const stripped = css.replace(/\/\*[\s\S]*?\*\//g, "");
+  return declarations(/:root\[data-theme="dark"\]\s*\{([^}]*)\}/.exec(stripped)?.[1] ?? "");
 }
 
 // [foreground token, background token, minimum ratio, why]: text is 4.5, marks, focus indicators and control boundaries 3.
@@ -53,4 +60,21 @@ export const PAIRS: [string, string, number, string][] = [
   ["--accent", "--surface", 3, "mark and focus indicator"],
   ["--control-border", "--bg", 3, "control boundary"],
   ["--control-border", "--surface", 3, "control boundary"],
+  ["--fg", "--panel", 4.5, "text"],
+  ["--muted", "--panel", 4.5, "text"],
+  ["--danger", "--panel", 4.5, "text"],
+  ["--accent", "--panel", 3, "mark and focus indicator"],
+  ["--brand-fg", "--brand", 4.5, "header text, header focus ring and toggle outline"],
+  ["--nav-active-fg", "--nav-active-bg", 4.5, "text"],
+  ["--nav-active-bg", "--brand", 3, "mark"],
+  ["--chip-fg", "--chip-query", 4.5, "text"],
+  ["--chip-fg", "--chip-db", 4.5, "text"],
+  ["--chip-fg", "--chip-name", 4.5, "text"],
+  ["--chip-fg", "--chip-match", 4.5, "text"],
+  ["--chip-query", "--surface", 3, "mark"],
+  ["--chip-db", "--surface", 3, "mark"],
+  ["--chip-name", "--surface", 3, "mark"],
+  ["--chip-match", "--surface", 3, "mark"],
+  ["--label-fg", "--label", 4.5, "text"],
+  ["--label", "--surface", 3, "mark"],
 ];

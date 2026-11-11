@@ -9,6 +9,7 @@ const press = async (page: Page, key: string, times = 1) => {
 test("keyboard only: select, search box, Search, slider in reading order; Enter searches; arrows, Home and End move the slider", async ({ page }) => {
   await page.goto("./");
   await expect(page.getByLabel("Entry id")).toBeEnabled();
+  await page.getByRole("button", { name: "Dark mode" }).focus(); // the header (tests/header.spec.ts) comes first in reading order; start after it
   await press(page, "Tab");
   await expect(page.getByLabel("Search in database")).toBeFocused();
   await press(page, "Tab");

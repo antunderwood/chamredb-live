@@ -1,6 +1,6 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { contrast, PAIRS, readThemes } from "./contrast";
+import { contrast, PAIRS, readDarkAttribute, readThemes } from "./contrast";
 
 // Independent worked values (WCAG 2.x definition, not produced by this code): black on white is 21:1, white on white
 // is 1:1, and #777777 on white is 4.48:1 (the well-known just-failing grey; #767676 is the first grey to pass 4.5).
@@ -21,6 +21,14 @@ describe("token file reader", () => {
   });
 });
 
+describe("explicit dark choice reader", () => {
+  it("reads :root[data-theme=dark] and the :not light media selector", () => {
+    const css = ':root { --a: #111111; }\n@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --a: #eeeeee; } }\n:root[data-theme="dark"] { --a: #eeeeee; }';
+    expect(readThemes(css)).toEqual({ light: { "--a": "#111111" }, dark: { "--a": "#eeeeee" } });
+    expect(readDarkAttribute(css)).toEqual({ "--a": "#eeeeee" });
+  });
+});
+
 const files = readdirSync("public").filter((f) => /^theme(\.[\w-]+)?\.css$/.test(f));
 const doc = readFileSync("docs/accessibility.md", "utf8");
 
@@ -32,6 +40,9 @@ describe("shipped token files", () => {
 
   for (const file of files) {
     const { light, dark } = readThemes(readFileSync(`public/${file}`, "utf8"));
+    it(`${file}: the toggle's dark block equals the system dark block, so both routes are tested`, () => {
+      expect(readDarkAttribute(readFileSync(`public/${file}`, "utf8"))).toEqual(dark);
+    });
     for (const [name, tokens] of [["light", light], ["dark", dark]] as const) {
       describe(`${file} ${name}`, () => {
         it("defines every token the pairs use, as 6-digit hex", () => {
