@@ -33,7 +33,7 @@ export function Footer({ release }: { release: string | undefined }) {
 
   if (!release || (!p && !error)) return null; // no empty contentinfo landmark while loading
   return (
-    <footer className="mx-auto mt-10 max-w-3xl border-t border-border px-4 py-6 text-sm text-muted">
+    <footer className="mx-auto mt-10 max-w-shell border-t border-border px-4 py-6 text-sm text-muted">
       {error && <p role="alert" className="text-danger">{error}</p>}
       {p && (
         <>
@@ -41,7 +41,7 @@ export function Footer({ release }: { release: string | undefined }) {
             Release {p.release}, built {p.date}. <a className="underline" href={p.source}>Release page</a>.
           </p>
           <p className="mt-1">Source databases:</p>
-          <ul className="list-disc pl-5">
+          <ul className="list-disc pl-5 [overflow-wrap:anywhere]">
             {p.databases.map((d) => (
               <li key={d.database}>
                 {LABEL[d.database] ?? d.database} {d.database === "resfinder" ? "git commit " : ""}{d.release}, retrieved {d.retrieved}

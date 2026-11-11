@@ -240,7 +240,8 @@ All controls are native elements, so Tab order is reading order. The header come
 3. Tab: Search button.
 4. If the text matches more than one entry: the candidate buttons, in order; Enter chooses one.
 5. When one entry is shown: Tab to the Minimum identity slider; Left and Right change it by 1, Home sets 0, End sets 100.
-6. Tab: the "About chAMReDB" summary; Enter or Space opens it, and its links follow in order.
+6. The results, in reading order at every width (DOM order is the Tab order; CSS never reorders it, #25): the comparison strip's top-match buttons, then the network's scroll box, nodes and pills, then each card's "Show in network" button and links. The query panel has no Tab stop of its own. From 1152 px the strip and the network are in a sticky left rail that scrolls by itself when taller than the window, and the wheel passes on to the page at its ends; it is not a Tab stop itself because it holds focusable controls (the rail is sticky only when the network is shown, so a rail of no-match rows alone never becomes a scroll box without a Tab stop). `tests/layout.spec.ts` asserts the order at 1280 and 390 px.
+7. Tab: the "About chAMReDB" summary; Enter or Space opens it, and its links follow in order.
 
 Every `input` and `select` has a visible label (checked through `labels`). A 2 px outline with a 2 px offset shows keyboard focus on every control, in both themes (`--accent` everywhere except the purple header, which uses `--brand-fg`) (`:focus-visible` in `src/app.css`; the tests assert the computed outline, so an `outline: none` rule turns them red).
 
@@ -261,7 +262,7 @@ Example buttons (ticket #7) use a 10% mix of `--accent` into `--surface` as thei
 ## Network picture (tickets #9 and #10)
 
 - Keyboard: every chip is a `role="button"` group with `tabindex="0"` and an accessible name (name, database, id, identity, type, Best); Enter or Space makes it the query (the query chip is `aria-disabled`). Each "+n" pill is a separate button with `aria-expanded` and a name such as "Expand matches of X (n)". Tab order: query, then each match followed by its pill, then the step-2 nodes. L on a node moves focus to its card; "Show in network" on a card focuses its node. After Enter, focus goes to the new query chip.
-- Tooltip: `role="tooltip"`, referenced by `aria-describedby` on the node while shown; opens on hover and on focus, Escape dismisses it (1.4.13 dismissible), and it stays inside the figure. It is not hoverable (the pointer cannot move onto it) and has no interactive content; the same text is in the card.
+- Tooltip: `role="tooltip"`, referenced by `aria-describedby` on the node while shown; opens on hover and on focus, Escape dismisses it (1.4.13 dismissible), and it stays inside the figure; it follows its node when the box scrolls sideways and is hidden while the node is out of the box. It is not hoverable (the pointer cannot move onto it) and has no interactive content; the same text is in the card.
 - Focus is visible: the global 2 px accent outline (tested on every stop by `tests/a11y.spec.ts`) plus a glow.
 - Target size (2.5.8): a chip is 248 by 52 and a pill target 44 by 44 viewBox units. The figure is never scaled down (it scrolls sideways inside a keyboard-scrollable, labelled box), so these are CSS pixels. The text on a chip is 10 to 15 px; the 10 px ribbon and badge text is small and is repeated in the tooltip and the card.
 - `prefers-reduced-motion: reduce` removes the entrance animation and the outline transition (`tests/network.spec.ts`).

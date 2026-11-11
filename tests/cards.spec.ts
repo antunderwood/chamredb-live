@@ -82,15 +82,19 @@ test("a weak group labels its top match 'Highest identity shown' beside the grou
   await expect(group.locator('[data-field="coverage"] dd')).toHaveText("100.0%");
 });
 
-test("the network is its own section under the query panel, open by default", async ({ page }) => {
+test("the network is its own section, open by default, between the comparison strip and the cards", async ({ page }) => {
+  await page.setViewportSize({ width: 900, height: 800 });
   await search(page, "card:ARO:1000");
   const section = page.getByTestId("network-section");
   await expect(section).toHaveJSProperty("open", true);
   await expect(section.locator("summary")).toHaveText("Network");
   await expect(section.getByTestId("network")).toBeVisible();
   const y = async (sel: string) => (await page.locator(sel).first().boundingBox())!.y;
-  expect(await y('[data-testid="network-section"]')).toBeGreaterThan(await y('[data-query]'));
-  expect(await y('[data-match]')).toBeGreaterThan(await y('[data-testid="network-section"]'));
+  // #25 (ADR 0006): the network moved from under the query panel into the rail with the strip. Checked in one column
+  // (900 px): strip, network, query panel, cards. The two-column case is in layout.spec.ts.
+  expect(await y('[data-testid="network-section"]')).toBeGreaterThan(await y('[data-testid="comparison"]'));
+  expect(await y('[data-query]')).toBeGreaterThan(await y('[data-testid="network-section"]'));
+  expect(await y('[data-match]')).toBeGreaterThan(await y('[data-query]'));
 });
 
 test("a row below 90% in a group that is not weak says so; the 90.0% row does not", async ({ page }) => {
@@ -114,12 +118,14 @@ test("no horizontal overflow at 768 px, where the three columns begin", async ({
   expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0);
 });
 
-test("cards stack in one column at phone width and sit side by side on a wide screen", async ({ page }) => {
+test("cards stack in one column at phone width and sit side by side in a wide column", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 800 });
   await search(page, "card:ARO:1000");
   const xs = async () => page.locator('[data-match="ncbi:WP_1.1"] h4').evaluateAll((els) => els.map((e) => Math.round(e.getBoundingClientRect().x)));
   expect(new Set(await xs()).size).toBe(1);
   expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0);
-  await page.setViewportSize({ width: 1200, height: 800 });
+  // #25: the panels follow the width of the cards' column. At 1200 px the cards are in the narrow right column and
+  // stack (layout.spec.ts); a wide single column (900 px window, below the two-column breakpoint) puts them side by side.
+  await page.setViewportSize({ width: 900, height: 800 });
   expect(new Set(await xs()).size).toBe(3);
 });

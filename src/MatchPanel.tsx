@@ -28,7 +28,7 @@ export function MatchPanel({ match, native, weak, weakBelow, pair }: { match: Ma
           Show in network<span className="sr-only"> ({entry.id})</span>
         </button>
       </div>
-      <div className="grid gap-3 md:grid-cols-[minmax(0,1.2fr)_minmax(0,1.35fr)_minmax(0,1fr)]">
+      <div className="grid gap-3 @2xl:grid-cols-[minmax(0,1.2fr)_minmax(0,1.35fr)_minmax(0,1fr)]" data-card-grid>
         <PhenotypeCard entry={entry} of="match" />
         <MetadataCard entry={entry} />
         <Card level={4} title="Match details" data-field="match-details">

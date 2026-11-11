@@ -2,7 +2,10 @@
 // the split into fetch / parse / state update, long main-thread tasks, first completion latency and
 // search plus render latency, under CPU and network throttling. See docs/performance.md for the method.
 //
-// Usage: node scripts/measure-startup.mjs [--runs 5] [--json out.json] [--dist DIR] [--profiles a,b] [--list]
+// Usage: node scripts/measure-startup.mjs [--full] [--runs N] [--json out.json] [--dist DIR] [--profiles a,b] [--list]
+// Default: a quick sanity check (default-gzip and cpu4-gzip, 3 runs each, about a minute). The app is not speed
+// critical (owner, 2026-11-11), so this is a look for regressions, not a gate. --full runs every profile, 5 runs each
+// (15 to 20 minutes, mostly the throttled network profiles), as in the #12 measurement.
 // Uses ./dist if it holds the release build; otherwise builds into a temporary directory outside the repo.
 // Reads nothing except the build output. Exits 0 after printing; the verdicts are in the table.
 import { execFileSync } from "node:child_process";
@@ -37,9 +40,11 @@ const PROFILES = [
 const argv = process.argv.slice(2);
 const arg = (k, d) => (argv.includes(k) ? argv[argv.indexOf(k) + 1] : d);
 if (argv.includes("--list")) { console.log(PROFILES.map((p) => p.name).join("\n")); process.exit(0); }
-const RUNS = Number(arg("--runs", 5));
+const FULL = argv.includes("--full");
+const RUNS = Number(arg("--runs", FULL ? 5 : 3));
+const QUICK = ["default-gzip", "cpu4-gzip"];
 const wanted = arg("--profiles", "").split(",").filter(Boolean);
-const profiles = wanted.length ? PROFILES.filter((p) => wanted.includes(p.name)) : PROFILES;
+const profiles = wanted.length ? PROFILES.filter((p) => wanted.includes(p.name)) : FULL ? PROFILES : PROFILES.filter((p) => QUICK.includes(p.name));
 if (!profiles.length || !(RUNS >= 1)) { console.error("Unknown --profiles or bad --runs; see --list"); process.exit(2); }
 
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");

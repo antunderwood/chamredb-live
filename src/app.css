@@ -25,6 +25,8 @@
   --color-label: var(--label);
   --color-label-fg: var(--label-fg);
   --font-sans: var(--font-body);
+  --container-shell: 75rem; /* the page shell (#25): header, main and footer share it */
+  --breakpoint-wide: 72rem; /* two-column results (#25): below it the 644 px network and readable cards do not both fit */
   --shadow-card: 0 1px 2px color-mix(in srgb, var(--fg) 10%, transparent), 0 6px 18px color-mix(in srgb, var(--fg) 7%, transparent);
 }
 
@@ -137,14 +139,6 @@ button[type="submit"]:not(:disabled):active {
   margin: 0 auto;
   max-width: none;
   overflow: visible;
-}
-/* A wide screen lets the section break out of the text column so the expanded picture (three columns) fits without scrolling. */
-@media (min-width: 1100px) {
-  .network-section {
-    width: min(1080px, calc(100vw - 2rem));
-    margin-left: 50%;
-    transform: translateX(-50%);
-  }
 }
 .net-head {
   fill: var(--muted);
