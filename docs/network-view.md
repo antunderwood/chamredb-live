@@ -31,3 +31,7 @@ The bars in the at-a-glance strip have their own single mapping, `scale(value, w
 | 1.3 (a coverage) | min(1.3, 1) x 200 | 200 | yes |
 
 The weak-evidence mark is a dashed `--danger` line at `scale(0.90)` = 180 px, labelled "90%" above the bar, on the identity bar only. It is an interpretation, not a filter. The minimum identity is not drawn on the bars: every shown bar is at or above it by definition, so a line for it repeated the slider and was read as a second threshold (owner decision, 2026-11-11). The line sits on a 5 px `--surface` halo, so it is read against `--surface` (4.5:1 for `--danger`) where it crosses the bar fill. Hand-worked values: `tests/fixtures/README.md`, "Bar scale"; tests: `src/bars.test.ts` and `tests/comparison.spec.ts`.
+
+## Bars in Match details (#23)
+
+Each Match details card draws the same bar next to its identity and coverage numbers: the shared `Bar` component (`src/Bar.tsx`, also used by the strip), so one `scale()` decides every length. A coverage above 100% gets the full bar, the chevron and "(over 100%)"; the 90% mark is not repeated in the cards (the "Below 90% identity" line and the Best or Highest identity shown labels are unchanged). The fill is `--label` on a `--panel` track, and the cards sit on `--panel`, so the tested pairs `--label` on `--panel` (3:1) and `--control-border` on `--panel` already cover them. Tests: `src/Bar.test.ts`, `tests/cards.spec.ts`.
