@@ -82,7 +82,8 @@ test("the fixture build offers no example buttons (none of the real examples exi
 test("the Query and About nav buttons still work", async ({ page }) => {
   await page.goto("./");
   await page.getByRole("button", { name: "About" }).click();
-  await expect(page.getByTestId("about")).toHaveAttribute("open", "");
+  await expect(page.getByRole("dialog", { name: "About and data" })).toBeVisible(); // #21: About is in the panel
+  await page.keyboard.press("Escape");
   await page.getByRole("button", { name: "Query" }).click();
   await expect(page.getByLabel("Entry id")).toBeFocused();
 });

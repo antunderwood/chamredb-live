@@ -392,3 +392,17 @@ button[type="submit"]:not(:disabled):active {
     opacity: 0;
   }
 }
+
+/* ---- About and data panel (#21): a native modal dialog drawn as a side sheet on the right. ---- */
+.about-panel {
+  margin: 0 0 0 auto;
+  height: 100dvh;
+  max-height: 100dvh;
+  width: min(32rem, 100vw);
+  max-width: 100vw;
+  border-left: 1px solid var(--border);
+  overflow-y: auto;
+}
+.about-panel::backdrop {
+  background: color-mix(in srgb, var(--fg) 35%, transparent);
+}

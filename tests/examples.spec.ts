@@ -88,10 +88,11 @@ test("the example buttons and a result do not scroll sideways at 390 px", async 
 });
 
 test("no horizontal page scroll at 360 px on a real result, footer included (#25)", async ({ page }) => {
-  // The footer lists a 40 character ResFinder git commit; before #25 it pushed the page 5 px sideways at 360 px.
+  // The footer listed a 40 character ResFinder git commit; before #25 it pushed the page 5 px sideways at 360 px.
+  // Since #21 the footer is one line (the list is in the About and data panel); the check stays for the new footer.
   await page.setViewportSize({ width: 360, height: 800 });
   await page.goto("./#q=card%3AARO%3A3000230");
   await expect(page.getByTestId("comparison")).toBeVisible();
-  await expect(page.locator("footer")).toContainText("git commit");
+  await expect(page.getByTestId("footer-release")).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(360);
 });

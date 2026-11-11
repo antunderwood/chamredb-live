@@ -97,10 +97,10 @@ for (const scheme of ["light", "dark"] as const) {
     const cand = page.getByRole("button", { name: /card:ARO:1000/ });
     expect(await cand.evaluate((el) => getComputedStyle(el).borderTopColor)).toBe(rgb(t["--control-border"]));
     expect(await cand.evaluate((el) => getComputedStyle(el).backgroundColor)).toBe(rgb(t["--surface"]));
-    // About section.
-    await page.getByText("About chAMReDB").click();
+    // About, now in the About and data panel (#21): the panel is the --surface sheet.
+    await page.getByRole("navigation", { name: "Main" }).getByRole("button", { name: "About" }).click();
     await expect(page.getByText("Welcome to the chAMReDB website.")).toBeVisible();
-    expect(await css(page, '[data-testid="about"]', "background-color")).toBe(rgb(t["--surface"]));
+    expect(await css(page, '[data-testid="about-panel"]', "background-color")).toBe(rgb(t["--surface"]));
     expect(await css(page, '[data-testid="about"] a', "text-decoration-line")).toBe("underline");
   });
 }

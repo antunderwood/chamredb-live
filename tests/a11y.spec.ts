@@ -139,7 +139,7 @@ test("non-colour encodings: best, weak and RBH versus OWH are carried by text, s
   // The badge keeps a border when the fill is not distinguishing (weak): a shape cue as well.
   expect(await resfinder.locator("strong").evaluate((el) => getComputedStyle(el).borderTopWidth)).not.toBe("0px");
   // Links are underlined, not only coloured.
-  await page.getByText("About chAMReDB").click();
+  await page.getByRole("navigation", { name: "Main" }).getByRole("button", { name: "About" }).click(); // #21: About is in the panel
   expect(await page.getByRole("link", { name: "The Comprehensive Antibiotic Resistance Database (CARD)" }).evaluate((el) => getComputedStyle(el).textDecorationLine)).toContain("underline");
 });
 
@@ -172,15 +172,18 @@ test("a failed data load is announced as an alert", async ({ page }) => {
   await expect(page.getByRole("alert")).toContainText("Could not load the data");
 });
 
-test("About: reachable by keyboard, content kept, links present", async ({ page }) => {
+test("About: the header's About opens the About and data panel by keyboard; content kept; Esc closes it and focus returns", async ({ page }) => {
+  // #21: the collapsible About section at the page end became the About and data panel (a native modal <dialog>).
   await page.goto("./");
   await expect(page.getByLabel("Entry id")).toBeEnabled();
-  const summary = page.getByText("About chAMReDB");
-  await expect(page.getByText("Welcome to the chAMReDB website.")).toBeHidden(); // collapsed
-  await page.getByLabel("Entry id").focus();
-  await press(page, "Tab", 2); // Search is disabled while the box is empty: the stops are the How to read this summary, then this one
-  await expect(summary).toBeFocused();
+  const about = page.getByRole("navigation", { name: "Main" }).getByRole("button", { name: "About" });
+  const panel = page.getByRole("dialog", { name: "About and data" });
+  await expect(panel).toBeHidden();
+  await press(page, "Tab", 2); // Query, then About (tests/header.spec.ts asserts the full header order)
+  await expect(about).toBeFocused();
   await press(page, "Enter");
+  await expect(panel).toBeVisible();
+  await expect(panel.getByRole("heading", { name: "About chAMReDB" })).toBeFocused();
   await expect(page.getByText("Welcome to the chAMReDB website.")).toBeVisible();
   await expect(page.getByText("the dilemma a scientist faces")).toBeVisible();
   await expect(page.getByText("The hypothesis for the project is as follows:")).toBeVisible();
@@ -193,7 +196,31 @@ test("About: reachable by keyboard, content kept, links present", async ({ page 
   expect(await href("The ResFinder Database")).toBe("https://bitbucket.org/genomicepidemiology/resfinder_db/src/master/");
   await press(page, "Tab"); // the first link inside is next in order
   await expect(page.getByRole("link", { name: "chAMReDB", exact: true })).toBeFocused();
-  await press(page, "Shift+Tab", 1);
-  await press(page, "Enter"); // closes again
-  await expect(page.getByText("Welcome to the chAMReDB website.")).toBeHidden();
+  // The demo build has no release: the data section says so rather than showing nothing.
+  await expect(panel.getByTestId("provenance")).toContainText("Demo data");
+  await press(page, "Escape");
+  await expect(panel).toBeHidden();
+  await expect(about).toBeFocused(); // focus back on the opener
+  expect(new URL(page.url()).hash).toBe(""); // opening and closing never touches the hash that holds the search
+});
+
+test("About and data panel: Close and a click on the backdrop close it; the page behind is inert while it is open", async ({ page }) => {
+  await page.goto("./#q=card%3AARO%3A1000");
+  await expect(page.getByTestId("comparison")).toBeVisible();
+  const about = page.getByRole("navigation", { name: "Main" }).getByRole("button", { name: "About" });
+  const panel = page.getByRole("dialog", { name: "About and data" });
+  await about.click();
+  await expect(panel).toBeVisible();
+  for (let i = 0; i < 25; i++) {
+    await press(page, "Tab");
+    // The page behind is inert: Tab moves through the panel and out to the browser, never onto a page control.
+    expect(await page.evaluate(() => { const a = document.activeElement; return !a || a === document.body || !!a.closest("dialog"); }), "no page control behind the panel takes focus").toBe(true);
+  }
+  await panel.getByRole("button", { name: "Close" }).click();
+  await expect(panel).toBeHidden();
+  await expect(about).toBeFocused();
+  await about.click();
+  await page.mouse.click(10, 300); // left of the sheet: the backdrop
+  await expect(panel).toBeHidden();
+  expect(new URL(page.url()).hash).toBe("#q=card%3AARO%3A1000"); // the search is untouched
 });
