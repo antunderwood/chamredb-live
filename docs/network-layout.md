@@ -60,7 +60,7 @@ A link between two matches bows 63 right of the chip edge (x(0.5) = 628 + 0.75 *
 
 ## Click targets
 
-`hitRegions` returns the chip rectangles (each at least 44 by 44, never overlapping: ROW 64 is more than the 52 chip). `expandRegions` returns the 44 by 44 square of each "+n" pill, centred on the chip's right edge; it overlaps only its own chip. 44 viewBox units are 44 CSS pixels only when the figure is drawn at its own width, so the UI never scales the SVG down: on a narrow screen the figure scrolls sideways inside its own box.
+`hitRegions` returns the chip rectangles (each at least 44 by 44, never overlapping: ROW 64 is more than the 52 chip). `expandRegions` returns the 44 by 44 square of each "+n" pill, centred on the chip's right edge; it overlaps only its own chip. 44 viewBox units are 44 CSS pixels only when the figure is drawn at its own width, so the UI never scales the SVG down: a landscape figure wider than its box scrolls sideways inside it, and below 640 px the figure is drawn portrait at the box's width (see Portrait).
 
 ## Hand-worked pixels
 
@@ -88,6 +88,83 @@ Fixture A: query, 3 matches, 3 step-2 nodes (rows = 3). Height = 32 + 2 * 16 + 6
 | Chip outlines for a 248 by 52 rect at (364, 182) | corner 10, pill radius 26 | see `chipPath` tests |
 
 The expected values in `src/networkLayout.test.ts` are these numbers, not computed by the code under test.
+
+## Portrait (a phone)
+
+`layoutNetwork(network, { orientation: "portrait", width })` draws the same network as one column. The UI chooses it when the box the figure sits in (`.net-wrap`) is narrower than `PORTRAIT_BELOW` = 640 CSS pixels (`orientationFor`), and measures the box with a `ResizeObserver` (a window resize redraws, expansion and query are kept). Why 640: the one-step landscape picture is 644 units wide and its box adds 4 padding and 1 border each side, so it needs 654; the sticky rail at 1152 px or more is 656 wide (641 with a 15 px classic scrollbar). 640 keeps the desktop rail landscape and turns every narrower box portrait, where the landscape picture would scroll sideways. The box width does not depend on the figure (the box clips it), so drawing portrait cannot flip the choice back. A container query could not be used: the coordinates are computed in JavaScript, so the width has to be known there. Tested on both sides (`tests/network-portrait.spec.ts`: boxes of 639, 640 and 641 px) and with a live resize.
+
+The width is the room inside the box (portrait removes the box's 4 px padding, `.net-portrait`), at most `PORTRAIT_MAX_W` = 420 (a wider box centres the picture), at least `PORTRAIT_MIN_W` = 260. It is never scaled, so 1 unit is 1 CSS pixel and a chip (52) and an expand target (44 by 44) keep their touch size. Nothing scrolls sideways and the box is not a Tab stop (no `tabindex`, no `role="region"`).
+
+### Rows and the one portrait position function
+
+From the top: the query chip across the width; then one row per match in list order, each followed by its own step-2 nodes (the ones whose `via` it is, in model order). `pixelPortrait(depth, row, frame)` is the only place a row becomes a rectangle (depth 0 query, 1 match, 2 step-2; row counts the rows under the query from 0); `portraitFrame(width, lanes, maxBow)` gives its x extents. Chip text lines, badges, tooltip anchors, edge ends, the expand target and the labels all derive from those rectangles.
+
+```
+query:   x = P_SIDE, y = P_TOP, width = xr - P_SIDE, height = 72
+a row:   x = chipX + (depth - 1) * INDENT, y = P_TOP + 72 + GAP + PROW * row, width = xr - x, height = 52
+xr       = width - max(P_RIGHT, ceil(0.75 * deepest bow) + BOW_ROOM)       (P_RIGHT when there is no link)
+pitch    = min(LANE, LANE_SPAN / (lanes - 1))      lanes = step-1 edges
+firstLane = LANE_LEFT + (lanes - 1) * pitch        chipX = firstLane + ELBOW
+height   = lowest chip bottom + P_BOTTOM
+```
+
+| Constant | Value | Meaning |
+| --- | --- | --- |
+| P_SIDE, P_TOP, P_BOTTOM | 12, 12, 12 | space left of the query chip, above it and below the last chip |
+| P_RIGHT | 24 | right margin: the 44 target of the expand pill is centred on the right edge, 22 of it outside the chip |
+| GAP, PROW | 28, 80 | between two chips (room for an 18 high label clear of the 7 high ribbon overhang), and one row: 52 + 28 |
+| LANE, LANE_SPAN, LANE_LEFT, ELBOW | 5, 25, 24, 20 | where the step-1 lines leave the query's bottom edge (5 apart, at most 25 in all: more than six matches squeeze), x of the last lane, first lane to chip |
+| INDENT, EXPAND_FROM | 28, 20 | a step-2 chip is this far right of a match chip; its line leaves the match's bottom edge 20 from its left edge (clear of a ResFinder pill's rounded end) |
+| BOW_BASE, BOW_STEP, BOW_LEVELS, BOW_ROOM | 24, 8, 3, 8 | a link bows 24 right of the chips, 8 more for each further row spanned, at most 3 rows (24, 32, 40), so nested links do not coincide; the margin holds its reach (0.75 of the bow) plus 8 |
+| PILL_DX, PILL_RISE | 22, 14 | an identity pill's centre is 22 right of its line and 14 above its chip's top edge |
+| LABEL_DX, LABEL_DY | 48, 11 | a link label's centre is 48 left of the curve, 11 below the upper chip of its gap |
+| TEXT_RESERVE, TEXT_AREA, MIN_CHARS | 16, 174, 4 | see Text limits |
+
+### Edges
+
+- Step 1 (`query`): a straight line (a cubic with its controls at the thirds) from the query's bottom edge to the middle of the match chip's left edge. Edge k (list order) leaves at x = firstLane - k * pitch: the first match has the right-most lane, so a later line is always left of an earlier one and no two cross. Each line has its own start, so a reciprocal edge's arrowhead at the query end is its own.
+- Identity pill: its centre is 14 above the chip's top edge (in the gap above the chip) and 22 right of the line at that height, so its left end sits on the line and the pill covers no other line (the lines of later matches are left of this one and the earlier ones have already ended).
+- Step 2 to a new node (`expand`): straight from 20 right of the match chip's left edge on its bottom edge to the middle of the step-2 chip's left edge. Several children share the start and fan out, never crossing a chip (the line stays left of the chip's left edge).
+- Step 2 to an existing match (`link`) and to the query (`back`): a curve in the right margin, from the chip's right edge 16 below (or above) its middle to 16 above (or below) the other (the query: 20 below its middle), controls at x = xr + bow. It lies right of every chip's right edge, so it crosses no chip.
+- Labels of links and back links go in a gap between two rows the curve passes, right end 6 past the curve (so the label is left of it, over the chip column's gap, never over a chip). The gap nearest the middle of the curve's span is tried first; a gap is clear when no other edge sample and no taken rectangle (chips, ribbons, expand pills, identity pills, earlier labels) is inside the label grown by 2 (`touchCost`, the same cost as `placeLabel`); the first clear gap wins, else the cheapest.
+
+### Text limits
+
+`textLimits(chipWidth, query)` scales the landscape limits (name 19, id 22, detail 24, query name 14, calibrated for a 174 unit text area on the wider Linux CI font) by the room in the chip: area = chip width - 64 (badge) - 10 (gap) - 16 (the expand pill covers 15 of the right end); limit = max(4, min(landscape limit, floor(limit * area / 174))). So a portrait chip is never allowed more text than a landscape chip, and a narrower one is allowed proportionally less. The UI cuts with `slot.limits`, not with a constant. `tests/network-release.spec.ts` fails if any text leaves its chip at 390 and 360 px.
+
+### Worked fixture P1 (width 360)
+
+Query, three matches, one step-2 node under the last match, no link.
+
+| Case | Arithmetic | Result |
+| --- | --- | --- |
+| Right edge | 360 - 24 | xr = 336 |
+| Query chip | x 12, y 12, width 336 - 12, height 72 | (12, 12, 324, 72), centre (174, 48), bottom 84 |
+| Lanes | 3 edges: pitch min(5, 25 / 2) = 5; first lane 24 + 2 * 5 | x = 34, 29, 24 |
+| Chip left edge | 34 + 20; width 336 - 54 | 54; 282 |
+| Row centres | 84 + 28 + 26 = 138, then + 80 | 138, 218, 298, and 378 for the step-2 row |
+| Chips | y = centre - 26 | (54, 112), (54, 192), (54, 272), 282 by 52 |
+| Step-2 chip | x = 54 + 28 = 82, width 336 - 82 = 254, y = 378 - 26 | (82, 352, 254, 52) |
+| Size | height 378 + 26 + 12 | 360 by 416 |
+| Line, query to last match | from (24, 84) to (54, 298); controls at the thirds | (34, 155.33), (44, 226.67) |
+| Identity pill, last | y = 272 - 14 = 258; t = (258 - 84) / 214 = 0.813084; line x = 24 + 30 * 0.813084 = 48.3925; centre x + 22 | (70.3925, 258) |
+| Identity pill, first | t = 14 / 54 = 0.259259; line x = 34 + 20 * t = 39.1852 | (61.1852, 98) |
+| Identity pill, middle | from (29, 84) to (54, 218): t = 94 / 134 = 0.701493; x = 29 + 25 * t = 46.5373 | (68.5373, 178) |
+| Step-2 edge | from (54 + 20, 272 + 52) to (82, 378) | (74, 324) to (82, 378) |
+| Expand pill, last match | centre on the right edge; hit 44 by 44 | (336, 298), hit (314, 276) |
+| Text lines, last match | x = 54 + 64 + 10; y = 272 + 20, 34, 47 | x 128; 292, 306, 319 |
+| Text limits, step-2 chip | area 254 - 90 = 164: floor(19 * 164 / 174) = 17, floor(22 * 164 / 174) = 20, floor(24 * 164 / 174) = 22 | 17, 20, 22 |
+
+Fixture P2 (width 360): query, two matches and a link between them, one row long. Bow 24, reach 0.75 * 24 = 18, margin max(24, 18 + 8) = 26, xr = 334. Lanes: pitch 5, first lane 24 + 5 = 29, chip left 49, width 285. Rows 138 and 218. The link runs from (334, 138 + 16) to (334, 218 - 16) with controls at x = 358. The gap between the chips is y 164 to 192 and the label's centre y = 164 + 11 = 175; y(t) = 154 + 48 (3t^2 - 2t^3) = 175 gives 3t^2 - 2t^3 = 0.4375, t = 0.45832 (Newton from 0.45: f = 0.42525, f' = 6t(1 - t) = 1.4850, step 0.00841; once more: f = 0.43745, step 0.00005). x(t) = 334 + 3 * 24 * t * (1 - t) = 334 + 72 * 0.45832 * 0.54168 = 351.8749, so the label's centre is (303.8749, 175): its box is y 166 to 184, above the 185 where the next chip's ribbon starts. A link two rows long bows 32 and one of three rows or more 40 (margin 40 * 0.75 + 8 = 38).
+
+The expected values in `src/networkLayoutPortrait.test.ts` are these numbers. It also checks, for picture widths 310, 350, 380, 590 and 629 and nine pictures (none, one, six, twenty matches, expansions, adjacent and far links, back links, a crowd of seven links): chips never overlap and lie inside the picture, no edge sample lies inside a chip, every label lies inside the picture and touches no chip, ribbon or other label, targets are at least 44, the visual order is top to bottom with each step-2 node under its own match, and the text limits are never above the landscape ones.
+
+### Portrait limits
+
+- More than six matches squeeze the lanes into the same 25 units (the real data has at most six); the reciprocal arrowheads at the query end then overlap.
+- Links nested on three or more rows of span share a bow; the labels are still apart (tested), but the curves can lie on one another.
+- On a 360 px phone a step-2 chip's second line is cut early ("match of tet..."): the full text is in the tooltip, the accessible name and the card of its parent.
+- A box under 260 px wide is drawn 260 wide and scrolls.
 
 ## Limits
 
