@@ -66,6 +66,13 @@ describe("tooltip text", () => {
     expect(lines).toContain("match of card:ARO:2000");
     expect(lines).toContain("Identity: 88.0%");
   });
+  it("a match below 90% that is not the best of its group says so in the list's words, and is neither best nor highest identity", () => {
+    const low = buildNetwork(index, "card:ARO:1000", 0.8).nodes.find((x) => x.id === "resfinder:blaXlow")!;
+    const lines = tooltip(low, index.entries["resfinder:blaXlow"]!).lines;
+    expect(lines).toContain("Below 90% identity: weak evidence of equivalence.");
+    expect(lines.some((l) => /best|highest/i.test(l))).toBe(false);
+    expect(tip("ncbi:WP_4.1").lines.some((l) => l.startsWith("Below"))).toBe(false); // exactly 90.0% is not below
+  });
   it("the query has no identity, coverage, type or best line", () => {
     expect(tip("card:ARO:1000").lines).toEqual(["card:ARO:1000", "blaX", "Database: card", "Query entry", "Phenotype: confers resistance to antibiotic: cephalosporin"]);
   });

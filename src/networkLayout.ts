@@ -30,7 +30,7 @@ export const QUERY_LINE = [28, 45, 61] as const; // the same for the query chip
 export const RIBBON_H = 14;
 export const RIBBON_RISE = 7; // the ribbon overhangs the top edge of the chip by this much
 export const RIBBON_INSET = 12; // gap between the ribbon and the right edge of the chip
-export const RIBBON_W = { best: 48, weak: 136 } as const; // "Best" and "Highest identity shown"
+export const RIBBON_W = { best: 48, weak: 136, below: 80 } as const; // "Best", "Highest identity shown" and "Below 90%"
 export const EXPAND_HIT = 44; // side of the click target of the expand pill (centred on the chip's right edge)
 export const EXPAND_H = 20; // drawn height of the pill
 export const EXPAND_R = 20; // a step-2 edge starts this far right of the chip edge, clear of the pill
@@ -39,7 +39,16 @@ export const LINK_INSET = 16; // a same-column link leaves and enters this far f
 export const QUERY_LINK = 30; // a link back to the query enters this far below its centre, clear of the fan
 export const BOW = 84; // a same-column link bows this far to the right
 export const LABEL_T = 0.7; // identity pill of a step-1 edge sits at this parameter of the curve
-export const LINK_T = 0.5; // label of a step-2 link
+export const LINK_T = 0.5; // label of a step-2 link: the first place tried (see placeLabel)
+// A "match of a match" label is moved along its curve off other edges: the places tried, in order, are these
+// parameters; a label is "clear" at a parameter when no other edge, no identity pill and no earlier label touches its
+// pill (grown by LABEL_CLEAR units on each side). The first clear place wins; if none is, the one touching least.
+export const LABEL_TS = [0.5, 0.4, 0.6, 0.3, 0.7, 0.2, 0.8] as const;
+export const LABEL_CLEAR = 2;
+export const SAMPLES = 32; // other edges are tested at t = k / SAMPLES, k = 0 to SAMPLES
+export const LINK_LABEL_CHARS = 16; // "match of a match"
+export const ID_LABEL_CHARS = 6; // the widest identity pill, "100.0%"
+const PILL_WEIGHT = 10; // touching another pill costs this many edge samples
 // How much text a chip line holds (characters), at the font sizes of app.css: longer text is cut with an ellipsis and
 // the full text is in the tooltip and in the list.
 export const NAME_MAX = 19;
@@ -84,6 +93,7 @@ export interface EdgeSlot {
   kind: EdgeKind; // query: query to a match; expand: a match to a step-2 node; link: between two matches; back: to the query
   path: Cubic; // from the source side to the target side
   label?: Point; // centre of the identity pill (step 1) or of the "match of a match" label (links); none on expand edges
+  labelT?: number; // where on the curve the label is (0 at the source); LABEL_T for an identity pill
 }
 export interface ColumnHead {
   column: 0 | 1 | 2;
@@ -115,9 +125,10 @@ export function ellipsize(text: string, max: number): string {
   return chars.length <= max ? text : `${chars.slice(0, Math.max(1, max - 1)).join("")}…`;
 }
 
-// The Best ribbon: overhangs the top edge of the chip at its right.
-export function ribbonRect(slot: NodeSlot, weak: boolean): Rect {
-  const width = weak ? RIBBON_W.weak : RIBBON_W.best;
+// The ribbon: overhangs the top edge of the chip at its right. best: "Best"; weak: "Highest identity shown";
+// below: "Below 90%" (a match under the line that is not the best of its group).
+export function ribbonRect(slot: NodeSlot, kind: keyof typeof RIBBON_W): Rect {
+  const width = RIBBON_W[kind];
   return { x: slot.rect.x + slot.rect.width - RIBBON_INSET - width, y: slot.rect.y - RIBBON_RISE, width, height: RIBBON_H };
 }
 
@@ -152,6 +163,27 @@ export function cubicAt(c: Cubic, t: number): Point {
   const u = 1 - t;
   const [a, b, d, e] = [u * u * u, 3 * u * u * t, 3 * u * t * t, t * t * t];
   return { x: a * c.from.x + b * c.c1.x + d * c.c2.x + e * c.to.x, y: a * c.from.y + b * c.c1.y + d * c.c2.y + e * c.to.y };
+}
+
+const inside = (r: Rect, p: Point, grow: number) => p.x >= r.x - grow && p.x <= r.x + r.width + grow && p.y >= r.y - grow && p.y <= r.y + r.height + grow;
+const overlap = (a: Rect, b: Rect) => a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
+
+// Where a label of `chars` characters goes on `path` so that it does not sit on a crossing. For each parameter in
+// LABEL_TS the pill is placed on the curve and charged one for every sample of every curve in `others` that falls inside it
+// (grown by LABEL_CLEAR), and PILL_WEIGHT for every rectangle in `taken` it overlaps. The first parameter with no charge
+// wins; with none, the cheapest (the earlier in LABEL_TS on a tie). Pure and deterministic.
+export function placeLabel(path: Cubic, chars: number, others: Cubic[], taken: Rect[]): { t: number; point: Point; touches: number } {
+  let best = { t: LABEL_TS[0] as number, point: cubicAt(path, LABEL_TS[0]), touches: Infinity };
+  for (const t of LABEL_TS) {
+    const point = cubicAt(path, t);
+    const rect = pillRect(point, chars, PILL.labelH);
+    let touches = 0;
+    for (const o of others) for (let k = 0; k <= SAMPLES; k++) if (inside(rect, cubicAt(o, k / SAMPLES), LABEL_CLEAR)) touches++;
+    for (const r of taken) if (overlap(rect, r)) touches += PILL_WEIGHT;
+    if (touches < best.touches) best = { t, point, touches };
+    if (touches === 0) break;
+  }
+  return best;
 }
 
 // A curve that leaves `from` and enters `to` horizontally: both control points are half the horizontal distance out.
@@ -204,24 +236,49 @@ export function layoutNetwork(network: Pick<Network, "nodes" | "edges">): NetLay
     if (e.step === 1) {
       const from = { x: a.rect.x + a.rect.width, y: a.centre.y + (k++ - (fanned - 1) / 2) * pitch };
       const path = sCurve(from, { x: b.rect.x, y: b.centre.y });
-      return { ...base, kind: "query", path, label: cubicAt(path, LABEL_T) };
+      return { ...base, kind: "query", path, label: cubicAt(path, LABEL_T), labelT: LABEL_T };
     }
     if (b.role === "step2") return { ...base, kind: "expand", path: sCurve({ x: a.rect.x + a.rect.width + EXPAND_R, y: a.centre.y }, { x: b.rect.x, y: b.centre.y }) };
     if (b.role === "query") {
       const path = sCurve({ x: a.rect.x, y: a.centre.y + LINK_INSET }, { x: b.rect.x + b.rect.width, y: b.centre.y + QUERY_LINK });
-      return { ...base, kind: "back", path, label: cubicAt(path, LINK_T) };
+      return { ...base, kind: "back", path };
     }
     const dir = Math.sign(b.centre.y - a.centre.y);
     const xr = a.rect.x + a.rect.width;
     const from = { x: xr, y: a.centre.y + dir * LINK_INSET };
     const to = { x: xr, y: b.centre.y - dir * LINK_INSET };
     const path = { from, c1: { x: xr + BOW, y: from.y }, c2: { x: xr + BOW, y: to.y }, to };
-    return { ...base, kind: "link", path, label: cubicAt(path, LINK_T) };
+    return { ...base, kind: "link", path };
+  });
+  // Second pass: the labels of links and back links go where they touch no other edge (placeLabel). The identity pills
+  // are fixed; the others are placed in edge order, each avoiding the pills and the labels already placed.
+  const taken: Rect[] = edges.flatMap((e) => (e.label ? [pillRect(e.label, ID_LABEL_CHARS, PILL.labelH)] : []));
+  edges.forEach((e) => {
+    if (e.kind !== "link" && e.kind !== "back") return;
+    const { t, point } = placeLabel(e.path, LINK_LABEL_CHARS, edges.filter((o) => o !== e).map((o) => o.path), taken);
+    e.label = point;
+    e.labelT = t;
+    taken.push(pillRect(point, LINK_LABEL_CHARS, PILL.labelH));
   });
   const last = counts[2]! > 0 ? 2 : counts[1]! > 0 ? 1 : 0;
   const right = pixel(last, 0, 1, 1).x + (last === 0 ? QUERY_W : CHIP_W) / 2 + SIDE;
   const heads = ([0, 1, 2] as const).filter((c) => c <= last).map((column) => ({ column, x: pixel(column, 0, 1, 1).x, y: HEAD_Y }));
-  return { width: right, height: HEADER + 2 * PAD + ROW * rows, heads, nodes, edges };
+  // The picture must hold everything drawn: a link bows right of its column and its label sits on the bow, so the width is
+  // the larger of the last column's edge and the furthest right any edge sample or label pill reaches, plus SIDE (room for
+  // the arrowhead and the box's edge). Likewise the height, plus PAD below. The left and top never need room: every edge
+  // and label lies between the query chip and the last column, below the headings.
+  let [farX, farY] = [0, 0];
+  for (const e of edges) {
+    for (let k = 0; k <= SAMPLES; k++) {
+      const p = cubicAt(e.path, k / SAMPLES);
+      [farX, farY] = [Math.max(farX, p.x), Math.max(farY, p.y)];
+    }
+    if (e.label && (e.kind === "link" || e.kind === "back")) {
+      const r = pillRect(e.label, LINK_LABEL_CHARS, PILL.labelH);
+      [farX, farY] = [Math.max(farX, r.x + r.width), Math.max(farY, r.y + r.height)];
+    }
+  }
+  return { width: Math.max(right, farX + SIDE), height: Math.max(HEADER + 2 * PAD + ROW * rows, farY + PAD), heads, nodes, edges };
 }
 
 // The rectangle of every node's click target (its chip), in node order.

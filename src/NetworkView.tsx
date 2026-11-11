@@ -35,7 +35,13 @@ import type { Database, Entry, Index } from "./types";
 
 const BADGE: Record<Database, string> = { card: "CARD", ncbi: "NCBI", resfinder: "ResFinder" };
 const HEAD = ["Query", "Matches of the query", "Matches of a match"] as const;
+type RibbonKind = keyof typeof RIBBON_W;
+// The words on a ribbon. Best and Highest identity shown are the group's top match only (the list's words); a match under 90%
+// that is not the top of its group gets the plain Below 90% mark.
+const RIBBON_TEXT: Record<RibbonKind, string> = { best: "Best", weak: "Highest identity shown", below: "Below 90%" };
+const SWATCH_NAME: Record<RibbonKind, string> = { best: "best", weak: "highest", below: "below" };
 const MINUS = "−";
+export const HOVER_GRACE_MS = 250; // the time the pointer has to cross from a node to its tooltip (and back)
 const native = (n: NetNode) => n.id.slice(n.database.length + 1);
 const curve = (c: Cubic) => `M${c.from.x},${c.from.y} C${c.c1.x},${c.c1.y} ${c.c2.x},${c.c2.y} ${c.to.x},${c.to.y}`;
 const reduced = () => typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -76,7 +82,7 @@ function ariaLabel(n: NetNode, via?: NetNode): string {
   if (n.role === "query") return `${head}. The query.`;
   const hit = `identity ${pct(n.hit!.identity)}, ${TYPE_LABEL[n.hit!.type].toLowerCase()}`;
   if (n.role === "step2") return `${head}. Match of ${via?.name ?? n.via} (${n.via}), not a match of the query; ${hit} between them. Press Enter to make it the query.`;
-  const flag = n.best ? (n.weak ? ", highest identity shown (weak evidence)" : ", best") : "";
+  const flag = n.best ? (n.weak ? ", highest identity shown (weak evidence)" : ", best") : n.below ? ", below 90% identity, weak evidence of equivalence" : "";
   return `${head}. ${hit}${flag}. Press Enter to make it the query.`;
 }
 
@@ -138,9 +144,17 @@ export function NetworkView({
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [shown]);
+  // WCAG 1.4.13 (hoverable): the pointer can travel from the node to the tooltip, across the gap between them, without
+  // it vanishing. Leaving the node (or the tooltip) starts a short delay; entering either cancels it.
+  const leave = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const stopLeave = () => clearTimeout(leave.current);
+  useEffect(() => stopLeave, []);
   const hoverNode = (id: string, on: boolean) => {
-    setDismissed(false);
-    setActive(on ? id : focused.current);
+    stopLeave();
+    if (on) {
+      setDismissed(false);
+      setActive(id);
+    } else leave.current = setTimeout(() => setActive(focused.current), HOVER_GRACE_MS);
   };
   const focusNode = (id: string, on: boolean) => {
     setDismissed(false);
@@ -218,6 +232,7 @@ export function NetworkView({
           A match of a match is not a match of the query. On a dashed chip, identity, coverage and type are between that chip and the entry named on
           it, not the query.
           {vis.hidden > 0 ? ` ${vis.hidden} reverse ${vis.hidden === 1 ? "hit" : "hits"} back to the query (expected for a reciprocal pair) ${vis.hidden === 1 ? "is" : "are"} not drawn.` : ""}
+          {vis.merged > 0 ? ` ${vis.merged} reciprocal ${vis.merged === 1 ? "link" : "links"} between matches ${vis.merged === 1 ? "is" : "are"} drawn once, as a line with two arrowheads.` : ""}
         </p>
       ) : null}
       {network.truncated && (
@@ -310,7 +325,7 @@ export function NetworkView({
           </svg>
         </div>
         {shown && tip && shownNode && (
-          <div ref={tipRef} id="net-tip" role="tooltip" className="net-tip" data-testid="network-tooltip">
+          <div ref={tipRef} id="net-tip" role="tooltip" className="net-tip" data-testid="network-tooltip" onMouseEnter={stopLeave} onMouseLeave={() => hoverNode(shown, false)}>
             {tip.lines.map((l, i) => (
               <div key={i} data-line className={i === 0 ? "font-semibold" : undefined}>
                 {l}
@@ -349,12 +364,16 @@ export function NetworkView({
             Match of a match (dashed)
           </li>
           <li>
-            <RibbonSwatch weak={false} />
+            <RibbonSwatch kind="best" />
             highest identity in its database
           </li>
           <li>
-            <RibbonSwatch weak />
+            <RibbonSwatch kind="weak" />
             the same, in a group below 90%
+          </li>
+          <li>
+            <RibbonSwatch kind="below" />
+            below 90% and not the highest: weak evidence
           </li>
         </ul>
         {/* One sentence (#22); the full wording, unchanged, is under How to read this, "Network picture". */}
@@ -370,13 +389,13 @@ export function NetworkView({
 }
 
 // The Best ribbon as drawn on a chip, at its real size and with the same classes, so the key cannot drift from the marks.
-function RibbonSwatch({ weak }: { weak: boolean }) {
-  const w = weak ? RIBBON_W.weak : RIBBON_W.best;
+function RibbonSwatch({ kind }: { kind: RibbonKind }) {
+  const w = RIBBON_W[kind];
   return (
-    <svg width={w + 2} height={RIBBON_H + 2} viewBox={`-1 -1 ${w + 2} ${RIBBON_H + 2}`} aria-hidden="true" data-swatch={weak ? "highest" : "best"}>
-      <g className="net-ribbon" data-weak={weak || undefined}>
+    <svg width={w + 2} height={RIBBON_H + 2} viewBox={`-1 -1 ${w + 2} ${RIBBON_H + 2}`} aria-hidden="true" data-swatch={SWATCH_NAME[kind]}>
+      <g className="net-ribbon" data-weak={kind !== "best" || undefined}>
         <rect x={0} y={0} width={w} height={RIBBON_H} rx={RIBBON_H / 2} />
-        <text x={w / 2} y={RIBBON_H / 2}>{weak ? "Highest identity shown" : "Best"}</text>
+        <text x={w / 2} y={RIBBON_H / 2}>{RIBBON_TEXT[kind]}</text>
       </g>
     </svg>
   );
@@ -426,7 +445,8 @@ function Chip({
   const [l1, l2, l3] = slot.lines;
   const detail = query ? "Query" : `${pct(n.hit!.identity)} · ${n.hit!.type}`;
   const second = n.role === "step2" ? ellipsize(`match of ${via?.name ?? n.via}`, DETAIL_MAX) : ellipsize(native(n), ID_MAX);
-  const ribbon = n.role === "match" && n.best ? ribbonRect(slot, n.weak) : null;
+  const kind: RibbonKind | null = n.role !== "match" ? null : n.best ? (n.weak ? "weak" : "best") : n.below ? "below" : null;
+  const ribbon = kind ? ribbonRect(slot, kind) : null;
   return (
     <g
       className={`net-node${cls}`}
@@ -435,6 +455,7 @@ function Chip({
       data-db={n.database}
       data-shape={shape}
       data-best={n.role === "match" && n.best ? (n.weak ? "highest" : "best") : undefined}
+      data-below={n.below || undefined}
       data-via={n.via}
       role="button"
       tabIndex={0}
@@ -459,9 +480,9 @@ function Chip({
       <text className="net-sub" x={l2.x} y={l2.y}>{query ? ellipsize(native(n), ID_MAX) : second}</text>
       <text className="net-detail" x={l3.x} y={l3.y}>{detail}</text>
       {ribbon && (
-        <g className="net-ribbon" data-weak={n.weak || undefined}>
+        <g className="net-ribbon" data-weak={kind !== "best" || undefined} data-cue={kind}>
           <rect x={ribbon.x} y={ribbon.y} width={ribbon.width} height={ribbon.height} rx={ribbon.height / 2} />
-          <text x={ribbon.x + ribbon.width / 2} y={ribbon.y + ribbon.height / 2}>{n.weak ? "Highest identity shown" : "Best"}</text>
+          <text x={ribbon.x + ribbon.width / 2} y={ribbon.y + ribbon.height / 2}>{RIBBON_TEXT[kind!]}</text>
         </g>
       )}
       <rect className="net-hit" x={slot.hit.x} y={slot.hit.y} width={slot.hit.width} height={slot.hit.height} />

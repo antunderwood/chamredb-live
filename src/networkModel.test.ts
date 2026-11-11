@@ -312,6 +312,71 @@ describe("visibleEdges: the reverse of an RBH match is hidden by default, nothin
   });
 });
 
+// Weak cue per node: a step-1 match that is below the 90% line and is not the best of its group.
+describe("below: the per-node weak cue (a plain mark, never the words Best or Highest identity shown)", () => {
+  const fx = buildIndex(JSON.parse(readFileSync("tests/fixtures/graph.json", "utf8")) as ReleaseGraph);
+  const below = (n: Network) => n.nodes.filter((x) => x.below).map((x) => x.id);
+  it("fixture at 80%: blaXlow (0.85) sits under the best blaX (1.0) of a healthy group, so it has the cue and no ribbon flag", () => {
+    const n = buildNetwork(fx, "card:ARO:1000", 0.8);
+    expect(below(n)).toEqual(["resfinder:blaXlow"]);
+    const low = n.nodes.find((x) => x.id === "resfinder:blaXlow")!;
+    expect([low.best, low.weak]).toEqual([false, false]);
+  });
+  it("fixture: exactly 0.9 is not below (WP_4.1), and the top of a weak group is 'Highest identity shown', not below (tetM 0.88)", () => {
+    expect(below(buildNetwork(fx, "card:ARO:1000", 0.9))).toEqual([]);
+    const n = buildNetwork(fx, "card:ARO:2000", 0.8);
+    expect(below(n)).toEqual([]);
+    expect(n.nodes.find((x) => x.id === "resfinder:tetM")).toMatchObject({ best: true, weak: true });
+  });
+  it("made-up weak group: 0.88 is Highest identity shown, 0.85 and 0.80 are below; a tie at the top has no cue on either", () => {
+    const g = mk(
+      [["card:q", "card"], ["ncbi:a", "ncbi"], ["ncbi:b", "ncbi"], ["ncbi:c", "ncbi"], ["resfinder:t1", "resfinder"], ["resfinder:t2", "resfinder"]],
+      [["card:q", "ncbi:a", 0.88], ["card:q", "ncbi:b", 0.85], ["card:q", "ncbi:c", 0.8], ["card:q", "resfinder:t1", 0.86], ["card:q", "resfinder:t2", 0.86]],
+    );
+    const n = buildNetwork(g, "card:q", 0.5);
+    expect(below(n)).toEqual(["ncbi:b", "ncbi:c"]);
+    expect(n.nodes.filter((x) => x.best).map((x) => x.id)).toEqual(["ncbi:a", "resfinder:t1", "resfinder:t2"]);
+  });
+  it("step-2 nodes never carry it (their identity is relative to the entry they are a match of)", () => {
+    const g = mk([["card:q", "card"], ["ncbi:a", "ncbi"], ["resfinder:x", "resfinder"]], [["card:q", "ncbi:a", 0.95], ["ncbi:a", "resfinder:x", 0.6]]);
+    expect(below(buildNetwork(g, "card:q", 0.5, ["ncbi:a"]))).toEqual([]);
+  });
+});
+
+// Two RBH matches of the query that are RBH with each other: both directions are step-2 edges between the same two
+// nodes and would be drawn on top of each other, each with two arrowheads.
+describe("visibleEdges: a reciprocal RBH pair between two matches is drawn once", () => {
+  const node = (id: string, role: NetNode["role"]): NetNode => ({ id, database: "card", name: id, role, best: false, weak: false });
+  const e = (source: string, target: string, type: "RBH" | "OWH", step: 1 | 2): NetEdge => ({ source, target, identity: 1, coverage: 1, type, step });
+  const nodes = [node("q", "query"), node("a", "match"), node("b", "match"), node("c", "match")];
+  const pair = (t1: "RBH" | "OWH", t2: "RBH" | "OWH") => ({ nodes, edges: [e("q", "a", "RBH", 1), e("q", "b", "RBH", 1), e("a", "b", t1, 2), e("b", "a", t2, 2)] });
+  const drawn = (n: ReturnType<typeof pair>) => visibleEdges(n).edges.filter((x) => x.step === 2).map((x) => `${x.source}>${x.target}`);
+  it("RBH both ways: the first (a to b) is kept, the second is merged and counted", () => {
+    expect(drawn(pair("RBH", "RBH"))).toEqual(["a>b"]);
+    expect(visibleEdges(pair("RBH", "RBH"))).toMatchObject({ hidden: 0, merged: 1 });
+  });
+  it("one-way hits in both directions are two separate hits and both stay", () => {
+    expect(drawn(pair("OWH", "OWH"))).toEqual(["a>b", "b>a"]);
+    expect(visibleEdges(pair("OWH", "OWH")).merged).toBe(0);
+  });
+  it("only one direction listed, or different types: nothing is merged", () => {
+    expect(drawn({ nodes, edges: [e("q", "a", "RBH", 1), e("q", "b", "RBH", 1), e("a", "b", "RBH", 2)] })).toEqual(["a>b"]);
+    expect(drawn(pair("RBH", "OWH"))).toEqual(["a>b", "b>a"]);
+  });
+  it("pairs are independent: a to c RBH both ways and a to b RBH both ways leave one edge each", () => {
+    const n = { nodes, edges: [e("q", "a", "RBH", 1), e("a", "b", "RBH", 2), e("b", "a", "RBH", 2), e("a", "c", "RBH", 2), e("c", "a", "RBH", 2)] };
+    expect(drawn(n)).toEqual(["a>b", "a>c"]);
+    expect(visibleEdges(n).merged).toBe(2);
+  });
+  it("release: card:ARO:3000010 (vanA) with its two RBH matches both expanded draws their link once", () => {
+    const n = buildNetwork(index, "card:ARO:3000010", 0.9, ["ncbi:WP_063856521.1", "resfinder:VanHAX"]);
+    const links = n.edges.filter((x) => x.step === 2 && x.source !== "card:ARO:3000010" && ["ncbi:WP_063856521.1", "resfinder:VanHAX"].includes(x.target));
+    expect(links.map((x) => `${x.source}>${x.target}`).sort()).toEqual(["ncbi:WP_063856521.1>resfinder:VanHAX", "resfinder:VanHAX>ncbi:WP_063856521.1"]);
+    expect(visibleEdges(n).merged).toBe(1);
+    expect(visibleEdges(buildNetwork(index, "card:ARO:3000010", 0.9, ["ncbi:WP_063856521.1"])).merged).toBe(0);
+  });
+});
+
 describe("ownMatchCount: the number the expand control promises", () => {
   const fx = buildIndex(JSON.parse(readFileSync("tests/fixtures/graph.json", "utf8")) as ReleaseGraph);
   it("fixture: WP_4.1 lists card:ARO:2000 (0.92) and the query does not count; WP_1.1 lists only the query", () => {

@@ -307,6 +307,73 @@ for (const how of ["hover", "focus"] as const) {
   });
 }
 
+// WCAG 1.4.13: hoverable. The pointer can travel from the node onto the tooltip (across the gap) and the tooltip stays; it goes when
+// the pointer leaves both, and Escape dismisses it even while the pointer is on it.
+test("hoverable tooltip: the pointer can move onto it and it stays; leaving both closes it; Escape dismisses it with the pointer on it", async ({ page }) => {
+  await page.goto("./");
+  await search(page, "card:ARO:1000");
+  await page.mouse.move(0, 0);
+  const tip = page.getByRole("tooltip");
+  const centre = async (l: Locator) => {
+    const b = (await l.boundingBox())!;
+    return { x: b.x + b.width / 2, y: b.y + b.height / 2 };
+  };
+  await node(page, "ncbi:WP_1.1").hover();
+  await expect(tip).toBeVisible();
+  const from = await centre(node(page, "ncbi:WP_1.1").locator(".net-hit"));
+  const onto = await centre(tip);
+  await page.mouse.move(onto.x, onto.y, { steps: 12 }); // crosses the 8 px gap and takes a moment
+  await page.waitForTimeout(600); // well past the grace period
+  await expect(tip).toBeVisible();
+  await expect(tip.locator("[data-line]").first()).toHaveText("ncbi:WP_1.1"); // still this node's tooltip
+  await expect(page.locator('[data-match="ncbi:WP_1.1"]')).toHaveAttribute("data-hl", "true"); // and its highlight
+  // back onto the node keeps it
+  await page.mouse.move(from.x, from.y, { steps: 6 });
+  await page.waitForTimeout(400);
+  await expect(tip).toBeVisible();
+  await page.mouse.move(onto.x, onto.y, { steps: 6 });
+  await page.keyboard.press("Escape"); // pointer still on the tooltip
+  await expect(tip).toHaveCount(0);
+  await node(page, "ncbi:WP_1.1").hover(); // entering the node again shows it again
+  await expect(tip).toBeVisible();
+  await page.mouse.move(0, 0, { steps: 4 }); // away from both
+  await expect(tip).toHaveCount(0);
+  await expect(page.locator('[data-hl="true"]')).toHaveCount(0);
+});
+
+// The per-node weak cue. In the list, a match under 90% that is not the top of its group has the line "Below 90% identity: weak
+// evidence of equivalence." and no label; the top of a group under 90% is "Highest identity shown"; Best is only the top at 90% or more.
+test("a match under 90% that is not the top of its group has a plain 'Below 90%' mark, never Best or Highest identity shown", async ({ page }) => {
+  await page.goto("./");
+  await search(page, "card:ARO:1000");
+  await page.getByLabel("Minimum identity").fill("80"); // adds resfinder:blaXlow, 85%, under blaX (100%, Best)
+  const low = node(page, "resfinder:blaXlow");
+  expect(await text(low)).toBe("ResFinder | blaXlow | blaXlow | 85.0% · OWH | Below 90%");
+  await expect(low).toHaveAttribute("data-below", "true");
+  await expect(low).not.toHaveAttribute("data-best", /.+/);
+  await expect(low.locator(".net-ribbon")).toHaveAttribute("data-cue", "below");
+  await expect(low).toHaveAttribute("aria-label", /85\.0%, one-way hit, below 90% identity, weak evidence of equivalence\. Press Enter/);
+  // the same wording as the card in the list
+  await expect(page.locator('[data-match="resfinder:blaXlow"] [data-field="below-line"]')).toHaveText("Below 90% identity: weak evidence of equivalence.");
+  // the ribbon text stays inside its pill
+  const [rect, label] = [(await low.locator(".net-ribbon rect").boundingBox())!, (await low.locator(".net-ribbon text").boundingBox())!];
+  expect(label.x).toBeGreaterThanOrEqual(rect.x);
+  expect(label.x + label.width).toBeLessThanOrEqual(rect.x + rect.width);
+  // the top of its group keeps Best; a node exactly at 90% (WP_4.1) has no cue
+  expect(await text(node(page, "resfinder:blaX"))).toBe("ResFinder | blaX | blaX | 100.0% · RBH | Best");
+  await expect(node(page, "ncbi:WP_4.1").locator(".net-ribbon")).toHaveCount(0);
+  await expect(node(page, "ncbi:WP_4.1")).not.toHaveAttribute("data-below", /.+/);
+  // the tooltip says it in the list's words, and the legend names the mark
+  await low.hover();
+  await expect(page.getByRole("tooltip")).toContainText("Below 90% identity: weak evidence of equivalence.");
+  await expect(page.getByRole("list", { name: "Legend" })).toContainText("below 90% and not the highest: weak evidence");
+  // the top of a group under 90% is not 'below': it is Highest identity shown (card:ARO:2000, tetM 88%)
+  await search(page, "card:ARO:2000");
+  await page.getByLabel("Minimum identity").fill("80");
+  await expect(node(page, "resfinder:tetM")).toHaveAttribute("data-best", "highest");
+  await expect(net(page).locator('[data-cue="below"]')).toHaveCount(0);
+});
+
 test("the tooltip of a match lists id, name, database, identity, coverage, type and phenotype (fixture, worked by hand)", async ({ page }) => {
   await page.goto("./");
   await search(page, "card:ARO:2000");

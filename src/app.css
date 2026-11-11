@@ -130,9 +130,39 @@ button[type="submit"]:not(:disabled):active {
   border-radius: 14px;
   border: 1px solid var(--border);
   background-color: var(--panel);
-  background-image: radial-gradient(var(--border) 1px, var(--panel) 1px);
-  background-size: 22px 22px;
+  /* From the top: a panel-coloured cover at each end that scrolls with the content (so it hides the shade when the end is
+     reached), a soft shade fixed to each edge (so it shows while there is more to scroll to), then the dot grid. */
+  background-image:
+    linear-gradient(to right, var(--panel) 30%, transparent),
+    linear-gradient(to left, var(--panel) 30%, transparent),
+    linear-gradient(to right, color-mix(in srgb, var(--fg) 24%, transparent), transparent),
+    linear-gradient(to left, color-mix(in srgb, var(--fg) 24%, transparent), transparent),
+    radial-gradient(var(--border) 1px, var(--panel) 1px);
+  background-position: left center, right center, left center, right center, 0 0;
+  background-size: 40px 100%, 40px 100%, 16px 100%, 16px 100%, 22px 22px;
+  background-repeat: no-repeat, no-repeat, no-repeat, no-repeat, repeat;
+  background-attachment: local, local, scroll, scroll, scroll;
   padding: 4px;
+}
+/* A scrollbar that is always drawn (a macOS overlay scrollbar is hidden until you scroll), in tokens. Firefox gets the
+   standard properties; Blink and WebKit get the pseudo-elements (the standard properties would switch those off). */
+@supports not selector(::-webkit-scrollbar) {
+  .net-scroll {
+    scrollbar-width: auto;
+    scrollbar-color: var(--control-border) var(--border);
+  }
+}
+.net-scroll::-webkit-scrollbar {
+  height: 14px;
+}
+.net-scroll::-webkit-scrollbar-track {
+  background: var(--border);
+  border-radius: 7px;
+}
+.net-scroll::-webkit-scrollbar-thumb {
+  background: var(--control-border);
+  border-radius: 7px;
+  border: 3px solid var(--border);
 }
 .net-svg {
   display: block;
@@ -328,7 +358,8 @@ button[type="submit"]:not(:disabled):active {
   stroke: var(--accent);
   stroke-width: 3.5;
 }
-/* the tooltip: its text is the model's lines (src/networkTooltip.ts); pointer-events none so it never hides a node */
+/* the tooltip: its text is the model's lines (src/networkTooltip.ts). The pointer can move onto it (WCAG 1.4.13, hoverable):
+   NetworkView keeps it open for a short grace period while the pointer crosses the gap, so it may cover a node below it. */
 .net-tip {
   position: absolute;
   z-index: 20;
@@ -342,7 +373,7 @@ button[type="submit"]:not(:disabled):active {
   font-size: 0.82rem;
   line-height: 1.4;
   overflow-wrap: anywhere;
-  pointer-events: none;
+  cursor: default;
 }
 .net-tip-hint {
   margin-top: 6px;

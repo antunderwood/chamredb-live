@@ -29,6 +29,7 @@ export interface NetNode {
   via?: string; // step-2 only: the expanded entry this node was reached from
   best: boolean; // highest identity of its database group among the shown matches (ties all best); false for the query
   weak: boolean; // its group's top identity is below WEAK_BELOW: "highest identity shown", never "best"
+  below?: true; // a step-1 match under the WEAK_BELOW line that is not the best of its group: a plain weak cue (the list's "Below 90% identity" line). Absent otherwise
   hit?: Hit; // absent for the query
 }
 export interface NetEdge {
@@ -63,7 +64,8 @@ export function buildNetwork(index: Index, queryId: string, minIdentity: number,
     const weak = groupWeak(g.matches);
     for (const m of g.matches) {
       const { id, database, name } = m.entry;
-      nodes.push({ id, database, name, role: "match", best: m.best, weak, hit: hitOf(m) });
+      const below = !m.best && q(m.identity) < q(WEAK_BELOW);
+      nodes.push({ id, database, name, role: "match", best: m.best, weak, ...(below && { below }), hit: hitOf(m) });
       edges.push({ source: queryId, target: id, identity: m.identity, coverage: m.coverage, type: m.type, step: 1 });
     }
   }
@@ -110,11 +112,23 @@ export function buildNetwork(index: Index, queryId: string, minIdentity: number,
 // query's own edge to that node. When that edge is an RBH, the reverse is expected from reciprocity and is not
 // independent evidence, so it is hidden by default (the RBH edge already has an arrowhead at both ends). Anything
 // else stays: a reverse hit behind a one-way match is a separate hit. `hidden` counts what was left out.
-export function visibleEdges(network: Pick<Network, "nodes" | "edges">): { edges: NetEdge[]; hidden: number } {
+//
+// Two matches of the query that are RBH with each other, both expanded, give two step-2 edges between the same two
+// nodes (a to b and b to a). Each is a double-headed line, so they would be drawn on top of each other: the second
+// is merged into the first (`merged` counts them). One-way hits in the two directions are separate hits and both stay.
+export function visibleEdges(network: Pick<Network, "nodes" | "edges">): { edges: NetEdge[]; hidden: number; merged: number } {
   const query = network.nodes.find((n) => n.role === "query")?.id;
   const rbh = new Set(network.edges.filter((e) => e.step === 1 && e.type === "RBH").map((e) => e.target));
-  const edges = network.edges.filter((e) => !(e.step === 2 && e.target === query && rbh.has(e.source)));
-  return { edges, hidden: network.edges.length - edges.length };
+  const kept = network.edges.filter((e) => !(e.step === 2 && e.target === query && rbh.has(e.source)));
+  const matches = new Set(network.nodes.filter((n) => n.role === "match").map((n) => n.id));
+  const drawn = new Set<string>();
+  const edges = kept.filter((e) => {
+    if (e.step !== 2 || e.type !== "RBH" || !matches.has(e.source) || !matches.has(e.target)) return true;
+    if (drawn.has(`${e.target}\n${e.source}`)) return false;
+    drawn.add(`${e.source}\n${e.target}`);
+    return true;
+  });
+  return { edges, hidden: network.edges.length - kept.length, merged: kept.length - edges.length };
 }
 
 // How many own matches an expand control promises: the matches of `id` at this minimum identity, not counting the

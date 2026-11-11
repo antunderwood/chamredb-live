@@ -46,6 +46,77 @@ test("card:ARO:3002546: six matches; expanding two neighbours gives 9 nodes and 
   await expect(page.getByTestId("network-step2-note")).toContainText("not a match of the query");
 });
 
+// card:ARO:3000010 (vanA): ncbi:WP_063856521.1 and resfinder:VanHAX are both RBH matches of the query and RBH with each other
+// (a raw read of data/graph.json: both directions are RBH). Expanding both used to draw the link twice, on top of itself.
+test("two RBH matches that are RBH with each other, both expanded, are joined by one link, and the caption says so", async ({ page }) => {
+  await open(page, "#q=card%3AARO%3A3000010&min=90");
+  for (const pill of await page.locator("[data-expand]").all()) await pill.click();
+  const links = net(page).locator('[data-edge][data-kind="link"]');
+  await expect(links).toHaveCount(1);
+  await expect(links.first()).toHaveAttribute("data-type", "RBH");
+  await expect(links.first().locator("path")).toHaveAttribute("marker-start", /net-arrow/); // still two arrowheads
+  await expect(page.getByTestId("network-step2-note")).toContainText("1 reciprocal link between matches is drawn once");
+});
+
+// Everything drawn lies inside the svg's own box (owner bug: a link between two step-1 nodes bowed right of a viewBox that had no step-2
+// column, and was clipped). card:ARO:3000230 has two matches (ncbi:WP_032490446.1 and resfinder:ant(2'')-Ia); expanding either adds no
+// node, only the link between them. Checked at three widths, for the figure and for what the scroll box shows after the expand.
+const inside = (page: Page) =>
+  page.evaluate(() => {
+    const svg = document.querySelector<SVGSVGElement>('[data-testid="network"]')!.getBoundingClientRect();
+    const out: string[] = [];
+    for (const el of document.querySelectorAll('[data-testid="network"] [data-edge] path, [data-testid="network"] .net-pill rect, [data-testid="network"] g[data-node] .net-hit')) {
+      const r = el.getBoundingClientRect();
+      const who = `${el.closest("[data-edge], [data-node]")?.getAttribute("data-edge") ?? el.closest("[data-node]")?.getAttribute("data-node")} ${el.tagName}.${el.getAttribute("class") ?? ""}`;
+      if (r.left < svg.left - 0.5 || r.top < svg.top - 0.5 || r.right > svg.right - 8 || r.bottom > svg.bottom + 0.5) out.push(`${who}: ${[r.left, r.top, r.right, r.bottom].map(Math.round)} outside ${[svg.left, svg.top, svg.right, svg.bottom].map(Math.round)}`);
+    }
+    return out;
+  });
+for (const width of [390, 700, 1000]) {
+  test(`${width} px: after an expand every edge, label and chip is inside the figure, and the scroll box shows the new link`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.emulateMedia({ reducedMotion: "reduce" }); // scrolls at once
+    await open(page, "#q=card%3AARO%3A3000230&min=90");
+    expect(await inside(page)).toEqual([]);
+    const pills = await page.locator("[data-expand]").count();
+    expect(pills).toBe(2);
+    for (let i = 0; i < pills; i++) {
+      await page.locator("[data-expand]").nth(i).click();
+      await expect(net(page).locator('[data-edge][data-kind="link"]')).toHaveCount(1); // one link, no new node
+      await expect(net(page).locator('g[data-role="step2"]')).toHaveCount(0);
+      expect(await inside(page), `expanding pill ${i}`).toEqual([]);
+      // the new link's label is visible in the scroll box (the box has scrolled to it)
+      const label = (await net(page).locator('[data-kind="link"] .net-pill').boundingBox())!;
+      const box = (await page.locator(".net-scroll").boundingBox())!;
+      expect(label.x, "label not left of the box").toBeGreaterThanOrEqual(box.x - 1);
+      expect(label.x + label.width, "label not right of the box").toBeLessThanOrEqual(box.x + box.width + 1);
+      await page.locator("[data-expand]").nth(i).click(); // collapse again
+      await expect(net(page).locator('[data-kind="link"]')).toHaveCount(0);
+    }
+  });
+}
+
+test("card:ARO:3002546 with two neighbours expanded: everything drawn is inside the figure", async ({ page }) => {
+  await open(page, "#q=card%3AARO%3A3002546&min=90");
+  await page.getByRole("button", { name: "Expand matches of aac(6')-Ib4 (4)" }).click();
+  await page.getByRole("button", { name: "Expand matches of ant(3'')-Ii-aac(6')-IId (2)" }).click();
+  await expect(net(page).locator("g[data-node]")).toHaveCount(9);
+  expect(await inside(page)).toEqual([]);
+});
+
+test("the scroll box is obviously scrollable at 390 px: a drawn scrollbar and a shade at the edge that has more", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 900 });
+  await open(page, "#q=card%3AARO%3A3000230&min=90");
+  const box = page.locator(".net-scroll");
+  // Headless Chromium hides scrollbars whatever the CSS says, so the style is asserted: a 14 px classic scrollbar (which takes
+  // space, unlike a macOS overlay one) drawn in tokens.
+  expect(await box.evaluate((el) => getComputedStyle(el, "::-webkit-scrollbar").height)).toBe("14px");
+  expect(await box.evaluate((el) => getComputedStyle(el, "::-webkit-scrollbar-thumb").backgroundColor)).not.toBe("rgba(0, 0, 0, 0)");
+  const bg = await box.evaluate((el) => getComputedStyle(el).backgroundAttachment);
+  expect(bg).toContain("local"); // the covers that hide the shade at the ends
+  expect(bg).toContain("scroll");
+});
+
 test("the cap message appears when the 25 node cap drops step-2 nodes (card:ARO:3001052 at 90%, every match expanded)", async ({ page }) => {
   await open(page, "#q=card%3AARO%3A3001052&min=90");
   await expect(page.getByTestId("network-cap")).toHaveCount(0);

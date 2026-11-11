@@ -26,7 +26,8 @@ A shorter column is centred on the tallest one. The query is on the middle row o
 | COL_GAP | 376 | distance between column centres (128 between a match chip and the next column, room for the edge and its pill) |
 | BADGE_W, TEXT_PAD | 64, 10 | database badge width; text starts BADGE_W + TEXT_PAD from the chip's left edge |
 | LINE, QUERY_LINE | 20, 34, 47 and 28, 45, 61 | baselines of the three text lines from the chip top |
-| RIBBON | 14 high, 7 above the chip, 12 inset, 48 wide ("Best") or 136 ("Highest identity shown") | |
+| RIBBON | 14 high, 7 above the chip, 12 inset, 48 wide ("Best"), 136 ("Highest identity shown") or 80 ("Below 90%") | |
+| LABEL_TS, LABEL_CLEAR, SAMPLES | 0.5, 0.4, 0.6, 0.3, 0.7, 0.2, 0.8; 2; 32 | places tried for a "match of a match" label, how far a pill is grown when testing, samples per other edge |
 | EXPAND_HIT, EXPAND_H, EXPAND_R | 44, 20, 20 | click target of the "+n" pill (centred on the chip's right edge), drawn pill height, and how far right of the chip a step-2 edge starts |
 | FAN | 8 | spacing of the points where step-1 edges leave the query chip, at most (QUERY_H - 16) / (edges - 1) |
 | LINK_INSET, QUERY_LINK, BOW | 16, 30, 84 | a link between two matches leaves 16 from the chip centre and bows 84 right; a link back to the query enters 30 below its centre |
@@ -34,7 +35,7 @@ A shorter column is centred on the tallest one. The query is on the middle row o
 | PILL | pad 12, 6 per character, label height 18 | width of a pill grows with its text |
 | NAME_MAX, ID_MAX, DETAIL_MAX, QUERY_NAME_MAX | 19, 22, 24, 14 | characters per line before an ellipsis (`ellipsize`) |
 
-Size from content: height = HEADER + 2 * PAD + ROW * rows; width = x of the last used column + half its chip + SIDE (query only 256, with matches 644, with step-2 nodes 1020). Zero nodes gives 256 by 128. At the cap (1 query, 6 matches, 18 step-2 nodes) rows = 18 and the height is 1216.
+Size from content: height = max(HEADER + 2 * PAD + ROW * rows, lowest edge sample or label + PAD); width = max(x of the last used column + half its chip + SIDE, furthest right any edge sample (t = k / 32) or "match of a match" pill reaches + SIDE) (query only 256, with matches 644, with step-2 nodes 1020). Zero nodes gives 256 by 128. At the cap (1 query, 6 matches, 18 step-2 nodes) rows = 18 and the height is 1216.
 
 ## Edges
 
@@ -44,6 +45,18 @@ All edges are cubic curves that leave and enter horizontally (`from`, two contro
 - Step 2 to a new node (`expand`): from 20 right of the match chip (clear of the pill) to the step-2 chip's left edge; no label.
 - Step 2 to an existing match (`link`): a curve on the right of the column, from 16 below (or above) the chip centre to 16 above (or below) the other, bowing 84; label at t = 0.5.
 - Step 2 back to the query (`back`): from the match chip's left edge, 16 below its centre, to the query chip's right edge 30 below its centre; label at t = 0.5. Hidden by default when it is the reverse of an RBH match (`visibleEdges` in the model); drawn for a one-way match, where it is a separate hit.
+
+## Label placement
+
+Identity pills sit at t = 0.7 of their edge. A "match of a match" label (a `link` or `back` edge) is placed by `placeLabel`: for each t in LABEL_TS in order, the pill (12 + 6 * 16 = 108 wide, 18 high) is put on the curve; it is charged 1 for every sample (t = k / 32) of every other edge inside it grown by 2, and 10 for every identity pill or earlier label it overlaps. The first t with no charge wins; if none is clear, the cheapest, the earlier in the list on a tie.
+
+Worked case (fixture D: matches at y 80, 144, 208, a horizontal expand edge at y = 144 from x 648 to 756, the link from (628, 96) to (628, 192) with controls at x = 712). y(t) = 96 + 96 * (3ut^2 + t^3), x(t) = 628 * (u^3 + t^3) + 712 * 3ut. At t = 0.5: (691, 144), pill y 135 to 153, grown 133 to 155: the line y = 144 is inside, so it is charged. At t = 0.4 (u = 0.6): 3ut^2 = 0.288, t^3 = 0.064, y = 96 + 0.352 * 96 = 129.792, x = 628 * 0.28 + 712 * 0.72 = 688.48; pill y 120.792 to 138.792, grown to 140.792: clear. So the label is at (688.48, 129.792). Fixture A (the step-2 edges from the last match cross t = 0.5 and 0.4) has no clear place; t = 0.4 touches least (4 samples), see the tests. Fixture A's back link: t = 0.2 (2 samples) beats t = 0.5. An independent Python re-implementation (not shared with the app) gave the same three results.
+
+Limits: a crowded picture (four links in the same strip, `card:ARO:3002546`) still has some contact (7, 2, 0 and 7 samples, against 7, 10, 24 and 8 at t = 0.5). Chips are not obstacles.
+
+### Size with a link and no step-2 column (fixture E)
+
+A link between two matches bows 63 right of the chip edge (x(0.5) = 628 + 0.75 * 84 = 691 at the chip edge 628) and its label is 108 wide, so a picture with no step-2 column was clipped (owner bug, card:ARO:3000230 at 90%, first expand pill). Fixture E: query, matches m0 and m1 (rows = 2, y 80 and 144), link m0 to m1 from (628, 96) to (628, 128), controls x 712. Label at t = 0.5: (691, 112), pill x 637 to 745. Width = max(644, 745 + 16) = 761; the curve itself reaches 691 only. Height = max(192, 121 + 16) = 192. Without the link the width is the plain 644. Tests: `src/networkLayout.test.ts` (fixture E and an every-sample-inside check) and `tests/network-release.spec.ts` (every drawn edge, pill and chip inside the svg's box at 390, 700 and 1000 px).
 
 ## Click targets
 
@@ -68,8 +81,8 @@ Fixture A: query, 3 matches, 3 step-2 nodes (rows = 3). Height = 32 + 2 * 16 + 6
 | Edge, query to last match | from (240, 152) to (380, 208); dx = 70 | controls (310, 152), (310, 208) |
 | Identity pill, last | t = 0.7, weights 0.027, 0.189, 0.441, 0.343: x = 6.48 + 58.59 + 136.71 + 130.34; y = 0.216 * 152 + 0.784 * 208 | (332.12, 195.904) |
 | Step-2 edge, last match to middle step-2 node | from (628 + 20, 208) to (880 - 124, 144) | (648, 208) to (756, 144) |
-| Link, first to last match | from (628, 80 + 16) to (628, 208 - 16), controls x 628 + 84 | label (0.25 * 628 + 0.75 * 712, 144) = (691, 144) |
-| Back link, last match to query | from (380, 224) to (240, 174); controls (310, 224), (310, 174) | label (310, 199) |
+| Link, first to last match | from (628, 80 + 16) to (628, 208 - 16), controls x 628 + 84 | label would be (0.25 * 628 + 0.75 * 712, 144) = (691, 144) at t = 0.5; moved, see Label placement: t = 0.4, (688.48, 129.792) |
+| Back link, last match to query | from (380, 224) to (240, 174); controls (310, 224), (310, 174) | label would be (310, 199) at t = 0.5; moved: t = 0.2, (345.28, 218.8) (0.512 * 380 + 0.384 * 310 + 0.096 * 310 + 0.008 * 240; 0.896 * 224 + 0.104 * 174) |
 | Centring, 2 matches beside 3 step-2 nodes | offset (3 - 2) / 2 = 0.5: y = 48 + 32 + 32, and + 64 | match rows 112 and 176 |
 | Query only | width 128 + 112 + 16, height 32 + 32 + 64 | 256 by 128 |
 | Chip outlines for a 248 by 52 rect at (364, 182) | corner 10, pill radius 26 | see `chipPath` tests |
