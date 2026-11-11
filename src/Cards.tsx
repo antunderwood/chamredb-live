@@ -9,7 +9,7 @@ import type { Entry } from "./types";
 const CHIP_BG = { query: "bg-chip-query", db: "bg-chip-db", name: "bg-chip-name", match: "bg-chip-match" } as const;
 
 export function Chip({ kind, children }: { kind: keyof typeof CHIP_BG; children: ReactNode }) {
-  return <span data-chip={kind} className={`${CHIP_BG[kind]} px-3 py-1 text-base font-semibold text-chip-fg break-words`}>{children}</span>;
+  return <span data-chip={kind} className={`${CHIP_BG[kind]} px-3 py-1 text-base font-semibold text-chip-fg min-w-0 [overflow-wrap:anywhere]`}>{children}</span>;
 }
 
 // The joined chips of one panel heading (Query or Match, database, name with id).
@@ -18,10 +18,11 @@ export function ChipRow({ children }: { children: ReactNode }) {
   return <span className="inline-flex max-w-full flex-wrap overflow-hidden rounded-lg shadow-card">{children}</span>;
 }
 
-export function Card({ title, children, ...rest }: { title: string; children: ReactNode } & Record<`data-${string}`, string>) {
+export function Card({ title, level = 4, children, ...rest }: { title: string; level?: 3 | 4; children: ReactNode } & Record<`data-${string}`, string>) {
+  const Heading = `h${level}` as const;
   return (
     <div className="min-w-0 rounded-xl bg-surface p-3 shadow-card sm:p-4" {...rest}>
-      <h4 className="mb-2 text-base font-semibold break-words">{title}</h4>
+      <Heading className="mb-2 text-base font-semibold break-words">{title}</Heading>
       {children}
     </div>
   );
@@ -40,9 +41,10 @@ export function Field({ label, field, children }: { label: string; field: string
 // Phenotype of the entry (query) or of a match. The text is the stored text, never rephrased; the additional
 // phenotype is a separate list, shown only when present. "Not recorded" is a gap in the source record.
 export function PhenotypeCard({ entry, of }: { entry: Entry; of: "query" | "match" }) {
+  const level = of === "query" ? 3 : 4; // under the query panel's h2, under a match panel's h3
   const extra = additionalPhenotypeText(entry);
   return (
-    <Card title={of === "match" ? "Phenotype of this match" : "Phenotype"} data-field={of === "match" ? "match-phenotype" : "phenotype"}>
+    <Card level={level} title={of === "match" ? "Phenotype of this match" : "Phenotype"} data-field={of === "match" ? "match-phenotype" : "phenotype"}>
       {hasPhenotype(entry) ? (
         <div data-phenotype-primary><PhenotypeList text={phenotypeText(entry)} /></div>
       ) : (
@@ -68,10 +70,10 @@ export function PhenotypeCard({ entry, of }: { entry: Entry; of: "query" | "matc
 }
 
 // PMID links, is_a and product, each only when the entry has it. Text is as stored.
-export function MetadataCard({ entry }: { entry: Entry }) {
+export function MetadataCard({ entry, level = 4 }: { entry: Entry; level?: 3 | 4 }) {
   const m = otherMetadata(entry);
   return (
-    <Card title="Other metadata" data-field="other-metadata">
+    <Card level={level} title="Other metadata" data-field="other-metadata">
       {hasOtherMetadata(m) ? (
         <dl>
           {m.pmids.length > 0 && (
@@ -82,6 +84,7 @@ export function MetadataCard({ entry }: { entry: Entry }) {
                     {p.href ? (
                       <a className="underline decoration-label decoration-2 underline-offset-2" href={p.href} target="_blank" rel="noopener noreferrer">
                         {p.id}
+                        <span className="sr-only"> (PubMed, opens in new tab)</span>
                       </a>
                     ) : (
                       p.id

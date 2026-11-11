@@ -29,7 +29,7 @@ test("every field of the entry is shown verbatim, PMIDs link to PubMed and open 
   const items = meta.locator("[data-pmid]");
   await expect(items).toHaveCount(n.PMID!.length);
   for (const [i, id] of n.PMID!.entries()) {
-    await expect(items.nth(i)).toHaveText(id);
+    await expect(items.nth(i)).toHaveText(/^[0-9]+$/.test(id) ? `${id} (PubMed, opens in new tab)` : id);
     const link = items.nth(i).getByRole("link");
     if (/^[0-9]+$/.test(id)) {
       await expect(link).toHaveAttribute("href", `https://pubmed.ncbi.nlm.nih.gov/${id}/`);
@@ -91,6 +91,27 @@ test("the network is its own section under the query panel, open by default", as
   const y = async (sel: string) => (await page.locator(sel).first().boundingBox())!.y;
   expect(await y('[data-testid="network-section"]')).toBeGreaterThan(await y('[data-query]'));
   expect(await y('[data-match]')).toBeGreaterThan(await y('[data-testid="network-section"]'));
+});
+
+test("a row below 90% in a group that is not weak says so; the 90.0% row does not", async ({ page }) => {
+  await search(page, "card:ARO:1000");
+  await page.getByLabel("Minimum identity").fill("80");
+  await expect(page.locator('[data-match="resfinder:blaXlow"] [data-field="below-line"]')).toContainText("Below 90% identity");
+  await expect(page.locator('[data-match="ncbi:WP_4.1"] [data-field="below-line"]')).toHaveCount(0); // exactly 90.0%
+  await expect(page.locator('[data-match="resfinder:blaX"] [data-field="below-line"]')).toHaveCount(0);
+});
+
+test("the query panel's cards are h3 under its h2, a match panel's cards h4 under its h3", async ({ page }) => {
+  await search(page, "card:ARO:1000");
+  await expect(page.getByRole("region", { name: "Query entry" }).getByRole("heading", { level: 3 })).toHaveText(["Phenotype", "Other metadata"]);
+  await expect(page.locator('[data-match="ncbi:WP_1.1"]').getByRole("heading", { level: 4 })).toHaveText(["Phenotype of this match", "Other metadata", "Match details"]);
+});
+
+test("no horizontal overflow at 768 px, where the three columns begin", async ({ page }) => {
+  await page.setViewportSize({ width: 768, height: 900 });
+  await search(page, "card:ARO:1000");
+  await expect(page.locator("[data-match]").first()).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0);
 });
 
 test("cards stack in one column at phone width and sit side by side on a wide screen", async ({ page }) => {

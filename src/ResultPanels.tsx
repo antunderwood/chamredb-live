@@ -30,7 +30,7 @@ export function ResultPanels({ query, groups, weakBelow }: { query: Entry; group
             )}
             <ul className="mt-3 space-y-4">
               {g.matches.map((m) => (
-                <MatchPanel key={m.entry.id} match={m} native={m.entry.id.slice(g.database.length + 1)} weak={weak} />
+                <MatchPanel key={m.entry.id} match={m} native={m.entry.id.slice(g.database.length + 1)} weak={weak} weakBelow={weakBelow} />
               ))}
             </ul>
           </section>

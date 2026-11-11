@@ -8,7 +8,12 @@ export const pct = (fraction: number) => `${(fraction * 100).toFixed(1)}%`;
 export const TYPE_LABEL: Record<MatchType, string> = { RBH: "Reciprocal best hit", OWH: "One-way hit" };
 
 // A group whose top identity is below `weakBelow` (a fraction) is weak evidence of equivalence (ADR 0004).
-export const isWeakGroup = (g: MatchGroup, weakBelow: number): boolean => Math.max(...g.matches.map((m) => m.identity)) < weakBelow;
+// Compared at 3 decimals of the fraction, like the filter and the best flag in query.ts, so a row shown as 90.0% is never
+// called weak. An empty group is not weak (it shows nothing).
+const thousandths = (fraction: number) => Math.round(fraction * 1000);
+export const isWeakGroup = (g: MatchGroup, weakBelow: number): boolean =>
+  g.matches.length > 0 && thousandths(Math.max(...g.matches.map((m) => m.identity))) < thousandths(weakBelow);
+export const isBelow = (identity: number, weakBelow: number): boolean => thousandths(identity) < thousandths(weakBelow);
 
 const PUBMED = "https://pubmed.ncbi.nlm.nih.gov/";
 

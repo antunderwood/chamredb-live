@@ -12,7 +12,7 @@ export function QueryPanel({ entry }: { entry: Entry }) {
       </h2>
       <div className="grid gap-3 md:grid-cols-2">
         <PhenotypeCard entry={entry} of="query" />
-        <MetadataCard entry={entry} />
+        <MetadataCard entry={entry} level={3} />
       </div>
     </section>
   );

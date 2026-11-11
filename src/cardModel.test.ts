@@ -97,6 +97,13 @@ describe("matchDetails (fixture, hand-worked)", () => {
     expect(matchDetails(g.matches[0], true)).toEqual({ identity: "88.0%", coverage: "100.0%", type: "OWH", typeLabel: "One-way hit", badge: "highest" });
     expect(isWeakGroup(groups.find((x) => x.database === "ncbi")!, 0.9)).toBe(false);
   });
+  it("compares at 3 decimals like the filter: 0.8996 shows as 90.0% and is not weak; an empty group is not weak", () => {
+    const m = { ...matchGroups(fx, "card:ARO:1000", 0.9)[0].matches[2], identity: 0.8996 };
+    expect(matchDetails(m, false).identity).toBe("90.0%");
+    expect(isWeakGroup({ database: "ncbi", matches: [m] }, 0.9)).toBe(false);
+    expect(isWeakGroup({ database: "ncbi", matches: [{ ...m, identity: 0.8994 }] }, 0.9)).toBe(true);
+    expect(isWeakGroup({ database: "ncbi", matches: [] }, 0.9)).toBe(false);
+  });
   it("exactly 0.9 is not weak", () => {
     const m = matchGroups(fx, "card:ARO:1000", 0.9)[0].matches[2];
     expect(m.identity).toBe(0.9);
