@@ -26,7 +26,7 @@ function save(choice: Choice) {
   }
 }
 
-export function Header() {
+export function Header({ onAbout }: { onAbout: () => void }) {
   const [choice, setChoice] = useState<Choice | null>(savedChoice);
   const [systemDark, setSystemDark] = useState(() => window.matchMedia(DARK_QUERY).matches);
   const dark = choice ? choice === "dark" : systemDark;
@@ -53,14 +53,6 @@ export function Header() {
   };
 
   const goToQuery = () => document.getElementById("entry-query")?.focus();
-  const goToAbout = () => {
-    const about = document.querySelector<HTMLDetailsElement>('[data-testid="about"]');
-    if (!about) return;
-    about.open = true;
-    about.scrollIntoView({ block: "start" });
-    about.querySelector("summary")?.focus();
-  };
-
   return (
     <header className="site-header bg-brand text-brand-fg">
       <div className="mx-auto flex max-w-shell flex-wrap items-center gap-x-2 gap-y-1 px-4 py-3">
@@ -74,7 +66,7 @@ export function Header() {
               <button type="button" onClick={goToQuery} className="nav-item nav-item-active">Query</button>
             </li>
             <li>
-              <button type="button" onClick={goToAbout} className="nav-item">About</button>
+              <button type="button" onClick={onAbout} className="nav-item">About</button>
             </li>
             <li>
               <a href={CODE_URL} className="nav-item">Code</a>

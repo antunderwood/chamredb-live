@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { createRoot } from "react-dom/client";
 import "./app.css";
 import { Footer } from "./Footer";
@@ -7,7 +7,8 @@ import { Header } from "./Header";
 import { HowToRead } from "./HowToRead";
 import { formatHash, MAX_QUERY, parseHash, type HashState } from "./hash";
 import { ResultPanels } from "./ResultPanels";
-import { About } from "./About";
+import { AboutPanel, type AboutPanelHandle } from "./AboutPanel";
+import { useProvenance } from "./provenance";
 import { findEntries, matchGroups, prime, suggest } from "./query";
 import { DATABASES, type Candidate, type Database, type Index } from "./types";
 
@@ -26,8 +27,11 @@ function syncUrl(state: HashState) {
 }
 
 function App() {
+  const panel = useRef<AboutPanelHandle>(null);
+  const openPanel = (section: "about" | "data") => panel.current?.open(section);
   const [index, setIndex] = useState<Index | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const { provenance, error: provenanceError } = useProvenance(index?.release);
   const [initial] = useState(() => parseHash(window.location.hash)); // a shared link restores the search
   const [text, setText] = useState(initial.q);
   const [searched, setSearched] = useState<string | null>(initial.q || null);
@@ -134,7 +138,7 @@ function App() {
 
   return (
     <>
-    <Header />
+    <Header onAbout={() => openPanel("about")} />
     <main className="mx-auto max-w-shell px-4 py-8">
       {/* The page head and the controls keep a reading width; the results below use the whole shell (#25). */}
       <div className="max-w-3xl">
@@ -277,10 +281,10 @@ function App() {
       )}
       <div className="max-w-3xl">
         <HowToRead weakPct={WEAK_PCT} />
-        <About />
       </div>
     </main>
-    <Footer release={index?.release} />
+    <Footer release={index?.release} provenance={provenance} error={provenanceError} onOpen={openPanel} />
+    <AboutPanel ref={panel} provenance={provenance} error={provenanceError} release={index?.release} />
     </>
   );
 }

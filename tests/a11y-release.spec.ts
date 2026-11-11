@@ -11,7 +11,9 @@ const rgb = (hex: string) => {
 };
 
 for (const scheme of ["light", "dark"] as const) {
-  test(`${scheme}: the footer is readable (muted text on the background, border token, underlined link)`, async ({ page }) => {
+  // #21: the footer is one line; its "Release page" link moved into the About and data panel, so the underline check
+  // reads the footer's own Code link and buttons, and the panel gets the same token checks (tested pairs in contrast.ts).
+  test(`${scheme}: the footer and the About and data panel are readable (token colours, underlined links)`, async ({ page }) => {
     const t = readThemes(readFileSync("public/theme.css", "utf8"))[scheme];
     await page.emulateMedia({ colorScheme: scheme });
     await page.goto("./");
@@ -20,6 +22,15 @@ for (const scheme of ["light", "dark"] as const) {
     expect(await footer.evaluate((el) => getComputedStyle(el).color)).toBe(rgb(t["--muted"]));
     expect(await page.locator("body").evaluate((el) => getComputedStyle(el).backgroundColor)).toBe(rgb(t["--bg"]));
     expect(await footer.evaluate((el) => getComputedStyle(el).borderTopColor)).toBe(rgb(t["--border"]));
-    expect(await footer.getByRole("link", { name: "Release page" }).evaluate((el) => getComputedStyle(el).textDecorationLine)).toContain("underline");
+    for (const l of [footer.getByRole("link", { name: "Code" }), footer.getByRole("button", { name: "Sources and checksums" }), footer.getByRole("button", { name: "About" })]) {
+      expect(await l.evaluate((el) => getComputedStyle(el).textDecorationLine)).toContain("underline");
+    }
+    await footer.getByRole("button", { name: "Sources and checksums" }).click();
+    const panel = page.getByRole("dialog", { name: "About and data" });
+    expect(await panel.evaluate((el) => getComputedStyle(el).backgroundColor)).toBe(rgb(t["--surface"])); // --fg and --muted on --surface: tested pairs
+    expect(await panel.evaluate((el) => getComputedStyle(el).color)).toBe(rgb(t["--fg"]));
+    expect(await panel.locator("[data-sha]").first().evaluate((el) => getComputedStyle(el).backgroundColor)).toBe(rgb(t["--panel"])); // --fg on --panel
+    expect(await panel.getByRole("button", { name: "Close" }).evaluate((el) => getComputedStyle(el).borderTopColor)).toBe(rgb(t["--control-border"]));
+    expect(await panel.getByRole("link", { name: "Release page" }).evaluate((el) => getComputedStyle(el).textDecorationLine)).toContain("underline");
   });
 }
