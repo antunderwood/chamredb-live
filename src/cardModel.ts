@@ -15,6 +15,9 @@ export const isWeakGroup = (g: MatchGroup, weakBelow: number): boolean =>
   g.matches.length > 0 && thousandths(Math.max(...g.matches.map((m) => m.identity))) < thousandths(weakBelow);
 export const isBelow = (identity: number, weakBelow: number): boolean => thousandths(identity) < thousandths(weakBelow);
 
+// DOM id of a match's card, so the comparison strip can move focus to it. Entry ids are unique in the index.
+export const cardDomId = (entryId: string) => `card-${entryId}`;
+
 const PUBMED = "https://pubmed.ncbi.nlm.nih.gov/";
 
 // A PubMed id is digits only. The stored value is used unchanged in the address; anything else (the release has

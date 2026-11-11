@@ -26,6 +26,9 @@ CASES = [
     ("card:ARO:3000005", 0.5),  # ... and shown at 0.5
     ("card:ARO:3000579", 0.9),  # several resfinder matches at or above 0.9, not all best
     ("card:ARO:3003873", 0.5),  # has a match at identity exactly 0.5: included at 0.5 (inclusive threshold)
+    ("card:ARO:3002650", 0.9),  # best match coverage above 1 (comparison strip overflow mark, #20)
+    ("card:ARO:3000172", 0.5),  # Best at or above 0.9 beside matches below 0.9 in the same group (#20)
+    ("card:ARO:3002972", 0.9),  # top identity exactly 0.900: Best, not weak (#20)
 ]
 
 

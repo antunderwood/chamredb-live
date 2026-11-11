@@ -17,3 +17,17 @@ The picture of the query and its matches is the interactive SVG in `src/NetworkV
 - A "+n" pill on a match is a separate button ("Expand matches of X (n)", `aria-expanded`); it adds that entry's own matches in a third column ("Matches of a match"), dashed and lighter, each labelled "match of X" on its chip. The caption says a match of a match is not a match of the query. A step-2 hit that is also a match of the query is not a new node: a lighter link between the two existing nodes is drawn and labelled "match of a match". Step-2 edges carry no identity label. The reverse hit from an RBH match back to the query (expected from reciprocity) is hidden and counted in the caption. Expansion is React state: not in the address, reset when the query changes. The 25 node cap shows one line of text (`network-cap`).
 - The figure keeps its design width inside its own box (`overflow-x: auto`, `tabindex="0"`, labelled) so a node stays at least 44 CSS pixels at any width; the page itself does not scroll sideways. On a wide screen the section widens past the text column so the three column picture fits. A second, portrait layout for narrow screens is a follow-up.
 - `prefers-reduced-motion: reduce`: no entrance animation or transition.
+
+## Comparison strip bars (#20, ADR 0006)
+
+The bars in the at-a-glance strip have their own single mapping, `scale(value, width = 200)` in `src/bars.ts`: `length = min(max(value, 0), 1) x W` with W = 200 px, and `overflow` when the value is above 1 at the displayed precision (`round(value x 1000) > 1000`), so a coverage printed as 100.0% never gets the mark. A coverage over 100% is drawn full length with a chevron, and its exact percentage is printed beside it.
+
+| Value | Arithmetic | Length (px) | Overflow |
+| --- | --- | --- | --- |
+| 0 | 0 x 200 | 0 | no |
+| 0.5 | 0.5 x 200 | 100 | no |
+| 0.9 (weak line) | 0.9 x 200 | 180 | no |
+| 1.0 | 1.0 x 200 | 200 | no |
+| 1.3 (a coverage) | min(1.3, 1) x 200 | 200 | yes |
+
+The weak-evidence mark is a dashed `--danger` line at `scale(0.90)` = 180 px, labelled "90%" above the bar, on the identity bar only. It is an interpretation, not a filter. The minimum identity is not drawn on the bars: every shown bar is at or above it by definition, so a line for it repeated the slider and was read as a second threshold (owner decision, 2026-11-11). The line sits on a 5 px `--surface` halo, so it is read against `--surface` (4.5:1 for `--danger`) where it crosses the bar fill. Hand-worked values: `tests/fixtures/README.md`, "Bar scale"; tests: `src/bars.test.ts` and `tests/comparison.spec.ts`.

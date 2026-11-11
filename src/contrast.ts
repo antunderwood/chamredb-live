@@ -95,4 +95,5 @@ export const PAIRS: [string, string, number, string][] = [
   ["--best", "--surface", 3, "mark"],
   ["--best", "--panel", 3, "mark"],
   ["--control-border", "--panel", 3, "mark (step-2 edges and chip outlines)"],
+  ["--label", "--panel", 3, "bar fill on its track (comparison strip)"],
 ];

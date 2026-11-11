@@ -61,3 +61,33 @@ Sign-off: signed off by the repo owner on 2026-11-10 after reviewing the edge li
 | resfinder:orphan (no field at all) | none | none | none |
 
 The invented `is_a`, `product` and PMIDs on card:ARO:2000 exist to cover an entry with every field; a real CARD entry never has a product.
+
+### Comparison strip (ticket #20; worked by hand from the match table above)
+
+One row per source database other than the query's, in the order card, ncbi, resfinder, from the query's own matches (out-edges) only. A row lists every match flagged best (ties all listed), its identity, coverage and type, and the number of matches shown in that database. A database with no match at or above the minimum identity has one "No match at or above N% identity" row and no bar, with the number of matches the minimum hides (0: none at any identity). Below 90% the label is "Highest identity shown", not "Best".
+
+| Query | Min | Database | Row |
+| --- | --- | --- | --- |
+| card:ARO:1000 | 90% | ncbi | Best: WP_1.1 (97.0%, 100.0%, RBH) and WP_3.1 (97.0%, 100.0%, OWH); 3 matches shown |
+| card:ARO:1000 | 90% | resfinder | Best: blaX (100.0%, 100.0%, RBH); 1 match shown |
+| card:ARO:1000 | 80% | resfinder | Best: blaX (100.0%, 100.0%, RBH); 2 matches shown (blaXlow 0.85 counted, not best) |
+| card:ARO:2000 | 90% | ncbi | Best: WP_4.1 (92.0%, 105.0% with the overflow mark, RBH); 1 match shown |
+| card:ARO:2000 | 90% | resfinder | No match at or above 90% identity; 1 match below 90% (tetM 0.88) |
+| card:ARO:2000 | 80% | resfinder | Highest identity shown: tetM (88.0%, 100.0%, OWH); 1 match shown |
+| resfinder:orphan | 90% | card, ncbi | No match at or above 90% identity (both); no match at any identity |
+
+### Bar scale (src/bars.ts; worked by hand, bar width W = 200 px)
+
+`length = min(max(value, 0), 1) x W`; `overflow` when the value is above 1 at the displayed precision (`round(value x 1000) > 1000`), so 1.0004 (printed 100.0%) has no mark.
+
+| Value | Length (px) | Overflow |
+| --- | --- | --- |
+| 0 | 0 | no |
+| 0.5 | 100 | no |
+| 0.9 (the weak line) | 180 | no |
+| 1.0 | 200 | no |
+| 1.3 (a coverage) | 200 | yes |
+
+So in the strip the dashed weak-evidence mark, labelled "90%", is drawn at x = 180 on every identity bar. The minimum identity is a filter and is not drawn on the bars (owner decision, 2026-11-11). tetM at 80% has a 176 px fill, ending just short of the mark.
+
+Sign-off: worked by the implementer from the signed match table above, re-derived by an independent reviewer, and signed off by the repo owner on 2026-11-11 (comparison strip rows 1 to 7 and the bar scale, with the single labelled 90% mark and no minimum identity line on the bars).

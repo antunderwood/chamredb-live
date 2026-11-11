@@ -1,6 +1,6 @@
 import type { HTMLAttributes } from "react";
 import { Card, Chip, ChipRow, Field, MetadataCard, PhenotypeCard } from "./Cards";
-import { isBelow, matchDetails } from "./cardModel";
+import { cardDomId, isBelow, matchDetails } from "./cardModel";
 import { showInNetwork } from "./NetworkView";
 import type { Match } from "./types";
 
@@ -12,7 +12,7 @@ export function MatchPanel({ match, native, weak, weakBelow, pair }: { match: Ma
   const { entry } = match;
   // tabIndex -1: the picture can move focus to this card ("L" on a node); `pair` lights it up with its node.
   return (
-    <li className="rounded-2xl bg-panel p-3 sm:p-4" data-match={entry.id} data-best={d.badge ?? undefined} tabIndex={-1} {...pair}>
+    <li id={cardDomId(entry.id)} className="rounded-2xl bg-panel p-3 sm:p-4" data-match={entry.id} data-best={d.badge ?? undefined} tabIndex={-1} {...pair}>
       <div className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-2">
         <h3>
           <ChipRow>

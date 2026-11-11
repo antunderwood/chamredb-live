@@ -89,6 +89,7 @@ Earlier change to reach the thresholds: the default `--border` (`#d0d0d0` light,
 | theme.css | light | --best on --surface | 5.54 | 3:1 | pass |
 | theme.css | light | --best on --panel | 4.44 | 3:1 | pass |
 | theme.css | light | --control-border on --panel | 3.79 | 3:1 | pass |
+| theme.css | light | --label on --panel | 4.87 | 3:1 | pass |
 | theme.css | dark | --fg on --bg | 15.16 | 4.5:1 | pass |
 | theme.css | dark | --fg on --surface | 11.50 | 4.5:1 | pass |
 | theme.css | dark | --muted on --bg | 8.79 | 4.5:1 | pass |
@@ -134,6 +135,7 @@ Earlier change to reach the thresholds: the default `--border` (`#d0d0d0` light,
 | theme.css | dark | --best on --surface | 8.46 | 3:1 | pass |
 | theme.css | dark | --best on --panel | 10.06 | 3:1 | pass |
 | theme.css | dark | --control-border on --panel | 4.76 | 3:1 | pass |
+| theme.css | dark | --label on --panel | 8.76 | 3:1 | pass |
 | theme.bsb.css | light | --fg on --bg | 16.29 | 4.5:1 | pass |
 | theme.bsb.css | light | --fg on --surface | 18.48 | 4.5:1 | pass |
 | theme.bsb.css | light | --muted on --bg | 5.07 | 4.5:1 | pass |
@@ -179,6 +181,7 @@ Earlier change to reach the thresholds: the default `--border` (`#d0d0d0` light,
 | theme.bsb.css | light | --best on --surface | 5.54 | 3:1 | pass |
 | theme.bsb.css | light | --best on --panel | 4.88 | 3:1 | pass |
 | theme.bsb.css | light | --control-border on --panel | 5.07 | 3:1 | pass |
+| theme.bsb.css | light | --label on --panel | 5.07 | 3:1 | pass |
 | theme.bsb.css | dark | --fg on --bg | 16.29 | 4.5:1 | pass |
 | theme.bsb.css | dark | --fg on --surface | 14.36 | 4.5:1 | pass |
 | theme.bsb.css | dark | --muted on --bg | 11.56 | 4.5:1 | pass |
@@ -224,6 +227,7 @@ Earlier change to reach the thresholds: the default `--border` (`#d0d0d0` light,
 | theme.bsb.css | dark | --best on --surface | 10.01 | 3:1 | pass |
 | theme.bsb.css | dark | --best on --panel | 10.77 | 3:1 | pass |
 | theme.bsb.css | dark | --control-border on --panel | 5.23 | 3:1 | pass |
+| theme.bsb.css | dark | --label on --panel | 10.95 | 3:1 | pass |
 
 Limits: the pairs are the ones the components use today, plus the reserved chip and label tokens; a new component that pairs tokens differently needs a new row in `PAIRS` (`src/contrast.ts`). Text drawn at the page default size is assumed (no large-text relaxation is used). The BSB light accent on Pearl is 3.03:1, a thin margin over 3:1.
 
@@ -263,3 +267,9 @@ Example buttons (ticket #7) use a 10% mix of `--accent` into `--surface` as thei
 - `prefers-reduced-motion: reduce` removes the entrance animation and the outline transition (`tests/network.spec.ts`).
 - Contrast: `tests/network.spec.ts` computes, in light and dark, the contrast of every chip text on its fill (4.5:1) and of chip outlines, edges, pills and the expand pill on the panel (3:1), from the browser's computed colours. The token pairs are in the table above.
 - Not checked: a screen reader on the SVG buttons, forced-colours mode, a portrait layout for narrow screens (follow-up).
+
+## Comparison strip (#20)
+
+The at-a-glance strip carries every value as text beside its bar: identity and coverage as percentages, the type written out next to its arrow glyph (solid two-headed for RBH, dashed one-headed for OWH), the label Best or Highest identity shown, and the match count. The bars repeat the numbers. The bar fill is `--label` on a `--panel` track (4.87:1 light, 8.76:1 dark), and the track is outlined in `--control-border` (3:1 on `--surface`, already a tested pair), so the 100% end can be judged. The weak-evidence mark (`--danger`, dashed) sits on a 5 px `--surface` halo, so it is read against `--surface` (a tested pair at 4.5:1) where it crosses the fill, and its "90%" label is `--danger` text on `--surface`; the dash, the label and the key identify it without colour. The minimum identity is not drawn on the bars. The SVGs are `aria-hidden`; the values they draw are in the text.
+
+A top match's name is a button that scrolls its card into view and moves focus to it; each match card is therefore a focus target (`tabindex="-1"`, not a Tab stop) and shows the global focus ring. The value cells use `dd` with `display: contents` for the grid layout; this keeps `dd` semantics in current Chrome, Firefox and Safari 17 or later, which is the browser floor for this layout.
