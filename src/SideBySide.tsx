@@ -1,6 +1,6 @@
 import { Chip, ChipRow, PhenotypeBody } from "./Cards";
 import { comparisonRows } from "./comparison";
-import { sideBySide } from "./sideBySide";
+import { sideBySide } from "./sideBySideModel";
 import type { Entry, MatchGroup } from "./types";
 
 const ROLE = { query: "Query", best: "Best match", highest: "Highest identity shown" } as const;
