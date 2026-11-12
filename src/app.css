@@ -164,6 +164,10 @@ button[type="submit"]:not(:disabled):active {
   border-radius: 7px;
   border: 3px solid var(--border);
 }
+/* Portrait (a phone, src/networkLayout.ts PORTRAIT_BELOW): the figure is as wide as the box, so the box gives its padding up to it. */
+.net-portrait {
+  padding: 0;
+}
 .net-svg {
   display: block;
   margin: 0 auto;
